@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件课程格底色·widget_cell_bottom（运行时 setBackgroundTintList 上色）。
+     跨节次块的末行：只圆下两角；顶部外扩 2px 压住上一行。 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetTop="-2px"
+    android:insetBottom="5px">
+    <shape android:shape="rectangle">
+        <solid android:color="#FFFFFFFF" />
+        <corners android:bottomLeftRadius="6dp" android:bottomRightRadius="6dp" />
+    </shape>
+</inset>

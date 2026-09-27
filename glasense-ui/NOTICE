@@ -1,0 +1,17 @@
+Glasense UI (module: glasense-ui, namespace com.nevoit.glasense)
+===============================================================
+
+This module is taken from the Cresto project:
+
+    Cresto — https://github.com/Nevodev/Cresto
+    Copyright (c) Nevodev
+    Licensed under the Apache License, Version 2.0
+
+Modifications made for this project (WakeUp Pure / 课表 App):
+  * build.gradle.kts rewritten to drop the original version catalog (libs.*),
+    use explicit dependency coordinates, align minSdk to 26, and remove test configs.
+  * Test sources (src/test, src/androidTest) removed.
+
+The Apache-2.0 license text is available at:
+    https://www.apache.org/licenses/LICENSE-2.0
+See also the upstream repository's LICENSE and THIRD_PARTY_NOTICES.md.

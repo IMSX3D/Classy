@@ -1,0 +1,546 @@
+package com.imsx3d.classy.ui.screen.mine
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.imsx3d.classy.R
+import com.imsx3d.classy.ui.component.SettingsScaffold
+import com.imsx3d.classy.ui.component.sleepyExpandEnter
+import com.imsx3d.classy.ui.theme.SleepyTheme
+import com.imsx3d.classy.ui.component.sleepyExpandExit
+import com.imsx3d.classy.ui.component.GlasenseIconButton
+
+/**
+ * 开源许可与致谢子页 (v1.0.46 用户令: 从关于页长卡分离; v1.0.50 用户令:
+ * 致谢按"学校 / 跨校项目"两类组织, 单校卡展开看明细)。
+ *
+ * 关于页原样塞 GPL 正文 + 全部教务适配致谢, B 档 + 179 校 audit 落地后
+ * 致谢条目越滚越长, 关于页被拖成一屏读不完。拆为独立二级页:
+ *   - 关于页留一行入口 (标题+副题)
+ *   - 本页承载全部内容 — 许可证区块 + 致谢区块 + 顶层卡列表
+ *   - 顶层卡分两类:
+ *       跨校项目 (Foundational) = WakeUp / WakeupSchedule_BUPT / cqu.js 等
+ *         通用跨校适配参考, 单卡不可展开
+ *       单校项目 (PerSchool) = 1 学校 1 卡, 默认收起, 用户点击展开看该校所
+ *         参考的全部学生维护 GitHub 项目
+ *   - 展开/收起状态用 mutableStateMapOf 按卡片 id 维护, 进入页面不重置
+ *   - 布局与 HolidaySettingsScreen 同款: SettingsScaffold(大标题页头) + LazyColumn
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LicenseScreen(onBack: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val expanded = remember { mutableStateMapOf<String, Boolean>() }
+
+    // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
+    SettingsScaffold(
+        title = stringResource(R.string.license_page_title),
+        onBack = onBack,
+        verticalSpacing = 12.dp
+    ) {
+        // ---- 许可证区块 ----
+        item {
+            LicenseCard {
+                Text(
+                    text = stringResource(R.string.license_gpl_section),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.license_gpl_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
+
+        // ---- 贡献者区块 (直接向本项目提交代码并合入的开发者, 与上游参考仓库致谢区分) ----
+        item {
+            SectionHeader(stringResource(R.string.license_contributor_section))
+        }
+        items(
+            items = contributorEntries,
+            key = { it.id }
+        ) { entry ->
+            AttributionCard(
+                title = entry.title,
+                subtitle = entry.meta,
+                description = stringResource(entry.usageRes),
+                expanded = false,
+                onToggle = {}
+            )
+        }
+
+        // ---- 致谢导语区块 (可折叠: 默认收起, 点击展开看 about_license_body 全文) ----
+        item {
+            val bodyExpanded = expanded["__body__"] == true
+            LicenseCard {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded["__body__"] = !bodyExpanded },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.license_attribution_section),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.license_attribution_note),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.license_attribution_origin_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                    GlasenseIconButton(
+                        icon = if (bodyExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        contentDescription = stringResource(if (bodyExpanded) R.string.collapse else R.string.expand),
+                        onClick = { expanded["__body__"] = !bodyExpanded },
+                        tint = colors.onSurfaceVariant
+                                                )
+                }
+                AnimatedVisibility(
+                    visible = bodyExpanded,
+                    enter = sleepyExpandEnter(),
+                    exit = sleepyExpandExit()
+                ) {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Text(
+                            text = stringResource(R.string.about_license_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // ---- 跨校普适项目 (Foundational) ----
+        item {
+            SectionHeader(stringResource(R.string.license_foundational_section))
+        }
+        items(
+            items = attributionEntries,
+            key = { it.id }
+        ) { entry ->
+            AttributionCard(
+                title = entry.title,
+                subtitle = entry.meta,
+                description = entry.usage,
+                expanded = false,
+                onToggle = {}
+            )
+        }
+
+        // ---- 按学校致谢 (PerSchool, 可展开) ----
+        item {
+            SectionHeader(stringResource(R.string.license_perschool_section))
+        }
+        items(
+            items = perSchoolEntries,
+            key = { it.id }
+        ) { entry ->
+            AttributionCard(
+                title = entry.title,
+                subtitle = null,
+                description = null,
+                expanded = expanded[entry.id] == true,
+                onToggle = { expanded[entry.id] = !(expanded[entry.id] ?: false) },
+                expandedContent = {
+                    Column {
+                        entry.usage.split("\n").forEach { line ->
+                            Text(
+                                text = line,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+/** 一条顶层致谢卡: 跨校项目=不可展开, 单校=可展开。 */
+@Composable
+private fun AttributionCard(
+    title: String,
+    subtitle: String?,
+    description: String?,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    expandedContent: (@Composable () -> Unit)? = null
+) {
+    val colors = MaterialTheme.colorScheme
+    LicenseCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = expandedContent != null) { onToggle() },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.primary
+                    )
+                }
+            }
+            if (expandedContent != null) {
+                GlasenseIconButton(
+                    icon = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = if (expanded) "collapse" else "expand",
+                    onClick = onToggle,
+                    tint = colors.onSurfaceVariant
+                                        )
+            }
+        }
+        if (!expanded && !description.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded && expandedContent != null,
+            enter = sleepyExpandEnter(),
+            exit = sleepyExpandExit()
+        ) {
+            Spacer(modifier = Modifier.height(6.dp))
+            expandedContent?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    val colors = MaterialTheme.colorScheme
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = colors.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun LicenseCard(content: @Composable () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(colors.surfaceContainer)
+            .padding(16.dp)
+    ) {
+        content()
+    }
+}
+
+/**
+ * 顶层致谢条目 (跨校项目卡)。description 为可见文字段, 与原 BATCH_A/B/C/BATCH_D
+ * 致谢条目等价, 用于满足 AboutLicenseAttributionTest 的串级漂移测试。
+ * 项目名 / 作者 / license 名字符串是通用标识不翻译; description 文本是说明,
+ * 与 strings.xml 的 about_license_body 必须保持一致 (写卡 = 用户界面补强)。
+ */
+private data class AttributionEntry(
+    val id: String,
+    val title: String,
+    val meta: String,
+    val usage: String
+)
+
+/** 跨校普适项目 (单卡, 不可展开)。 */
+private val attributionEntries: List<AttributionEntry> = listOf(
+    AttributionEntry(
+        "foundational-wakeup", "WakeUp 课程表 (YZune)", "Apache-2.0",
+        "JwCourse / JwParser 中间结构语义与强智系 HTML 解析的参考实现"
+    ),
+    AttributionEntry(
+        "foundational-wakeup-bupt", "WakeupSchedule_BUPT (dIT8Zv)", "Apache-2.0",
+        "十二个教务解析器的上游: 强智全家族 (qz/qz_with_node/qz_br/qz_crazy/qz_old)、老版正方、URP、青果、新正方、HNUST 与 Parser 设计"
+    ),
+    AttributionEntry(
+        "foundational-wakeup-kotlin", "WakeupSchedule_Kotlin (YZune)", "Apache-2.0",
+        "经典金智 EAMS 导入实现 (TaskActivity 位图解析) 的参考"
+    ),
+    AttributionEntry(
+        "foundational-cqu-js", "时光课程表 cqu.js", "",
+        "重庆大学门户 REST 协议 (session / 课表 / 作息三接口) 的分析依据"
+    ),
+    AttributionEntry(
+        "foundational-shiguang", "shiguang_warehouse (XingHeYuZhuan)", "MIT",
+        "武汉理工大学 kcbcxby 协议、经典金智 EAMS (hunnu/uestc/hpu) 与新正方网格视图 (zhengfang_01) 的协议形态参考"
+    ),
+    AttributionEntry(
+        "foundational-zfn", "zfn_api (openschoolcn)", "MPL-2.0",
+        "新正方 jwglxt kbList 接口形态交叉验证"
+    ),
+    AttributionEntry(
+        "foundational-flow", "FlowCourse (jiaweiyaya)", "GPL-3.0",
+        "新正方 kbList 主流形态与 jc 多形态交叉验证"
+    ),
+    AttributionEntry(
+        "foundational-iwut", "iwut (TokenTeam)", "AGPL-3.0 · 仅参考协议形态",
+        "武汉理工大学节次 DM 映射的协议佐证 (未引用代码)"
+    ),
+    AttributionEntry(
+        "foundational-shangkeschedule", "「上课」shangkeschedule (qiqqqqq517)", "Apache-2.0",
+        "1776 校学校登记表在名单交叉复核中的对照数据源"
+    )
+)
+
+/**
+ * 按学校聚合: 每校一条卡, 展开后看到该校所参考的所有 GitHub 项目。
+ * 项目名 / 作者 / license 是通用标识, 不做翻译 (与测试 token 一致)。
+ * 用法: \n 分隔的字符串, 每行 = 一个仓库 + (作者, license)。
+ */
+private data class PerSchoolEntry(val id: String, val title: String, val usage: String)
+
+private val perSchoolEntries: List<PerSchoolEntry> = listOf(
+    PerSchoolEntry(
+        "school-hfut", "合肥工业大学 HFUT",
+        "HFUT-Schedule (Chiu-xaH, MIT)\nHfutOpenApi (BoynChan, MIT)\nhfut_schedule_hacker (Aoi-cn)\ndjango-hfut-auth (elonzh, MIT)\nhfut-api (hfut-soft-ware)\nhfut-api (SnowingFox)\nhfut_api_service (onlineG2)\nHFUTer (BrikerMan)\nHFUTICS (ssyu0808)\nAiSchedule-for-hfut (imnuke, GPL-3.0)\nAISchedule (HualiNox)\nclassduck (luyishui)"
+    ),
+    PerSchoolEntry(
+        "school-seu", "东南大学 SEU",
+        "SEUTimetable (sakimidare, Apache-2.0)\nAetik-yue/hormone (SEU SSO 入口)\nluzy99/SEUAutoLogin"
+    ),
+    PerSchoolEntry(
+        "school-zju", "浙江大学 ZJU",
+        "zju-ical-py (Xecades, LGPL-2.1)"
+    ),
+    PerSchoolEntry(
+        "school-ustc", "中国科学技术大学 USTC",
+        "USTC-timetable-to-ics (1970633640)\nustc-course-timetable (HowardZorn, GPL-3.0)\nustc-timetable (kirsh1, AGPL-3.0)"
+    ),
+    PerSchoolEntry(
+        "school-scu", "四川大学 SCU",
+        "ScuTimetable (Z-P-J)"
+    ),
+    PerSchoolEntry(
+        "school-neu", "东北大学 NEU",
+        "neu_wisedu2wakeup (CreamPig233)\nPopulusYang/NeuTimetable\nneucn/elise\nRekaYOO/NEU-JWXT-Toolkit\nPeterPtroc/neu-jwxt-to-wakeup\nleavesvv-source/NEU-Timetable"
+    ),
+    PerSchoolEntry(
+        "school-cqu", "重庆大学 CQU",
+        "时光课程表 cqu.js (茵符草)\n321CQU/pymycqu\nBillYang2016/CQU-class2ics\nhaowang02/CourseMonitor\nLengerHu/CQU_classtabletoics\nHagb/cqu_timetable_new\nVayneDuan/CQU-Grade-Monitor\nweearc/cm-http-api\nbarryZZJ/course_to_calander_converter"
+    ),
+    PerSchoolEntry(
+        "school-whut", "武汉理工大学 WHUT",
+        "courseTable (acm910)"
+    ),
+    PerSchoolEntry(
+        "school-uestc", "电子科技大学 UESTC",
+        "MilLoong/UESTC-EAMS-Helper-App\nMilLoong/UESTC-EAMS-Helper-Python\nKaranocaVe/UESTCJWCWatchdog\nwhtsky/uestc-eams-cleartimeout-userscript\nSunmxt/UESTC-EAMS"
+    ),
+    PerSchoolEntry(
+        "school-gdut", "广东工业大学 GDUT",
+        "N0tExpectErr0r/GDUT-ClassTimeTable\nRichard-Zheng/GDUT-Schedule-ng\nStarArchive/gdut-course-frontend\nStarArchive/gdut-course-backend\nHoneQ7/GDUT_iOS_Timetable"
+    ),
+    PerSchoolEntry(
+        "school-gdufe", "广东财经大学 GDUFE",
+        "jkgeekJack/Android-GDUFE-JWC-SDK-1.0.0\nKiteio/GDUFE-wrapper"
+    ),
+    PerSchoolEntry(
+        "school-gduf", "广东金融学院 GDUf",
+        "Kiteio/Punica\ngduf-finmind"
+    ),
+    PerSchoolEntry(
+        "school-gdufs", "广东外语外贸大学 GDUFS",
+        "yongjianzheng/Gdufszhushou\nCrazioker/agency"
+    ),
+    PerSchoolEntry(
+        "school-gdmu", "广东医科大学 GDMU",
+        "用户采集包实锤 zf_new 协议形态 (新正方 zftal-ui-v5 裸 /kbcx/ 路径), 参见 docs/release-notes-v1.0.49.md"
+    ),
+    PerSchoolEntry(
+        "school-csust", "长沙理工大学 CSUST",
+        "zHElEARN/CSUSTKit\nCreaMakers/EduSpider\ntimeisthe/CSUSTDataGet\nJulius-lq/EduAdminSystem\nJS-CAUTION/csust-course-schedule"
+    ),
+    PerSchoolEntry(
+        "school-bupt", "北京邮电大学 BUPT",
+        "helium777/bupt-course-grab\nJmPotato/BUPT-Grader\nSeizzzz/Auto-Login-BUPT"
+    ),
+    PerSchoolEntry(
+        "school-pku", "北京大学 PKU",
+        "zhongxinghong/PKUAutoElective\nthezzisu/pku-elective\nHovennnnn/PKUAutoElective2023\nLihhan/AutoElective_4_PKU\nAuYang261/PKU_Elective_Toolset"
+    ),
+    PerSchoolEntry(
+        "school-buct", "北京化工大学 BUCT",
+        "MarkYangKp/ZhengFangJY"
+    ),
+    PerSchoolEntry(
+        "school-ucas", "中国科学院大学 UCAS",
+        "ldiex/UCAS_Course_Schedule_Convertor\nHurray0/UCAS_GET_Course\ncld378632668/ucas_course_tool\nGentleCP/UCAS-Helper\nwirsbf/TraintimePda-UCAS\ntbjuechen/sep-api"
+    ),
+    PerSchoolEntry(
+        "school-bjfu", "北京林业大学 BJFU",
+        "Bloomberg2000/bjfu_course_ics_generator\nBloomberg2000/bjfu_util.py"
+    ),
+    PerSchoolEntry(
+        "school-ahu", "安徽大学 AHU",
+        "Tonyseth/AHU_JW_GPA_Calculator\nAhu_Plus (abydym, GPL-3.0)"
+    ),
+    PerSchoolEntry(
+        "school-nefu", "东北林业大学 NEFU",
+        "bboy-xp/nefu-crawler\nheyMahalo/crouse_select"
+    ),
+    PerSchoolEntry(
+        "school-dhu", "东华大学 DHU",
+        "tk.dcmmcc\nBad-086/DHU_CourseMonitor"
+    ),
+    PerSchoolEntry(
+        "school-ynufe", "云南财经大学 YNUFE",
+        "NINIYOYYO/ynufe-campus-app\nMiaoWuNYA/ynufeRealLogin"
+    ),
+    PerSchoolEntry(
+        "school-bit", "北京理工大学 BIT",
+        "BIT-Login (BIT101-dev)"
+    ),
+    PerSchoolEntry(
+        "school-bistu", "北京信息科技大学 BISTU",
+        "iBistu (ProjektMing)"
+    ),
+    PerSchoolEntry(
+        "school-ahujz", "安徽建筑大学 AHU-JZ",
+        "JdaAssist (CH4019, MIT)"
+    ),
+    PerSchoolEntry(
+        "school-cqytu", "重庆邮电大学移通学院 CQYTU",
+        "CQYTZFCheckScores (xM3GAN, Apache-2.0)"
+    ),
+    PerSchoolEntry(
+        "school-scau", "华南农业大学 SCAU",
+        "ScheduleXParser_SCAU (greyovo)"
+    ),
+    PerSchoolEntry(
+        "school-qlu", "齐鲁工业大学 QLU",
+        "JW-spider (Zhy423310825)"
+    ),
+    PerSchoolEntry(
+        "school-bhu", "渤海大学 BHU",
+        "BohaiServiceDome (joun233)"
+    ),
+    PerSchoolEntry(
+        "school-nepu", "东北石油大学 NEPU",
+        "WeNEPU (cutiechi)"
+    ),
+    PerSchoolEntry(
+        "school-nust", "南京理工大学 NUST",
+        "HeraldStudentCurriculum (idailylife)"
+    ),
+    PerSchoolEntry(
+        "school-buaa-byxt", "北京航空航天大学 byxt (2026-09)",
+        "fontlos/buaa-api (Rust, MIT)\nBUAASubnet/UBAA (Kotlin, MIT)\nCoolwindHF/buaa2wakeup (Python, MIT)\n" +
+            "awesome-buaa-cs/buaa-curriculum (API.md 旁证)\ncantBeFoundGroup/OpenBUAA (Python)\n" +
+            "el-ev/BUAA-ics-gen (Python, MIT)\nKrignd/KAgenda (Kotlin)\nYiki21/iclass_buaa_tui (Rust, GPL-3.0)\n" +
+            "Lidozs55/BUAAer-Smart-Schedule-on-electron (Vue)\nWhXcjm/buaa-byxt-aischedule (JS, GPL-3.0)\n" +
+            "MeanZhang/buaa-ai-schedule (JS, MIT, archived)\nAlyssumira/BUAA-Schedule (Kotlin, MIT)\n" +
+            "lyy1119/BuaaScheduleRender (Go, MIT, GSMIS 研究生形态参考)\n" +
+            "zjafb/BUAA-Hangzhou-Schedule (MIT, UBAA fork, 杭州校区旁证)"
+    ),
+    PerSchoolEntry(
+        "school-bjtu", "北京交通大学 BJTU",
+        "bjtu_mis_Android (wan300, MIT)\nBJTU-MIS-HarmonyOS (Anyes666, MIT)\nBJTUselfService (HFDLYS, MIT)\n" +
+            "bjtu-cli (fish2lab)\nBJTUselfService-macOS (fish2lab)\nBJTU-course-assistant (s1y4x1)\n" +
+            "ZiuChen/userscript (MIT)\nBJTU-iCalendar-Generator (ymzhang-cs, MIT)\nbjtu-timetable (Moliseeee)\n" +
+            "BJTU-course-autoget-program (hyskr)\nBjtuCoursePlatform (57Darling02)\nbjtuDean (jlytwhx, MIT)\n" +
+            "bjtubox_python (jlytwhx)\nCampus-Mate (Orien233)\nBJTU-STU-MCP (ymzhang-cs)\n" +
+            "CourseRobber (xschur)\nFuturemind-BJTU\nBJTU_ezRate (Yukikasu, MIT)\n" +
+            "bjtu_teaching_assessment (xxxand, MIT)\nBJTU-script (Coconut00)\nBJTU-CC (aooxin)\n" +
+            "CourseTable (etherealviator, MIT)\nZF-Assistant (mcdona1d)\n" +
+            "Greasy Fork 430918 北交大iCalender课表生成"
+    ),
+    PerSchoolEntry(
+        "school-jou", "江苏海洋大学 JOU",
+        "酱海带 jianghaidai (sunjingquan, 闭源参考, 仅协议分析未复用)\nJOU-Campus-Guide (sunjingquan)\njou_course_bot (brodamndamn)\nWehhit-server (dengjj)\nWehhit (zqy1)\nGrain (LeeReindeer, 浙江海洋大学, GPL-3.0)\n家庭记账系统 finance (GeorgeLeoo)\nfinance-server (GeorgeLeoo)\nJStore (GeorgeLeoo)\nRSSHub jou 路由 (RSSHub, MIT)"
+    ),
+    PerSchoolEntry(
+        "school-ysu", "燕山大学 YSU",
+        "LzBsA (github.com/LzBsA, boya_pp 协议适配原始提交, PR 复活)\nqnxg/hnu_query (qnxg, AGPL-3.0)\nqnxg/weihuda_backend (qnxg)\nheriec/suda-yjs-shedule (heriec)\ndlutor/chaoxingbook (dlutor, MIT)"
+    ),
+    PerSchoolEntry(
+        "school-swjtu", "西南交通大学 SWJTU",
+        "AmaneSuzuha000/SWJTU_Login (YHXT CAS + ytoken cookie + common API 直接证据)\n1-nuo/swjtu-course-grabber (ytoken 请求头 + JWT sub 学号 + SM2 选课加密)\nArex-lbb/auto-course-grabber (JWT + SM2 + A0422 失效码)\n1837634311/SWJTU-Course-Management-Script (GPL-3.0, TMS/vatuu 反向证据)\nHackSwjtu/Postime (MIT, 老教务网反向证据)\nlpzams/swjtu-course-crawler (旧 vatuu 反向证据)\n949144093/SWJTU-JiaoWuAutoLogin (旧 vatuu 反向证据)\nkakasearch/course_download (旧 vatuu 反向证据)\nzx1411057234/VatuuSpider (旧 vatuu 反向证据)\nkashaku/no-vatuu-evaluation (旧 vatuu 反向证据)\nJoe-create-star/swjtu-dektx-reminder (MIT, OCW/YETHAN 多租户旁证)"
+    ),
+    PerSchoolEntry(
+        "school-wakeup-family", "WakeUp 兼容协议族调研",
+        "Dawn-Course (HF-CYGG, GPL-3.0)\nWakeUp_SHU (ershiyidian)\nCourseHelper (jiangyiqi99, GPL-3.0)\naischedule-lit-kingosoft (icepie, MIT)\nXiaoAISchedule_hebust (web1n)\nai-schedule-chaoxing (moeshin, MIT)\ntzvcst-schedule-chaoxing (Sittymin, AGPL-3.0)\nxiaoai-shuwei-course (ZKJJaker, 反向证据)\njxufe-auto-evaluate (wzj1122, MIT)\nKINGOSOFT-LOGIN (52funny)\nxiaoaiSchedule (xiaxiaoyu8)\nmi-schedule (Kou-JunHao, MIT)\nAISchedule-xjsf (ltxhhz, MIT)\nAIScheduleSCAU (greyovo)\nMI_AI_Course_Schedule (ceresOPA)\nAISchedule-QiangZhi (MyLikeGirl)\nclasspush (sungithub270, GPL-3.0)\nXiaoAiScheduleOfSUOT (trueWangSyutung)\nXiaoAiCurriculumSchedule (LukeJean)\ngetICS (Konata09)\nWITClassScheduleToCalendar (DOROMOLLL, MIT)\nCrawlerCourseTable (canliture)\nSYU_KINGGOClassSel (XTAI9)\nhait_AICourseTable (zzzsq1)\nAIShedule_cqwu (cqwu-ehall, AGPL-3.0)\nWakeUpSchedule (Daydream357, MIT)\nshike-android (sw7943604-del)\nshiguang_Tester (XingHeYuZhuan, MIT)\ndutsso (yuanyuanzijin)\npub-docs (zfman, 青果接口文档)\neduData-GoBack (huhu415)\nNUISTTable (zyc-816)\nSCAU-Grad-Automatically-Fill-Evaluation-Form-JS (jiefing, Gwork 族控件命名旁证)"
+    ),
+    PerSchoolEntry(
+        "school-four-school-jw", "四校教务协议交叉验证（2026-09）",
+        "NWUPL: dream2333/NWUPL-Pure-EMS (间接协议旁证)\nLIXIN: classic EAMS 采集形态（未复制代码）\nKMUST: linling-zy/kust-schedule (间接协议旁证, Apache-2.0)\nNUIT: 3056810551/nuit-class-schedule (直接字段旁证, 未复制代码)"
+    )
+)
+
+/**
+ * 贡献者: 直接向本项目提交代码并合入的开发者 (与"上游参考仓库"致谢是两回事)。
+ * v1.0.53 用户令: 收录 PR #29 作者 jim139129 (NEU 教务导入修复)。
+ * v1.0.57 用户令: 收录 YYiChen (PR #43 课表自适应高度 + PR #48 前一晚明日预告)、
+ *                  LzBsA (PR #30 燕山大学研究生 boya_pp 协议,虽 PR 已 CLOSED 但 commit
+ *                  `1a0b78d4` 走 contributor-preserving merge `2b0a9119` 保留作者落 main)。
+ * 姓名/handle 是通用标识不翻译; 贡献描述沿用本页硬编码中文说明的既有模式。
+ */
+private data class ContributorEntry(val id: String, val title: String, val meta: String, @androidx.annotation.StringRes val usageRes: Int)
+
+private val contributorEntries: List<ContributorEntry> = listOf(
+    ContributorEntry(
+        "contributor-jim139129", "jim139129", "GitHub @jim139129",
+        R.string.license_contributor_jim139129
+    ),
+    ContributorEntry(
+        "contributor-YYiChen", "YYiChen", "GitHub @YYiChen",
+        R.string.license_contributor_YYiChen
+    ),
+    ContributorEntry(
+        "contributor-LzBsA", "LzBsA", "GitHub @LzBsA",
+        R.string.license_contributor_LzBsA
+    )
+)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件·课程格底色（白底，运行时按课程色 tint 上色）
+     用 setColorStateList(id, "setBackgroundTintList", …)（API31+），
+     不能用 setBackgroundColor —— 那会把圆角 shape 换成方形 ColorDrawable。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="6dp" />
+</shape>

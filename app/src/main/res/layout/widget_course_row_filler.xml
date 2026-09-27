@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 可滚动课程列表 · **填充行**（UI-6c）
+     用途：课程行只占满一部分高度时，ListView 下方的空白区会**吃掉触摸**（AbsListView
+     会消费落在它范围内的点击，事件不会冒泡到父容器），于是"点组件空白处打不开 app"。
+     官方限制：不能在集合视图（ListView）自身上挂 setOnClickPendingIntent —— 实测那样会让
+     整个组件变成"空白卡 + 转圈"（桌面渲染集合视图失败）。
+     ⇒ 改用填充行：把剩余高度用这种**透明行**铺满，每行都带 fill-in intent（合并进模板），
+       于是 ListView 内每一块像素都属于某个"行"，点哪都能打开 app。
+     高度与真实行对齐（真实行 wrap_content 常见值 ≈64dp），工厂按组件高度算需要几行。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_row_filler_root"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:orientation="horizontal" />

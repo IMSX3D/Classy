@@ -1,0 +1,10 @@
+<resources>
+    <color name="splash_background">#FFFAF8F2</color>
+    <color name="brand_primary">#FF6750A4</color>
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <!-- UI-4u: 窗口底色（转场时露出的那一层）。
+         深色侧**必须**在 values/ 里也有一份：本 App 的深色是"应用内设置"（themeMode=dark），
+         系统的 uiMode 可能仍是 day → values-night/ 永远不会被选中（用户报障：深色下进子页面
+         时四角白光一闪）。运行时按"应用内实际深浅"二选一取色，不再依赖 -night 限定符。 -->
+    <color name="splash_background_dark">#FF1C1B1F</color>
+</resources>

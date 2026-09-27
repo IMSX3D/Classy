@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+  fixture: xju-postgraduate-dgdata-01
+  来源: 按同族 Gwork 研究生教务真实形态构造的脱敏样张 (2026-09-16)。
+  依据: docs/xju-postgraduate-cross-verify-2026-09-16/
+    - WakeUp jadx OooOOO.java mode 1 (sundayFirst 表头序 + rowspan 连堂)
+    - huhu415/eduData-GoBack school/hrbust/Pg/ParseData.go (table#contentParent_dgData 文法)
+    - XingHeYuZhuan/shiguang_warehouse UPC/CUG 脚本 (列序 0:周日|1..6 / 第X周[教师:..,地点:..])
+    - yjspy.xju.edu.cn 实测 frameset/皮肤指纹 (App_Themes/Gwork, 表格本体在登录墙后)
+  覆盖形态: ctl00_ 前缀 id / 周日首列表头 / 全角分号一格两课 / rowspan 连堂 / 单双周 / 空格 &nbsp;
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><link href="../App_Themes/Gwork/StyleSheet.css" type="text/css" rel="stylesheet" /><title>
+	研究生课表查询
+</title></head>
+<body>
+    <form name="Form1" method="post" action="./Course/StuCourseQuery.aspx?EID=REDACTED&amp;UID=REDACTED" id="Form1">
+    <div>
+    <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="REDACTED" />
+    </div>
+    <table id="ctl00_contentParent_dgData" border="1">
+        <tr>
+            <th>节次</th><th>星期日</th><th>星期一</th><th>星期二</th><th>星期三</th><th>星期四</th><th>星期五</th><th>星期六</th>
+        </tr>
+        <tr>
+            <td align="center">1</td><td>&nbsp;</td>
+            <td rowspan="2">{数值分析(1-16周单)[教师：张教授,地点：理科楼-301]}</td>
+            <td>{矩阵论(1-16周)[教师：李教授,地点：教学楼-201]}</td>
+            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td align="center">2</td><td>&nbsp;</td>
+            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td align="center">3</td><td>&nbsp;</td><td>&nbsp;</td>
+            <td>{随机过程(2-15周双)[教师：王教授,地点：综合楼-105]}；{最优化方法(1-8周)[教师：赵教授,地点：理科楼-402]}</td>
+            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td align="center">4</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+            <td>{学术英语(1-16周)[教师：Smith,地点：外语楼-210]}</td><td>&nbsp;</td><td>&nbsp;</td>
+        </tr>
+    </table>
+    </form>
+</body>
+</html>

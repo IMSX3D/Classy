@@ -1,0 +1,48 @@
+package com.imsx3d.classy.ui.screen.widget
+
+import androidx.compose.runtime.Composable
+import com.imsx3d.classy.data.entity.TimeTableEntity
+
+/**
+ * Per-widget edit state, passed to every [WidgetEditSection].
+ *
+ * [onSelectTable] receives `null` to clear the binding (revert to the
+ * app-wide default). The ViewModel is responsible for writing the change
+ * to [com.imsx3d.classy.widget.WidgetBindingStore] and asking
+ * [com.imsx3d.classy.widget.WidgetUpdater] to refresh.
+ */
+data class WidgetEditScope(
+    val widgetId: Int,
+    val currentBinding: Long?,
+    val availableTables: List<TimeTableEntity>,
+    val onSelectTable: (Long?) -> Unit,
+    /** issue#26: 全部小组件共享一档 — widget 场景 课程名显示 原名/别名 */
+    val useAlias: Boolean = false,
+    val onUseAliasChange: (Boolean) -> Unit = {},
+    /** 设计 §6: receiver simpleName (如 TodaySmallWidgetReceiver), 供族判断; null=未知 */
+    val receiverSimpleName: String? = null,
+    /** 强制滚动(实验) — 本实例一档, 默认 false = FIXED 固定窗口 */
+    val scrollEnabled: Boolean = false,
+    val onScrollEnabledChange: (Boolean) -> Unit = {},
+    /** 最小档三天窗口 — 本实例一档 (仅「· 小」变体显示); true=今日居第一位 */
+    val onCompactTodayFirstChange: (Boolean) -> Unit = {}
+)
+
+/**
+ * A single "section" inside [com.imsx3d.classy.ui.screen.widget.WidgetEditScreen].
+ *
+ * Modeled as a sealed interface so adding a new section (e.g. theme, time
+ * format) is one new file + one entry in the screen's `sections` list —
+ * no edits to the screen, ViewModel, or storage layer.
+ *
+ * Sections must be stateless; the screen owns the ViewModel-derived
+ * [WidgetEditScope] and threads it through.
+ */
+sealed interface WidgetEditSection {
+    /** Title resource shown above the section body. */
+    val titleRes: Int
+
+    /** Render the section body. */
+    @Composable
+    fun Content(scope: WidgetEditScope)
+}

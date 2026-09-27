@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 可滚动课程列表 · 单行布局（真实行，不是位图切片）。
+     一行 = 左侧 4dp 课程色条 + 课名(最多 2 行) + 地点·教师 + 节次/时间。
+     行高由内容自然决定（wrap_content），因此：
+       · 不会因为组件尺寸变化被拉伸/压扁（无位图缩放）
+       · 名字长不会退化成单字截断，最多两行后省略
+       · 内容超出可视区由 launcher 原生滚动查看（真正的集合型组件）
+     @see com.imsx3d.classy.widget.CourseRowWidgetService -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp"
+    android:paddingTop="7dp"
+    android:paddingBottom="7dp">
+
+    <ImageView
+        android:id="@+id/widget_row_bar"
+        android:layout_width="4dp"
+        android:layout_height="34dp"
+        android:layout_gravity="center_vertical"
+        android:background="#FF6750A4" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="9dp">
+
+        <TextView
+            android:id="@+id/widget_row_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FF1D1B20" />
+
+        <TextView
+            android:id="@+id/widget_row_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11sp"
+            android:textColor="#FF49454F" />
+
+        <TextView
+            android:id="@+id/widget_row_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11sp"
+            android:textColor="#FF49454F" />
+    </LinearLayout>
+</LinearLayout>

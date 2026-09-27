@@ -1,0 +1,24 @@
+# 构建产物
+build/
+.gradle/
+.kotlin/
+app/release/
+captures/
+.cxx/
+
+# 本地配置与密钥（绝不入库）
+local.properties
+*.jks
+*.keystore
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 杂项
+*.hprof
+*.apk
+*.aab
+.DS_Store

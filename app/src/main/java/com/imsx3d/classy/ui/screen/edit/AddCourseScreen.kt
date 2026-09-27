@@ -1,0 +1,2086 @@
+package com.imsx3d.classy.ui.screen.edit
+
+import com.imsx3d.classy.R
+import com.imsx3d.classy.ui.component.ColorPickerDialog
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.imsx3d.classy.SleepyApp
+import com.imsx3d.classy.data.entity.CourseEntity
+import com.imsx3d.classy.data.entity.TimeTableEntity
+import com.imsx3d.classy.ui.component.SettingsScaffold
+import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
+import com.imsx3d.classy.ui.component.SegmentedSwitcher
+import com.imsx3d.classy.ui.component.TimePickerField
+import com.imsx3d.classy.ui.theme.SleepyTheme
+import com.imsx3d.classy.ui.theme.selectedSurfaceColors
+import com.imsx3d.classy.ui.theme.noRippleClickable
+import com.imsx3d.classy.util.ConflictDetailReporter
+import com.imsx3d.classy.util.CourseColorUtil
+import com.imsx3d.classy.util.DateUtils
+import com.imsx3d.classy.util.TimeTableUtils
+import com.imsx3d.classy.util.weekRangesOverlap
+import kotlinx.coroutines.launch
+import org.json.JSONArray
+import java.time.LocalTime
+import com.imsx3d.classy.ui.theme.primaryFilledButtonColors
+import com.imsx3d.classy.ui.component.sleepyExpandExit
+import com.imsx3d.classy.ui.component.sleepyExpandEnter
+import com.imsx3d.classy.ui.component.sleepyIndicatorSpec
+import com.imsx3d.classy.ui.component.GlasenseIconButton
+import com.imsx3d.classy.ui.component.settingsCard
+import com.imsx3d.classy.ui.component.GlasenseButton
+
+/** issue#23 逐卡: UI 工作副本 — 卡片勾「非常规节次」新建槽位时暂存,
+ *  落库前不污染 timeJson, 保存时串接 [TimeTableUtils.insertEdgeNode] 一次性写回。
+ *  ownerBlockId = 创建它的卡片 id, 卡片取消勾选且无他卡引用时回收暂存项。 */
+internal data class PendingEdgeInsert(
+    val edgeClass: TimeTableUtils.EdgeClass,
+    /** 用户所点的候选编号 — 暂存期编号簿记, 落库仍由 insertEdgeNode 按序分配 */
+    val node: Int = 0,
+    val start: String,
+    val end: String,
+    val ownerBlockId: Int = 0
+)
+
+/** issue#23 逐卡: 已有槽位默认时间编辑 — 保存时串接 [TimeTableUtils.updateEdgeNodeTimes]
+ *  写回课表, 全局生效于所有引用该槽位的课程。 */
+internal data class EdgeSlotEdit(
+    val node: Int,
+    val start: String,
+    val end: String
+)
+
+/** issue#23 逐卡: 「新建槽位」确认弹层的目标 — 哪张卡片选择了哪个候选 */
+private data class NewSlotTarget(
+    val block: MeetingBlockDraft,
+    val candidate: TimeTableUtils.EdgeCandidate
+)
+
+/** issue#23 逐卡: 已有槽位默认时间编辑弹层的目标 */
+internal data class SlotEditTarget(
+    val node: Int,
+    val start: String,
+    val end: String
+)
+
+internal class MeetingBlockDraft(
+    val id: Int,
+    val days: androidx.compose.runtime.snapshots.SnapshotStateList<Int>,
+    startNode: Int,
+    step: Int,
+    startTime: String,
+    endTime: String,
+    isIrregularNode: Boolean = false,
+    selectedEdgeNode: Int = 0,
+    isIrregularTime: Boolean = false,
+    startWeek: Int = 1,
+    endWeek: Int = 16,
+    weekType: Int = 0,
+    room: String = "",
+    teacher: String = "",
+    note: String = "",
+    color: String = "",
+    colorMode: Int = com.imsx3d.classy.data.entity.CourseColorMode.GROUP
+) {
+    var startNode by mutableStateOf(startNode)
+    var step by mutableStateOf(step)
+    var startTime by mutableStateOf(startTime)
+    var endTime by mutableStateOf(endTime)
+    /** issue#23 §2.4 B 规则: 持续时长(分钟)文本 — 改起止重算, 改时长反推结束 */
+    var durationText by mutableStateOf("")
+    var startWeek by mutableStateOf(startWeek)
+    var endWeek by mutableStateOf(endWeek)
+    var weekType by mutableStateOf(weekType)
+    var roomState by mutableStateOf(room)
+    var teacherState by mutableStateOf(teacher)
+    var noteState by mutableStateOf(note)
+    var colorState by mutableStateOf(color)
+    var colorModeState by mutableStateOf(colorMode)
+    /** issue#23 逐卡: 绑定边缘槽位 (0/-1/N+1…); true 时位置=selectedEdgeNode, step 锁 1 */
+    var isIrregularNode by mutableStateOf(isIrregularNode)
+    var selectedEdgeNode by mutableIntStateOf(selectedEdgeNode)
+    /** issue#23 逐卡: 本卡覆盖起止时间 (与落库 ownTime 同值, §5 契约) */
+    var isIrregularTime by mutableStateOf(isIrregularTime)
+    /** 非常规选项折叠栏: 编辑已启用任一非常规项的卡时自动展开, 否则默认收起 (普通课程主路径不被"非常规"字样干扰) */
+    var irregularOptionsExpanded by mutableStateOf(isIrregularNode || isIrregularTime)
+    // issue#9 延伸: NumberField 把超界输入静默夹紧时, 置 true → 编辑器顶红块提示
+    // 用户感知到"我输 100 被改成了 2", 而不是无报错地接受了错值
+    var clamped by mutableStateOf(false)
+
+    /** §3.3 契约: 本卡生效起止 = 覆盖值 / 槽位默认 / 标准节次时间, 单一出口 */
+    fun effectiveRange(timeJson: String): Pair<String, String>? =
+        TimeTableUtils.effectiveCourseTime(
+            isIrregularTime = isIrregularTime,
+            startTime = startTime,
+            endTime = endTime,
+            startNode = if (isIrregularNode) selectedEdgeNode else startNode,
+            step = if (isIrregularNode) 1 else step,
+            timeJson = timeJson
+        )
+}
+
+private data class ValidationIssue(
+    val blockId: Int?,
+    val message: String
+)
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun AddCourseScreen(
+    onBack: () -> Unit,
+    onSaved: () -> Unit,
+    editingCourse: CourseEntity? = null,
+    viewModel: ScheduleViewModel = viewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val currentTable = state.currentTable
+    val fieldShape = SleepyTheme.fieldShape
+    val fieldColors = SleepyTheme.fieldColors()
+
+    // issue#23 逐卡: 待落库的新建槽位 / 已有槽位默认时间编辑 — UI 工作副本,
+    // 落库前不污染 timeJson; 保存时串接 insertEdgeNode / updateEdgeNodeTimes 后一次性 updateTable
+    val pendingEdgeInserts = remember(editingCourse?.id) {
+        mutableStateListOf<PendingEdgeInsert>()
+    }
+    val pendingEdgeEdits = remember(editingCourse?.id) {
+        mutableStateListOf<EdgeSlotEdit>()
+    }
+
+    // issue#9/issue#23: 生效时间表 = 课表 timeJson + 本次会话暂存的新建槽位 + 槽位时间编辑。
+    // 候选集合/槽位时间展示/校验/落库全部以它为唯一依据。
+    val effectiveTimeJson = run {
+        val base = currentTable?.timeJson ?: TimeTableUtils.DEFAULT_TIME_JSON
+        val withInserts = pendingEdgeInserts.fold(base) { json, insert ->
+            TimeTableUtils.insertEdgeNode(json, insert.edgeClass, insert.start, insert.end)
+        }
+        pendingEdgeEdits.fold(withInserts) { json, edit ->
+            TimeTableUtils.updateEdgeNodeTimes(json, edit.node, edit.start, edit.end)
+        }
+    }
+    // 标准 1..N 连续节次上界 — 标准卡片 startNode/step 的取值范围
+    val maxStd = remember(effectiveTimeJson) { TimeTableUtils.maxStandardNode(effectiveTimeJson) }
+
+    var courseName by remember(editingCourse?.id) { mutableStateOf(editingCourse?.courseName ?: "") }
+    // issue#26: 课程别名(可选) — 空串 = 处处显示原名; 组级属性, 编辑页保存时整组覆盖
+    var courseAlias by remember(editingCourse?.id) { mutableStateOf(editingCourse?.alias ?: "") }
+    // issue#22: teacher/room/note/color/colorMode 已下沉到 MeetingBlockDraft(每个时段独立编辑)
+    var startWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.startWeek ?: 1) }
+    var endWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.endWeek ?: 16) }
+    var nextBlockId by remember(editingCourse?.id) { mutableIntStateOf(2) }
+    var validationIssues by remember { mutableStateOf<List<ValidationIssue>>(emptyList()) }
+    // issue#23 逐卡: 三个弹层目标 — 顶层持状态, 内容按卡片渲染
+    var edgePickTarget by remember { mutableStateOf<MeetingBlockDraft?>(null) }
+    var newSlotTarget by remember { mutableStateOf<NewSlotTarget?>(null) }
+    var slotEditTarget by remember { mutableStateOf<SlotEditTarget?>(null) }
+    // 颜色选择器改为按 block 持有状态(每节次独立弹窗) — 删除顶层 showColorPicker
+    // v7.10.16u: 保存时冲突明细(非阻塞) — 弹窗完整列出撞车细节, 用户「仍然保存」放行
+    // rememberSaveable: 旋转/配置变更时 Activity 重建, remember 会丢明细列表导致弹窗消失
+    var pendingConflictDetails by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
+    // 改组色弹层状态(issue#22 spec §6.2 恢复): 编辑模式才有组色源, 新建模式无组
+    var showGroupColorPicker by remember { mutableStateOf(false) }
+    // 组色源色值: 同组 colorMode=GROUP 中 id 最小行的 color — UI 显示 + 改组色弹层初值。
+    // 编辑回填 LaunchedEffect 里更新;新建模式恒空串(显示"自动(黄金角)",不显示改组色入口)
+    var groupSourceColorHex by remember { mutableStateOf("") }
+    // 改组色两段式: 调色盘选中 → 暂存 → 确认对话框(spec §6.3"组色会影响本组所有跟随组色的节次")→ 落库
+    var pendingGroupColorHex by remember { mutableStateOf<String?>(null) }
+
+    val meetingBlocks = remember(editingCourse?.id) {
+        mutableStateListOf(initialMeetingBlock(editingCourse))
+    }
+
+    // 编辑模式：查同 groupId 全部课程，按时段分组回填多个 block (issue#22 分组规则不变)
+    LaunchedEffect(editingCourse?.groupId) {
+        val eg = editingCourse
+        if (eg != null && eg.groupId.isNotBlank()) {
+            val tid = state.selectedTableId ?: return@LaunchedEffect
+            val groupCourses = SleepyApp.get().repository.getGroupCourses(tid, eg.groupId)
+            if (groupCourses.isNotEmpty()) {
+                // 组色源: 同组 colorMode=GROUP 中 id 最小行的 color (CourseColorUtil 单点)
+                groupSourceColorHex = CourseColorUtil.groupSourceColorHex(groupCourses)
+                val slots = groupSlotsForEdit(groupCourses)
+                meetingBlocks.clear()
+                var bid = 1
+                // issue#23 §4.3: startNode 落在边缘槽位 → 点亮该卡「非常规节次」;
+                // ownTime=true → 点亮「非常规时间」并预填课程起止 (旧 ByClock 并入此开关)
+                val edgeNodes = TimeTableUtils.parseTimeSlotRows(
+                    currentTable?.timeJson ?: TimeTableUtils.DEFAULT_TIME_JSON
+                ).filter { it.edgeClass != null }.map { it.node }.toSet()
+                for (courses in slots) {
+                    val first = courses.first()
+                    val isEdge = first.startNode in edgeNodes
+                    meetingBlocks.add(MeetingBlockDraft(
+                        id = bid++,
+                        days = androidx.compose.runtime.mutableStateListOf<Int>().apply {
+                            addAll(courses.map { it.day }.distinct().sorted())
+                        },
+                        startNode = first.startNode,
+                        step = first.step,
+                        startTime = first.startTime.ifBlank { "08:00" },
+                        endTime = first.endTime.ifBlank { "09:40" },
+                        isIrregularNode = isEdge,
+                        selectedEdgeNode = if (isEdge) first.startNode else 0,
+                        isIrregularTime = first.ownTime,
+                        startWeek = first.startWeek,
+                        endWeek = first.endWeek,
+                        weekType = first.type,
+                        room = first.room,
+                        teacher = first.teacher,
+                        note = first.note,
+                        color = first.color,
+                        colorMode = first.colorMode
+                    ))
+                    // §2.4: 覆盖时间的卡补派生时长文本
+                    val b = meetingBlocks.last()
+                    if (b.isIrregularTime) {
+                        b.durationText = minutesBetween(b.startTime, b.endTime)?.toString() ?: ""
+                    }
+                }
+            }
+        }
+    }
+
+    val canSave = courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+
+    // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
+    val dayNames = context.resources.getStringArray(R.array.day_names)
+    val conflictTemplate = stringResource(R.string.conflict_detail_line)
+
+    // 保存主流程: 校验 → 草稿 → 冲突明细 → 落库。forceAfterConflict = 冲突弹窗「仍然保存」回调
+    fun performSave(forceAfterConflict: Boolean) {
+        val issues = validateCourseDraft(
+            courseName = courseName,
+            blocks = meetingBlocks,
+            startWeek = startWeek,
+            endWeek = endWeek,
+            timeJson = effectiveTimeJson,
+            context = context
+        )
+        validationIssues = issues
+        if (issues.isNotEmpty()) return
+
+        val draftTableId = state.selectedTableId  // 进入 scope 前取，drafts 需要
+        val drafts = meetingBlocks.flatMap { block ->
+            block.days.sorted().map { day ->
+                buildCourseEntity(
+                    tableId = draftTableId ?: 0L,
+                    groupId = "",  // 编辑模式暂留 "", 落库前再覆盖 editingCourse.groupId
+                    courseName = courseName.trim(),
+                    block = block,
+                    day = day,
+                    alias = courseAlias.trim(),
+                    // 用户报障 2026-09-10: ownTime 课落库即反算真实节点 —
+                    // 裸节点消费方(今日页/小组件/详情页)不再拿到表单占位节点
+                    timeJson = effectiveTimeJson
+                )
+            }
+        }
+        scope.launch {
+            val repo = SleepyApp.get().repository
+            // 没表就自动建一张，保证 selectedTableId 非空
+            val tableId = state.selectedTableId
+                ?: viewModel.createEmptyTable()
+            // 编辑模式: 草稿继承原 groupId;新建模式: 仍共享一个新生成的 groupId
+            val fixedDrafts = if (editingCourse != null) {
+                drafts.map { it.copy(groupId = editingCourse.groupId) }
+            } else {
+                drafts
+            }
+            // v7.10.16t: 三层拦截撤除 — 网格 v7.10.16r(issue#10)已支持任意
+            // 层数(轮换显示), 手动加课与整表导入(本就放行三层)对齐, 不再拦。
+            // 旧逻辑 bug(用户 2026-09-04 报): badDays 取的是全表超层天,
+            // 存量违规天会被列进本次添加的拒绝提示里。
+            // v7.10.16u: 不拦但讲清楚 — 编辑模式排除同组旧记录(自己撞自己),
+            // 有冲突先弹明细, 「仍然保存」才落库。
+            if (!forceAfterConflict) {
+                val existing = repo.getCourses(tableId)
+                    .filter { it.groupId != editingCourse?.groupId }
+                val details = ConflictDetailReporter.draftConflictDetails(
+                    fixedDrafts, existing, dayNames, effectiveTimeJson
+                ).map { ConflictDetailReporter.formatDetail(it, conflictTemplate) }
+                if (details.isNotEmpty()) {
+                    pendingConflictDetails = details
+                    return@launch
+                }
+            }
+            if (editingCourse != null) {
+                // v7.10.16+: 行级 diff/patch 替换整组覆盖 — issue#22 同名多地点
+                // 只动该 groupId 内的行, 不波及同表其他课程
+                val existing = repo.getCourses(tableId)
+                    .filter { it.groupId == editingCourse.groupId }
+                val diff = com.imsx3d.classy.data.diff.RowKeyDiffer.diff(fixedDrafts, existing)
+                repo.applyDiff(tableId, diff)
+            } else {
+                // 新建：所有草稿共享同一个 groupId
+                val gid = java.util.UUID.randomUUID().toString()
+                repo.insertCourses(fixedDrafts.map { it.copy(groupId = gid) })
+            }
+            // issue#23: 新建槽位 / 槽位时间编辑先在编辑页暂存, 课程落库成功后再写回课表 timeJson。
+            // 顺序串接保证一次添加多个槽位时编号连续且方向元数据不丢失。
+            // v7.10.16v 撤回: 课程行 + timeJson 写回是一个动作 — beginBatch 让快照
+            // 固定在动作前, 撤回一次整步回退(否则第二写覆盖快照, 只回退一半)。
+            val table = currentTable ?: repo.getTable(tableId)
+            if (table != null && (pendingEdgeInserts.isNotEmpty() || pendingEdgeEdits.isNotEmpty())) {
+                com.imsx3d.classy.data.undo.UndoManager.beginBatch()
+                try {
+                    val withInserts = pendingEdgeInserts.fold(table.timeJson) { json, insert ->
+                        TimeTableUtils.insertEdgeNode(json, insert.edgeClass, insert.start, insert.end)
+                    }
+                    val updated = pendingEdgeEdits.fold(withInserts) { json, edit ->
+                        TimeTableUtils.updateEdgeNodeTimes(json, edit.node, edit.start, edit.end)
+                    }
+                    if (updated != table.timeJson) viewModel.updateTable(table.copy(timeJson = updated))
+                } finally {
+                    com.imsx3d.classy.data.undo.UndoManager.endBatch()
+                }
+            }
+            onSaved()
+        }
+    }
+
+    // v7.10.16u 冲突明细弹窗(非阻塞): 列出 星期几/第几节/哪几周/撞哪门课 全部细节,
+    // 「仍然保存」= 明确放行落库, 「返回修改」= 关弹窗不保存。
+    if (pendingConflictDetails.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { pendingConflictDetails = emptyList() },
+            title = { Text(stringResource(R.string.conflict_detail_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    pendingConflictDetails.take(6).forEach { line ->
+                        Text(text = "• $line", style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (pendingConflictDetails.size > 6) {
+                        Text(
+                            text = stringResource(R.string.more_unexpanded, pendingConflictDetails.size - 6),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
+                    com.imsx3d.classy.ui.component.DialogActionButtons(
+                        confirmText = stringResource(R.string.conflict_detail_save_anyway),
+                        onConfirm = {
+                            // 二次进入 save scope: pendingConflictDetails 已空 → 直接落库
+                            pendingConflictDetails = emptyList()
+                            performSave(forceAfterConflict = true)
+                        },
+                        dismissText = stringResource(R.string.conflict_detail_go_back),
+                        onDismiss = { pendingConflictDetails = emptyList() },
+                        destructive = true
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
+
+    // ── 改组色弹层(issue#22 spec §6.2/§6.3 恢复): 调色盘 + 全组影响确认 ──
+    // 编辑模式才弹(新建模式无 groupId, showGroupColorPicker 永远不会置 true)
+    if (showGroupColorPicker) {
+        ColorPickerDialog(
+            initialHex = groupSourceColorHex.ifBlank { "#FF6750A4" },
+            onConfirm = { hex ->
+                showGroupColorPicker = false
+                pendingGroupColorHex = hex
+            },
+            onDismiss = { showGroupColorPicker = false }
+        )
+    }
+    pendingGroupColorHex?.let { hex ->
+        AlertDialog(
+            onDismissRequest = { pendingGroupColorHex = null },
+            title = { Text(stringResource(R.string.group_color_confirm_title)) },
+            confirmButton = {},
+            dismissButton = {},
+            // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        GroupColorSwatch(hex = hex)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(hex, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text(stringResource(R.string.group_color_confirm_msg), style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    com.imsx3d.classy.ui.component.DialogActionButtons(
+                        confirmText = stringResource(R.string.action_confirm),
+                        onConfirm = {
+                            val gid = editingCourse?.groupId
+                            val tid = state.selectedTableId
+                            pendingGroupColorHex = null
+                            if (gid != null && tid != null) {
+                                scope.launch {
+                                    SleepyApp.get().repository.setGroupSourceColor(tid, gid, hex)
+                                    // 组色源变了 → 刷新编辑回填的组色源显示
+                                    val fresh = SleepyApp.get().repository.getGroupCourses(tid, gid)
+                                    if (fresh.isNotEmpty()) groupSourceColorHex = CourseColorUtil.groupSourceColorHex(fresh)
+                                }
+                            }
+                        },
+                        dismissText = stringResource(R.string.cancel),
+                        onDismiss = { pendingGroupColorHex = null }
+                    )
+                }
+            }
+        )
+    }
+
+    // ── issue#23 逐卡: 候选弹层 / 新建槽位弹窗 / 槽位默认时间编辑弹窗 ──
+    edgePickTarget?.let { target ->
+        EdgeCandidatePickerDialog(
+            candidates = TimeTableUtils.edgeCandidates(effectiveTimeJson),
+            onPickExisting = { node ->
+                target.isIrregularNode = true
+                target.selectedEdgeNode = node
+                edgePickTarget = null
+            },
+            onPickNew = { candidate ->
+                edgePickTarget = null
+                newSlotTarget = NewSlotTarget(target, candidate)
+            },
+            onDismiss = { edgePickTarget = null }
+        )
+    }
+    newSlotTarget?.let { target ->
+        NewEdgeSlotDialog(
+            candidate = target.candidate,
+            onConfirm = { start, end ->
+                val c = target.candidate
+                pendingEdgeInserts.add(
+                    PendingEdgeInsert(c.edgeClass, c.node, start, end, ownerBlockId = target.block.id)
+                )
+                target.block.isIrregularNode = true
+                target.block.selectedEdgeNode = c.node
+                newSlotTarget = null
+            },
+            onDismiss = { newSlotTarget = null }
+        )
+    }
+    slotEditTarget?.let { target ->
+        SlotEditDialog(
+            node = target.node,
+            initialStart = target.start,
+            initialEnd = target.end,
+            onConfirm = { s, e ->
+                // 同节点旧编辑项覆盖 (最新一次编辑为准)
+                pendingEdgeEdits.removeAll { it.node == target.node }
+                pendingEdgeEdits.add(EdgeSlotEdit(target.node, s, e))
+                slotEditTarget = null
+            },
+            onDismiss = { slotEditTarget = null }
+        )
+    }
+
+    // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
+    SettingsScaffold(
+        title = stringResource(if (editingCourse != null) R.string.edit_course else R.string.create_course),
+        onBack = onBack,
+        verticalSpacing = 14.dp
+    ) {
+        item { Spacer(modifier = Modifier.height(2.dp)) }
+
+        if (validationIssues.isNotEmpty()) {
+            item {
+                ValidationCard(issues = validationIssues)
+            }
+        }
+
+        item {
+            CardSection(
+                title = stringResource(R.string.course_basic_info),
+                subtitle = stringResource(R.string.course_basic_info_sub)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextField(
+                        value = courseName,
+                        onValueChange = { courseName = it },
+                        label = { Text(stringResource(R.string.course_name_required)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = fieldShape,
+                        colors = fieldColors
+                    )
+                    // issue#26: 别名输入(可选) — 空 = 原名; 语义是"展示名", 不参与身份/匹配
+                    TextField(
+                        value = courseAlias,
+                        onValueChange = { courseAlias = it },
+                        label = { Text(stringResource(R.string.course_alias)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = fieldShape,
+                        colors = fieldColors
+                    )
+                    // 组色 — 前置课程级色源 (2026-09-15 用户令二次修正): 基础信息卡
+                    // 只放整组组色编辑; 各时段卡保留自己的颜色行(见 ColorSection)
+                    if (meetingBlocks.isNotEmpty()) {
+                        GroupColorSection(
+                            groupSourceColorHex = groupSourceColorHex,
+                            onChangeGroupColor = { showGroupColorPicker = true }
+                        )
+                    }
+                    // issue#22: teacher/room/note 仍下沉到每个 MeetingBlockDraft(同名多地点独立编辑)
+                }
+            }
+        }
+
+        item {
+            CardSection(
+                title = stringResource(R.string.week_range),
+                subtitle = stringResource(R.string.week_range_sub)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    NumberField(
+                        label = stringResource(R.string.start_week),
+                        value = startWeek,
+                        min = 1,
+                        max = 30,
+                        modifier = Modifier.weight(1f),
+                        shape = fieldShape,
+                        colors = fieldColors
+                    ) { startWeek = it }
+                    NumberField(
+                        label = stringResource(R.string.end_week),
+                        value = endWeek,
+                        min = 1,
+                        max = 30,
+                        modifier = Modifier.weight(1f),
+                        shape = fieldShape,
+                        colors = fieldColors
+                    ) { endWeek = it }
+                }
+                // 显式应用 — 不再隐式下发，由用户一键覆盖所有时段
+                GlasenseButton(
+                    text = stringResource(R.string.apply_to_all_slots),
+                    onClick = {
+                        meetingBlocks.forEach { b ->
+                            b.startWeek = startWeek
+                            b.endWeek = endWeek
+                        }
+                    }
+                )
+            }
+        }
+
+        // 上课时段 — 标题（blocks 懒加载以支持大量时段）
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.meeting_slots),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.meeting_slots_sub),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
+
+        // 每个 block 独立懒加载，不再一次性全渲染
+        itemsIndexed(meetingBlocks) { index, block ->
+            val blockIssues = validationIssues.filter { it.blockId == block.id }.map { it.message }
+            MeetingBlockEditor(
+                title = stringResource(R.string.slot_n, index + 1),
+                block = block,
+                groupSourceColorHex = groupSourceColorHex,
+                canRemove = meetingBlocks.size > 1,
+                issues = blockIssues,
+                fieldShape = fieldShape,
+                fieldColors = fieldColors,
+                maxStd = maxStd,
+                timeJson = effectiveTimeJson,
+                candidates = TimeTableUtils.edgeCandidates(effectiveTimeJson),
+                onRemove = { meetingBlocks.remove(block) },
+                onPickEdge = { edgePickTarget = block },
+                onEditSlot = { node, s, e -> slotEditTarget = SlotEditTarget(node, s, e) },
+                onDeselectEdge = { released ->
+                    // 无他卡引用的 owned 暂存槽位回收 (§2.3 槽位复用)
+                    pendingEdgeInserts.removeAll { ins ->
+                        ins.ownerBlockId == block.id && ins.node == released &&
+                            meetingBlocks.none { o ->
+                                o.id != block.id && o.isIrregularNode && o.selectedEdgeNode == released
+                            }
+                    }
+                }
+            )
+        }
+
+        // 新增时段按钮
+        item {
+            GlasenseButton(
+                text = stringResource(R.string.add_slot),
+                onClick = {
+                    // 新时段沿用上一张卡的老师/地点,减少重复输入;
+                    // 时间、星期、周次仍采用新卡默认值,避免误复制上一卡的时段。
+                    val previous = meetingBlocks.lastOrNull()
+                    meetingBlocks.add(
+                        MeetingBlockDraft(
+                            id = nextBlockId,
+                            days = mutableStateListOf(2),
+                            startNode = 3,
+                            step = 2,
+                            startTime = "10:00",
+                            endTime = "11:40",
+                            startWeek = 1,
+                            endWeek = 16,
+                            weekType = 0,
+                            room = previous?.roomState.orEmpty(),
+                            teacher = previous?.teacherState.orEmpty()
+                        )
+                    )
+                    nextBlockId += 1
+                },
+                leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) }
+            )
+        }
+
+        item {
+            Button(
+            colors = primaryFilledButtonColors(),
+                onClick = { performSave(forceAfterConflict = false) },
+                enabled = canSave,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(SleepyTheme.Buttons.ctaHeight),
+                shape = SleepyTheme.Buttons.shape
+            ) {
+                Icon(Icons.Outlined.Check, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(if (editingCourse != null) R.string.save_course else R.string.create_course_btn))
+            }
+        }
+
+        if (editingCourse != null) {
+            item {
+                var showDeleteConfirm by remember { mutableStateOf(false) }
+
+                // [intentional custom] 官方 Button 无 error 语义变体(MD3 规范删除动作用
+                // TextButton+error 文字色); 此处沿用 errorContainer 色块 = Sleepy 视觉语言。
+                Button(
+                    onClick = { showDeleteConfirm = true },
+                    modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
+                    shape = SleepyTheme.Buttons.shape,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.errorContainer)
+                ) {
+                    Icon(Icons.Outlined.Delete, contentDescription = null, tint = colors.onErrorContainer)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.delete_course), color = colors.onErrorContainer)
+                }
+
+                if (showDeleteConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteConfirm = false },
+                        title = { Text(stringResource(R.string.confirm_delete), color = colors.onSurface) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.delete_course_confirm, editingCourse.courseName), color = colors.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
+                                com.imsx3d.classy.ui.component.DialogActionButtons(
+                                    confirmText = stringResource(R.string.delete),
+                                    onConfirm = {
+                                        showDeleteConfirm = false
+                                        scope.launch {
+                                            val repo = SleepyApp.get().repository
+                                            val tid = state.selectedTableId
+                                            if (tid != null) {
+                                                repo.deleteCourseGroup(tid, editingCourse.groupId)
+                                            }
+                                            onSaved()
+                                        }
+                                    },
+                                    dismissText = stringResource(R.string.cancel),
+                                    onDismiss = { showDeleteConfirm = false },
+                                    destructive = true
+                                )
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {}
+                    )
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
+
+    // issue#22: 顶层 ColorPickerDialog 已删 — 颜色按 block 独立弹窗(见 MeetingBlockEditor 内的 ColorSection)
+}
+
+
+
+/** 编辑回填：按完整时段特征分组。周次/单双周/地点/老师 参与分组，
+ *  保证「同节次不同周次」「同名多地点」「同名多老师」回填成多个 block 而不是被错误合并。
+ *  issue#22: room/teacher 进分组 key — 同名同周次不同地点/老师 → 独立编辑块 */
+internal fun groupSlotsForEdit(courses: List<CourseEntity>): List<List<CourseEntity>> =
+    courses.groupBy { c ->
+        "${c.ownTime}|${c.startNode}|${c.step}|${c.startTime}|${c.endTime}|${c.startWeek}|${c.endWeek}|${c.type}|${c.room}|${c.teacher}"
+    }.values.toList()
+
+private fun initialMeetingBlock(course: CourseEntity?): MeetingBlockDraft {
+    if (course == null) {
+        return MeetingBlockDraft(
+            id = 1,
+            days = androidx.compose.runtime.mutableStateListOf(1),
+            startNode = 1,
+            step = 2,
+            startTime = "08:00",
+            endTime = "09:40"
+        )
+    }
+    val days = androidx.compose.runtime.mutableStateListOf(course.day)
+    return MeetingBlockDraft(
+        id = 1,
+        days = days,
+        startNode = course.startNode,
+        step = course.step,
+        startTime = course.startTime.ifBlank { "08:00" },
+        endTime = course.endTime.ifBlank { "09:40" },
+        isIrregularTime = course.ownTime,
+        startWeek = course.startWeek,
+        endWeek = course.endWeek,
+        weekType = course.type,
+        room = course.room,
+        teacher = course.teacher,
+        note = course.note,
+        color = course.color,
+        colorMode = course.colorMode
+    )
+}
+
+/** issue#26: internal 以便 BuildCourseEntityAliasTest 同包直测保存路径 */
+internal fun buildCourseEntity(
+    tableId: Long,
+    groupId: String,
+    courseName: String,
+    block: MeetingBlockDraft,
+    day: Int,
+    alias: String = "",
+    // 用户报障 2026-09-10: 落库前把 ownTime 课的占位节点反算成真实节点
+    // (timeToNode), 时间零交集的 ownTime 课对不再共享相同节点区间 —
+    // 裸节点消费方(今日页/小组件/详情页/prune)从此拿到自洽坐标。
+    timeJson: String = ""
+): CourseEntity {
+    // issue#22: color/colorMode 从 block 取;AUTO 模式 color 留空(渲染时按 hash 取)
+    val finalColor = when (block.colorModeState) {
+        com.imsx3d.classy.data.entity.CourseColorMode.CUSTOM ->
+            block.colorState.ifBlank { "#FF6750A4" }
+        com.imsx3d.classy.data.entity.CourseColorMode.AUTO -> ""
+        else -> block.colorState.ifBlank { "#FF6750A4" }
+    }
+    // issue#23 逐卡: 边缘槽位卡 → startNode=槽位号, step 锁 1;
+    // 覆盖时间卡 → ownTime=isIrregularTime 且起止为覆盖值 (§5 同值契约)
+    val rawStartNode = if (block.isIrregularNode) block.selectedEdgeNode else block.startNode
+    val rawStep = if (block.isIrregularNode) 1 else block.step
+    // ownTime 反算: 时间可解析且非边缘槽位卡 → 真实节点; 失败/边缘卡保持原值
+    val (finalNode, finalStep) = if (block.isIrregularTime && !block.isIrregularNode && timeJson.isNotBlank()) {
+        TimeTableUtils.timeToNode(block.startTime.trim(), block.endTime.trim(), timeJson)
+            ?: (rawStartNode to rawStep)
+    } else {
+        rawStartNode to rawStep
+    }
+    return CourseEntity(
+        groupId = groupId,
+        tableId = tableId,
+        courseName = courseName,
+        alias = alias.trim(),
+        teacher = block.teacherState.trim(),
+        room = block.roomState.trim(),
+        note = block.noteState.trim(),
+        day = day,
+        startNode = finalNode,
+        step = finalStep,
+        startWeek = block.startWeek,
+        endWeek = block.endWeek,
+        type = block.weekType,
+        color = finalColor,
+        colorMode = block.colorModeState,
+        isIrregularNode = block.isIrregularNode,
+        isIrregularTime = block.isIrregularTime,
+        ownTime = block.isIrregularTime,
+        startTime = if (block.isIrregularTime) block.startTime.trim() else "",
+        endTime = if (block.isIrregularTime) block.endTime.trim() else ""
+    )
+}
+
+private fun validateCourseDraft(
+    courseName: String,
+    blocks: List<MeetingBlockDraft>,
+    startWeek: Int,
+    endWeek: Int,
+    timeJson: String,
+    context: android.content.Context
+): List<ValidationIssue> {
+    val issues = mutableListOf<ValidationIssue>()
+    if (courseName.isBlank()) issues += ValidationIssue(null, context.getString(R.string.course_name_empty))
+    if (startWeek <= 0 || endWeek <= 0) issues += ValidationIssue(null, context.getString(R.string.week_must_be_positive))
+    // 生效时间表唯一依据: 候选/展示/校验/落库全走 effectiveTimeJson
+    val rows = TimeTableUtils.parseTimeSlotRows(timeJson)
+    val maxStd = TimeTableUtils.maxStandardNode(timeJson)
+
+    blocks.forEachIndexed { index, block ->
+        if (block.days.isEmpty()) {
+            issues += ValidationIssue(block.id, context.getString(R.string.slot_at_least_one_day, index + 1))
+        }
+        if (block.startWeek > block.endWeek) issues += ValidationIssue(block.id, context.getString(R.string.slot_week_order, index + 1))
+        // issue#23 逐卡: 非常规节次卡 → 槽位必须真实存在于生效时间表;
+        // 标准卡 → 1..maxStd 越界拒绝。时间格式/顺序只对勾了「非常规时间」的卡检查。
+        if (block.isIrregularNode) {
+            val row = rows.firstOrNull { it.node == block.selectedEdgeNode && it.edgeClass != null }
+            if (row == null) {
+                issues += ValidationIssue(block.id, context.getString(R.string.irregular_node_required, index + 1))
+            }
+        } else {
+            if (block.startNode < 1) issues += ValidationIssue(
+                block.id,
+                context.getString(R.string.slot_start_node_positive, index + 1)
+            )
+            if (block.step <= 0) issues += ValidationIssue(block.id, context.getString(R.string.slot_step_positive, index + 1))
+            // issue#9: startNode+step-1 越过标准 1..maxStd 段上界时拒绝保存(边缘槽位不受此限)
+            val endNode = block.startNode + block.step - 1
+            if (endNode > maxStd) {
+                issues += ValidationIssue(
+                    block.id,
+                    context.getString(R.string.slot_step_exceeds_max, index + 1, block.startNode, endNode, maxStd)
+                )
+            }
+        }
+        if (block.isIrregularTime) {
+            val start = parseHm(block.startTime)
+            val end = parseHm(block.endTime)
+            if (start == null || end == null) {
+                issues += ValidationIssue(block.id, context.getString(R.string.irregular_time_format))
+            } else if (!start.isBefore(end)) {
+                issues += ValidationIssue(block.id, context.getString(R.string.irregular_time_order))
+            }
+        }
+    }
+
+    for (i in blocks.indices) {
+        for (j in i + 1 until blocks.size) {
+            val first = blocks[i]
+            val second = blocks[j]
+            val overlapDays = first.days.intersect(second.days)
+            if (overlapDays.isEmpty()) continue
+            val firstRange = blockRangeMinutes(first, timeJson)
+            val secondRange = blockRangeMinutes(second, timeJson)
+            if (firstRange == null || secondRange == null) continue
+            if (firstRange.first < secondRange.second && secondRange.first < firstRange.second) {
+                if (!weekRangesOverlap(
+                        first.startWeek, first.endWeek, first.weekType,
+                        second.startWeek, second.endWeek, second.weekType
+                    )
+                ) continue
+                val dayText = overlapDays.sorted().joinToString(" / ") { DateUtils.localizedDay(it, context) }
+                issues += ValidationIssue(
+                    second.id,
+                    context.getString(R.string.slot_time_overlap, i + 1, j + 1, dayText)
+                )
+            }
+        }
+    }
+    return issues
+}
+
+/** §3.3 契约的分钟化: 本卡生效起止 → [startMin, endMin), 用于卡间重叠检测 */
+private fun blockRangeMinutes(block: MeetingBlockDraft, timeJson: String): Pair<Int, Int>? {
+    val range = block.effectiveRange(timeJson) ?: return null
+    val start = parseHm(range.first) ?: return null
+    val end = parseHm(range.second) ?: return null
+    return start.hour * 60 + start.minute to end.hour * 60 + end.minute
+}
+
+private fun parseHm(value: String): LocalTime? = try {
+    LocalTime.parse(value.trim())
+} catch (_: Exception) {
+    null
+}
+
+/** §2.4 B 规则: 起止时间差(分钟), 解析失败返回 null */
+private fun minutesBetween(start: String, end: String): Int? {
+    val s = parseHm(start) ?: return null
+    val e = parseHm(end) ?: return null
+    return (e.hour * 60 + e.minute) - (s.hour * 60 + s.minute)
+}
+
+/** 非常规选项折叠态摘要 — 收起但已启用选项时, 栏头露出启用了什么。
+ *  纯函数便于 JVM 直测; 参数都是已解析的文案/值, 不触 Compose。 */
+internal fun irregularOptionsSummary(
+    isIrregularNode: Boolean,
+    isIrregularTime: Boolean,
+    startTime: String,
+    endTime: String,
+    nodeSwitchLabel: String,
+    edgeNodeLabel: String,
+    timeSwitchLabel: String
+): String {
+    val parts = mutableListOf<String>()
+    if (isIrregularNode) {
+        parts += listOf(nodeSwitchLabel, edgeNodeLabel).joinToString(" · ")
+    }
+    if (isIrregularTime) {
+        // 起止齐全才拼区间; 缺一(如跨午夜回退清空)只显示开关名, 不露半截区间
+        parts += if (startTime.isNotBlank() && endTime.isNotBlank()) {
+            listOf(timeSwitchLabel, "$startTime–$endTime").joinToString(" · ")
+        } else {
+            timeSwitchLabel
+        }
+    }
+    return parts.joinToString(" / ")
+}
+
+@Composable
+private fun ValidationCard(issues: List<ValidationIssue>) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(SleepyTheme.shapes.large)
+            .background(colors.errorContainer)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.fix_issues_first),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onErrorContainer
+        )
+        issues.take(4).forEach { issue ->
+            Text(
+                text = "• ${issue.message}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onErrorContainer
+            )
+        }
+        if (issues.size > 4) {
+            Text(
+                text = stringResource(R.string.more_unexpanded, issues.size - 4),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardSection(
+    title: String,
+    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .settingsCard(colors.surfaceContainer)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+        content()
+    }
+}
+
+/** issue#23 逐卡: 标签 + 副标题 + Switch 的标准行 — 卡内两个非常规开关共用 */
+@Composable
+private fun SwitchRow(
+    label: String,
+    sub: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface
+            )
+            Text(
+                text = sub,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun MeetingBlockEditor(
+    title: String,
+    block: MeetingBlockDraft,
+    groupSourceColorHex: String,
+    canRemove: Boolean,
+    issues: List<String>,
+    fieldShape: CornerBasedShape,
+    fieldColors: androidx.compose.material3.TextFieldColors,
+    maxStd: Int,
+    timeJson: String,
+    candidates: List<TimeTableUtils.EdgeCandidate>,
+    onRemove: () -> Unit,
+    onPickEdge: () -> Unit,
+    onEditSlot: (node: Int, start: String, end: String) -> Unit,
+    onDeselectEdge: (releasedNode: Int) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(SleepyTheme.shapes.large)
+            // 错误态: errorContainer 色块底替代 error 描边 (2026-08-25 色块统一)
+            // issue#9 延伸: NumberField 被夹紧时 block.clamped=true 也走 errorContainer,
+            // 提示用户"输入超界被改值"
+            .background(if (issues.isNotEmpty() || block.clamped) colors.errorContainer else colors.surfaceContainerHigh)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // issue#9 延伸: 用户输了超出 maxStd 的数字时显示提示, 并提供去课表管理的快捷入口
+        if (block.clamped) {
+            Text(
+                text = stringResource(
+                    R.string.slot_step_clamped_hint,
+                    block.startNode,
+                    block.startNode + block.step - 1,
+                    maxStd
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onErrorContainer
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface
+                )
+                MeetingBlockSummary(block = block, timeJson = timeJson)
+            }
+            if (canRemove) {
+                GlasenseIconButton(
+                    icon = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.delete_slot),
+                    onClick = onRemove,
+                    tint = colors.onSurfaceVariant)
+            }
+        }
+
+        MultiDayPicker(selectedDays = block.days.toSet(), onToggleDay = { day ->
+            if (day in block.days) block.days.remove(day) else block.days.add(day)
+        })
+
+        // 标准卡: startNode/step, 1..maxStd — 普通课程主路径, 不被"非常规"折叠栏干扰
+        if (!block.isIrregularNode) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                NumberField(
+                    label = stringResource(R.string.start_node),
+                    value = block.startNode,
+                    min = 1,
+                    max = maxStd,
+                    modifier = Modifier.weight(1f),
+                    shape = fieldShape,
+                    colors = fieldColors,
+                    onClamp = { block.clamped = true }
+                ) { v ->
+                    block.startNode = v
+                    val stepCap = (maxStd - block.startNode + 1).coerceAtLeast(1)
+                    if (block.step > stepCap) block.step = stepCap
+                }
+                NumberField(
+                    label = stringResource(R.string.step_count),
+                    value = block.step,
+                    min = 1,
+                    max = (maxStd - block.startNode + 1).coerceAtLeast(1),
+                    modifier = Modifier.weight(1f),
+                    shape = fieldShape,
+                    colors = fieldColors,
+                    onClamp = { block.clamped = true }
+                ) { v -> block.step = v }
+            }
+        }
+
+        // issue#23 逐卡: 非常规节次 / 非常规时间 — 收进同一折叠栏 (用户反馈 2026-09-09:
+        // 平铺的"非常规"字样让用户误以为表单不能添加正常课程)
+        IrregularOptionsSection(
+            block = block,
+            fieldShape = fieldShape,
+            fieldColors = fieldColors,
+            timeJson = timeJson,
+            candidates = candidates,
+            onPickEdge = onPickEdge,
+            onEditSlot = onEditSlot,
+            onDeselectEdge = onDeselectEdge
+        )
+
+        // 周次 — 每时段独立
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            NumberField(
+                label = stringResource(R.string.slot_week_range) + " " + stringResource(R.string.start_week),
+                value = block.startWeek,
+                min = 1,
+                max = 30,
+                modifier = Modifier.weight(1f),
+                shape = fieldShape,
+                colors = fieldColors
+            ) { block.startWeek = it }
+            NumberField(
+                label = stringResource(R.string.slot_week_range) + " " + stringResource(R.string.end_week),
+                value = block.endWeek,
+                min = 1,
+                max = 30,
+                modifier = Modifier.weight(1f),
+                shape = fieldShape,
+                colors = fieldColors
+            ) { block.endWeek = it }
+        }
+        // 单双周 + 按周次 — 4 态 SegmentedSwitcher
+        // 0=每周 1=单周 2=双周 3=按周次列实际指定的周（导入 type=3 单次实验课时出现）
+        SegmentedSwitcher(
+            options = listOf(
+                0 to stringResource(R.string.week_every),
+                1 to stringResource(R.string.week_odd),
+                2 to stringResource(R.string.week_even),
+                3 to stringResource(R.string.week_custom)
+            ),
+            selected = block.weekType,
+            onSelect = { block.weekType = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // issue#22: 老师/地点/备注下沉到每时段独立编辑 — 同名同周次不同地点时不再相互覆盖
+        TextField(
+            value = block.teacherState,
+            onValueChange = { block.teacherState = it },
+            label = { Text(stringResource(R.string.course_teacher)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = fieldShape,
+            colors = fieldColors
+        )
+        TextField(
+            value = block.roomState,
+            onValueChange = { block.roomState = it },
+            label = { Text(stringResource(R.string.course_room)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = fieldShape,
+            colors = fieldColors
+        )
+        TextField(
+            value = block.noteState,
+            onValueChange = { block.noteState = it },
+            label = { Text(stringResource(R.string.course_note)) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+            maxLines = 4,
+            shape = fieldShape,
+            colors = fieldColors
+        )
+
+        // 颜色 — 三态(GROUP 跟组 / AUTO 自动 / CUSTOM 自定义); 改组色入口在
+        // 基础信息卡组色节, 逐卡 OFF 态仅显示组色
+        ColorSection(
+            block = block,
+            groupSourceColorHex = groupSourceColorHex
+        )
+
+        if (issues.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                issues.forEach { issue ->
+                    Text(
+                        text = issue,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 卡头采用两行可扫读摘要：
+ * 1. 上课日 + 周次范围 + 周次类型；
+ * 2. 节次/自定时间 + 已填写的老师和地点。
+ *
+ * 摘要直接读取 [MeetingBlockDraft] 的 Compose 状态，因此用户修改下面任一字段时会立即更新。
+ */
+@Composable
+private fun MeetingBlockSummary(block: MeetingBlockDraft, timeJson: String) {
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+
+    val daysText = if (block.days.isEmpty()) {
+        stringResource(R.string.select_at_least_one_day)
+    } else {
+        block.days.sorted().joinToString(" / ") { DateUtils.localizedDay(it, context) }
+    }
+    val weekRangeText = if (block.startWeek == block.endWeek) {
+        stringResource(R.string.slot_summary_week_single, block.startWeek)
+    } else {
+        stringResource(R.string.slot_summary_week_range, block.startWeek, block.endWeek)
+    }
+    val weekTypeText = when (block.weekType) {
+        1 -> stringResource(R.string.week_odd)
+        2 -> stringResource(R.string.week_even)
+        3 -> stringResource(R.string.week_custom)
+        else -> stringResource(R.string.week_every)
+    }
+    val calendarSummary = listOf(daysText, weekRangeText, weekTypeText).joinToString(" · ")
+
+    val effectiveRange = block.effectiveRange(timeJson)
+    val timingSummary = when {
+        block.isIrregularTime -> stringResource(
+            R.string.slot_summary_time_range,
+            block.startTime.ifBlank { "--:--" },
+            block.endTime.ifBlank { "--:--" }
+        )
+        block.isIrregularNode -> {
+            val nodeText = stringResource(R.string.edge_node_label, block.selectedEdgeNode)
+            if (effectiveRange == null) {
+                nodeText
+            } else {
+                "$nodeText · " + stringResource(
+                    R.string.slot_summary_time_range,
+                    effectiveRange.first,
+                    effectiveRange.second
+                )
+            }
+        }
+        block.step <= 1 -> stringResource(R.string.slot_summary_period_single, block.startNode)
+        else -> stringResource(
+            R.string.slot_summary_period_range,
+            block.startNode,
+            block.startNode + block.step - 1,
+            block.step
+        )
+    }
+    val teacherSummary = if (block.teacherState.isBlank()) {
+        null
+    } else {
+        stringResource(R.string.slot_summary_teacher, block.teacherState.trim())
+    }
+    val roomSummary = if (block.roomState.isBlank()) {
+        null
+    } else {
+        stringResource(R.string.slot_summary_room, block.roomState.trim())
+    }
+    val detailSummary = listOfNotNull(timingSummary, teacherSummary, roomSummary).joinToString(" · ")
+
+    Text(
+        text = calendarSummary,
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.onSurfaceVariant,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis
+    )
+    Text(
+        text = detailSummary,
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.onSurfaceVariant,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+/** 非常规选项折叠栏 (用户反馈 2026-09-09): 「非常规节次」「非常规时间」两个开关
+ *  绑到一起收进可展开区块, 默认折叠 — 普通课程用户不再被平铺的"非常规"字样干扰。
+ *  展开模式沿用仓库既有写法 (EditTableScreen 节次时间表 / SettingsCards.SettingsCard):
+ *  ExpandMore chevron 随展开旋转 180f + AnimatedVisibility 高度/淡入动画。
+ *  编辑已启用任一非常规项的卡时自动展开 (irregularOptionsExpanded 由构造参数派生),
+ *  收起但已启用选项时栏头露出摘要, 用户能看见"这里有东西开着"。 */
+@Composable
+private fun IrregularOptionsSection(
+    block: MeetingBlockDraft,
+    fieldShape: CornerBasedShape,
+    fieldColors: androidx.compose.material3.TextFieldColors,
+    timeJson: String,
+    candidates: List<TimeTableUtils.EdgeCandidate>,
+    onPickEdge: () -> Unit,
+    onEditSlot: (node: Int, start: String, end: String) -> Unit,
+    onDeselectEdge: (releasedNode: Int) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (block.irregularOptionsExpanded) 180f else 0f,
+        animationSpec = sleepyIndicatorSpec(),
+        label = "irregular-options-arrow"
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(SleepyTheme.shapes.medium)
+            .background(colors.surfaceContainerHighest)
+    ) {
+        // 栏头: 标题 + 摘要 + chevron, 整行可点
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .noRippleClickable { block.irregularOptionsExpanded = !block.irregularOptionsExpanded }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.irregular_options_section),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface
+                )
+                Text(
+                    text = if (block.irregularOptionsExpanded) {
+                        stringResource(R.string.irregular_options_section_sub)
+                    } else {
+                        irregularOptionsSummary(
+                            isIrregularNode = block.isIrregularNode,
+                            isIrregularTime = block.isIrregularTime,
+                            startTime = block.startTime,
+                            endTime = block.endTime,
+                            nodeSwitchLabel = stringResource(R.string.irregular_node_switch),
+                            edgeNodeLabel = if (block.selectedEdgeNode != 0) {
+                                stringResource(R.string.edge_node_label, block.selectedEdgeNode)
+                            } else {
+                                ""
+                            },
+                            timeSwitchLabel = stringResource(R.string.irregular_time_switch)
+                        ).ifBlank { stringResource(R.string.irregular_options_section_sub) }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 2
+                )
+            }
+            Icon(
+                Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(arrowRotation)
+            )
+        }
+        AnimatedVisibility(
+            visible = block.irregularOptionsExpanded,
+            enter = sleepyExpandEnter(),
+            exit = sleepyExpandExit()
+        ) {
+            Column(
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // issue#23 逐卡: 开关一 — 非常规节次 (§4 逐卡开关设计, 行为原样保留)
+                SwitchRow(
+                    label = stringResource(R.string.irregular_node_switch),
+                    sub = stringResource(R.string.irregular_node_switch_sub),
+                    checked = block.isIrregularNode,
+                    onCheckedChange = { on ->
+                        if (on) {
+                            block.isIrregularNode = true
+                            onPickEdge()
+                        } else {
+                            val released = block.selectedEdgeNode
+                            block.isIrregularNode = false
+                            block.selectedEdgeNode = 0
+                            onDeselectEdge(released)
+                        }
+                        block.clamped = false
+                    }
+                )
+
+                if (block.isIrregularNode) {
+                    // 非常规节次卡: 槽位摘要 + 换一个节次 + 已有槽位默认时间编辑入口
+                    val selected = candidates.firstOrNull { it.node == block.selectedEdgeNode }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = if (selected != null && selected.exists) {
+                                stringResource(
+                                    R.string.edge_node_range,
+                                    selected.node,
+                                    selected.start,
+                                    selected.end
+                                )
+                            } else {
+                                stringResource(R.string.edge_node_label, block.selectedEdgeNode)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (selected != null && selected.exists) {
+                            GlasenseIconButton(
+                                icon = Icons.Outlined.Edit,
+                                contentDescription = stringResource(R.string.irregular_slot_edit_title),
+                                onClick = { onEditSlot(selected.node, selected.start, selected.end) },
+                                tint = colors.onSurfaceVariant
+                                                                )
+                        }
+                    }
+                }
+
+                // issue#23 逐卡: 开关二 — 非常规时间 (行为原样保留)
+                SwitchRow(
+                    label = stringResource(R.string.irregular_time_switch),
+                    sub = stringResource(R.string.irregular_time_switch_sub),
+                    checked = block.isIrregularTime,
+                    onCheckedChange = { on ->
+                        if (on) {
+                            block.isIrregularTime = true
+                            if (block.startTime.isBlank() || block.endTime.isBlank()) {
+                                // 首次开启: 预填本卡生效时间 (槽位默认 / 标准节次时间), 见 §4 B 规则
+                                val r = block.effectiveRange(timeJson)
+                                if (r != null) {
+                                    block.startTime = r.first
+                                    block.endTime = r.second
+                                }
+                            }
+                            if (block.durationText.isBlank()) {
+                                block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
+                            }
+                        } else {
+                            // 关闭覆盖时间 → 回落槽位默认 / 标准节次时间
+                            block.startTime = ""
+                            block.endTime = ""
+                            block.durationText = ""
+                        }
+                    }
+                )
+                if (block.isIrregularTime) {
+                    // §2.4 B 规则: 起止/时长三输入, 最后编辑的输入对为权威 — 改起止重算时长,
+                    // 改时长反推结束时间; 三者都允许填写
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TimePickerField(
+                            value = block.startTime,
+                            onValueChange = { v ->
+                                block.startTime = v
+                                block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
+                            },
+                            label = stringResource(R.string.start_time),
+                            modifier = Modifier.weight(1f)
+                        )
+                        TimePickerField(
+                            value = block.endTime,
+                            onValueChange = { v ->
+                                block.endTime = v
+                                block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
+                            },
+                            label = stringResource(R.string.end_time),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    NumberField(
+                        label = stringResource(R.string.irregular_duration_label),
+                        value = block.durationText.toIntOrNull() ?: 0,
+                        min = 1,
+                        max = 24 * 60,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = fieldShape,
+                        colors = fieldColors
+                    ) { mins ->
+                        if (mins > 0) {
+                            block.durationText = mins.toString()
+                            parseHm(block.startTime)?.let { s ->
+                                val end = s.plusMinutes(mins.toLong())
+                                block.endTime = end.toString()
+                            }
+                            val diff = minutesBetween(block.startTime, block.endTime)
+                            if (diff != null && diff != mins) {
+                                // plusMinutes 跨午夜会把 end 翻到次日, 回退清空交由校验报错
+                                block.endTime = ""
+                                block.durationText = ""
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** issue#23 §2.2 候选弹层: Before 组升序 + After 组升序, 已有槽位显示默认时间,
+ *  「新建」候选点击后进入 NewEdgeSlotDialog 填时间 */
+@Composable
+private fun EdgeCandidatePickerDialog(
+    candidates: List<TimeTableUtils.EdgeCandidate>,
+    onPickExisting: (Int) -> Unit,
+    onPickNew: (TimeTableUtils.EdgeCandidate) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.irregular_node_pick)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                candidates.forEach { c ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(SleepyTheme.shapes.medium)
+                            .background(
+                                if (c.exists) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                            .noRippleClickable {
+                                if (c.exists) onPickExisting(c.node) else onPickNew(c)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (c.exists) {
+                                stringResource(
+                                    R.string.edge_node_range,
+                                    c.node,
+                                    c.start,
+                                    c.end
+                                )
+                            } else {
+                                stringResource(R.string.irregular_node_new, c.node)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (c.exists) colors.onSecondaryContainer else colors.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 色块按钮
+            Button(
+                onClick = onDismiss,
+                shape = SleepyTheme.Buttons.shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) { Text(stringResource(R.string.cancel), maxLines = 1) }
+        }
+    )
+}
+
+/** issue#23: 新建槽位 — 输入起止时间后加入 pendingEdgeInserts (保存时写回课表) */
+@Composable
+private fun NewEdgeSlotDialog(
+    candidate: TimeTableUtils.EdgeCandidate,
+    onConfirm: (start: String, end: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var start by remember { mutableStateOf("") }
+    var end by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.irregular_node_new_title, candidate.node)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                TimePickerField(
+                    value = start,
+                    onValueChange = { start = it },
+                    label = stringResource(R.string.edge_insert_start_label),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TimePickerField(
+                    value = end,
+                    onValueChange = { end = it },
+                    label = stringResource(R.string.edge_insert_end_label),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 色块按钮
+            Button(
+                colors = primaryFilledButtonColors(),
+                enabled = parseHm(start) != null && parseHm(end) != null,
+                onClick = { onConfirm(start, end) },
+                shape = SleepyTheme.Buttons.shape
+            ) { Text(stringResource(R.string.edge_insert_ok), maxLines = 1) }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                shape = SleepyTheme.Buttons.shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) { Text(stringResource(R.string.cancel), maxLines = 1) }
+        }
+    )
+}
+
+/** issue#23 §2.5: 已有槽位默认时间编辑 — 全局生效于所有引用该槽位的课程 */
+@Composable
+private fun SlotEditDialog(
+    node: Int,
+    initialStart: String,
+    initialEnd: String,
+    onConfirm: (start: String, end: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var start by remember(node) { mutableStateOf(initialStart) }
+    var end by remember(node) { mutableStateOf(initialEnd) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.irregular_slot_edit_title, node)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                TimePickerField(
+                    value = start,
+                    onValueChange = { start = it },
+                    label = stringResource(R.string.edge_insert_start_label),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TimePickerField(
+                    value = end,
+                    onValueChange = { end = it },
+                    label = stringResource(R.string.edge_insert_end_label),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 色块按钮
+            Button(
+                colors = primaryFilledButtonColors(),
+                enabled = parseHm(start) != null && parseHm(end) != null,
+                onClick = { onConfirm(start, end) },
+                shape = SleepyTheme.Buttons.shape
+            ) { Text(stringResource(R.string.edge_insert_ok), maxLines = 1) }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                shape = SleepyTheme.Buttons.shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) { Text(stringResource(R.string.cancel), maxLines = 1) }
+        }
+    )
+}
+
+/** 组色 — 课程级色源(基础信息卡): 整组统一色的唯一编辑入口
+ *  (弹调色盘+全组确认, 只写组色源; 跟随组色的节次渲染随之更新)。
+ *  2026-09-15 用户令二次修正: 前面放组色一档, 各节次卡保留自己的颜色行。 */
+@Composable
+private fun GroupColorSection(
+    groupSourceColorHex: String,
+    onChangeGroupColor: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.course_group_color),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GroupColorSwatch(hex = groupSourceColorHex)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = if (CourseColorUtil.hasCustomColorHex(groupSourceColorHex)) groupSourceColorHex
+                else stringResource(R.string.color_group_auto),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Button(
+                onClick = onChangeGroupColor,
+                shape = SleepyTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Text(stringResource(R.string.change_group_color), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+/** 颜色三态 — 开关 OFF = 跟组色(GROUP);开关 ON 后可切 AUTO/CUSTOM
+ *  - GROUP(默认): colorState 留空,渲染按组色源取统一色
+ *  - AUTO: 同 GROUP 但色相按块序号 + 黄金角(137.508°)发散,自动换色
+ *  - CUSTOM: 用户在 ColorPickerDialog 里挑的固定 hex
+ *  2026-09-15 用户令二次修正: 每张节次卡保留自己的颜色行; 改组色入口
+ *  上移基础信息卡 GroupColorSection, OFF 态仅显示组色色块+hex。
+ *  开关左侧文案固定「自定义颜色」(只描述开=什么, 不随开关态变)。 */
+@Composable
+private fun ColorSection(
+    block: MeetingBlockDraft,
+    groupSourceColorHex: String
+) {
+    val colors = MaterialTheme.colorScheme
+    val useDifferent = block.colorModeState != com.imsx3d.classy.data.entity.CourseColorMode.GROUP
+    var showColorPicker by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.course_color),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.onSurfaceVariant
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // 文案只描述开=什么 (2026-09-15 用户令): 静态「自定义颜色」, 不随开关态变
+                Text(
+                    text = stringResource(R.string.color_custom_switch),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = useDifferent,
+                    onCheckedChange = { on ->
+                        block.colorModeState = if (on) {
+                            // 第一次打开: 落 AUTO(自动散色), 用户可再切自定义
+                            com.imsx3d.classy.data.entity.CourseColorMode.AUTO
+                        } else {
+                            com.imsx3d.classy.data.entity.CourseColorMode.GROUP
+                        }
+                    }
+                )
+            }
+        }
+        if (!useDifferent) {
+            // OFF = 跟随组色: 仅显示组色 (改组色入口在基础信息卡组色节)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GroupColorSwatch(hex = groupSourceColorHex)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (CourseColorUtil.hasCustomColorHex(groupSourceColorHex)) groupSourceColorHex
+                    else stringResource(R.string.color_group_auto),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
+        if (useDifferent) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 自动 — 按块序号散色(渲染时由 hueForCourse 计算)
+                AutoColorDot(
+                    selected = block.colorModeState == com.imsx3d.classy.data.entity.CourseColorMode.AUTO,
+                    onClick = {
+                        block.colorModeState = com.imsx3d.classy.data.entity.CourseColorMode.AUTO
+                        block.colorState = ""
+                    }
+                )
+                // 自定义 — 弹出调色盘选固定色
+                CustomColorDot(
+                    hex = block.colorState.takeIf {
+                        it.isNotBlank() && block.colorModeState == com.imsx3d.classy.data.entity.CourseColorMode.CUSTOM
+                    },
+                    onClick = { showColorPicker = true }
+                )
+                if (block.colorModeState == com.imsx3d.classy.data.entity.CourseColorMode.CUSTOM && block.colorState.isNotBlank()) {
+                    Text(
+                        text = block.colorState,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+
+    if (showColorPicker) {
+        ColorPickerDialog(
+            initialHex = block.colorState.ifBlank { "#FF6750A4" },
+            onConfirm = { hex ->
+                block.colorState = hex
+                block.colorModeState = com.imsx3d.classy.data.entity.CourseColorMode.CUSTOM
+                showColorPicker = false
+            },
+            onDismiss = { showColorPicker = false }
+        )
+    }
+}
+
+/** GROUP 模式组色色块 — 有自定义组色显示色块, 无则显示 AUTO 黄金角中性色 */
+@Composable
+private fun GroupColorSwatch(hex: String) {
+    val hasCustom = CourseColorUtil.hasCustomColorHex(hex)
+    val swatchColor: Color = if (hasCustom) {
+        runCatching { Color(android.graphics.Color.parseColor(hex)) }
+            .getOrDefault(MaterialTheme.colorScheme.surfaceVariant)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    Box(
+        modifier = Modifier
+            .size(20.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(swatchColor)
+    )
+}
+
+@Composable
+private fun MultiDayPicker(
+    selectedDays: Set<Int>,
+    onToggleDay: (Int) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    // UI-4s: 选中块走共享的"选中面"取色（深色下不再实心铺浅主色 → 不刺眼、字清楚）
+    val sel = selectedSurfaceColors()
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (row in listOf((1..4).toList(), (5..7).toList())) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { day ->
+                    val selected = day in selectedDays
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clip(SleepyTheme.shapes.medium)
+                            .background(if (selected) sel.container else colors.surfaceContainerHighest)
+                            .noRippleClickable { onToggleDay(day) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = DateUtils.localizedDay(day, LocalContext.current),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (selected) sel.content else colors.onSurface
+                        )
+                    }
+                }
+                if (row.size < 4) repeat(4 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun NumberField(
+    label: String,
+    value: Int,
+    min: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    shape: CornerBasedShape,
+    colors: androidx.compose.material3.TextFieldColors,
+    // issue#9 延伸: 输入超界 → 被 coerce 改值时回调, 让父级置 block.clamped=true
+    // 必须放在 onChange 之前, 否则 trailing lambda 会自动绑给 onClamp 而漏 onChange
+    onClamp: (() -> Unit)? = null,
+    onChange: (Int) -> Unit
+) {
+    var text by remember { mutableStateOf(value.toString()) }
+
+    // 仅在外部 value 变化且用户当前文本为空/不匹配时同步
+    LaunchedEffect(value) {
+        val parsed = text.toIntOrNull()
+        if (parsed != value && text.isNotEmpty()) {
+            text = value.toString()
+        }
+    }
+
+    TextField(
+        value = text,
+        onValueChange = { txt ->
+            text = txt
+            if (txt.isEmpty()) {
+                // 清空时回调最小值，保证 model 有合法值
+                onChange(min)
+            } else {
+                val v = txt.toIntOrNull()
+                if (v != null) {
+                    val coerced = v.coerceIn(min, max)
+                    if (coerced != v) onClamp?.invoke()
+                    onChange(coerced)
+                }
+                // 非数字字符不回调，但保留 text 让用户继续编辑
+            }
+        },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier,
+        shape = shape,
+        colors = colors
+    )
+}
+
+// ── 课程颜色选择器 ──
+
+@Composable
+private fun AutoColorDot(selected: Boolean, onClick: () -> Unit) {
+    // IconButton 包裹 — 裸 32dp 圆点的涟漪半径过小且无 48dp 最小触达区。
+    // UI-31c 说明：这是**色点选择器**（自绘圆点 + 文字），不是图标动作键，
+    // 因此不并入 GlasenseIconButton —— 借 IconButton 只要它的 48dp 触达区与按压反馈。
+    IconButton(onClick = onClick) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+        ) {
+            Text(
+                text = stringResource(R.string.label_from),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomColorDot(hex: String?, onClick: () -> Unit) {
+    val c = if (hex != null) {
+        runCatching { Color(android.graphics.Color.parseColor(hex)) }
+            .getOrDefault(MaterialTheme.colorScheme.surfaceVariant)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    // IconButton 包裹 — 裸 32dp 圆点的涟漪半径过小且无 48dp 最小触达区。
+    // UI-31c 说明：这是**色点选择器**（自绘圆点 + 文字），不是图标动作键，
+    // 因此不并入 GlasenseIconButton —— 借 IconButton 只要它的 48dp 触达区与按压反馈。
+    IconButton(onClick = onClick) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(c)
+        ) {
+            if (hex == null) {
+                Text(
+                    text = "＋",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件课程格底色·widget_cell_mid（运行时 setBackgroundTintList 上色）。
+     跨节次的课要"看起来是一整块"：首行只圆上、中间行方角、末行只圆下，
+     行间零间距；与相邻不同课的间隙由 inset 提供。
+     UI-4t: 深色/任意密度下桌面会把组件按自身密度分层渲染，相邻两行色块各抗锯齿
+     → 接缝处漏出 1px 卡片底色（用户看到的"淡横线"）。此处 insetTop 取**负值**：
+     形状向上外扩 2dp 压住上一行的下边缘（同色 → 无缝）。需配合 clipChildren=false，
+     见 widget_weekgrid_card.xml / widget_weekgrid_row.xml。 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetTop="-2px"
+    android:insetBottom="-2px">
+    <shape android:shape="rectangle">
+        <solid android:color="#FFFFFFFF" />
+        
+    </shape>
+</inset>

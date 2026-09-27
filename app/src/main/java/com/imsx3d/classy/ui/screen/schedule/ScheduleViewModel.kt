@@ -1,0 +1,514 @@
+package com.imsx3d.classy.ui.screen.schedule
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.imsx3d.classy.R
+import com.imsx3d.classy.SleepyApp
+import com.imsx3d.classy.data.entity.CourseEntity
+import com.imsx3d.classy.data.entity.TimeTableEntity
+import com.imsx3d.classy.data.repository.ScheduleRepository
+import com.imsx3d.classy.util.AppPrefs
+import com.imsx3d.classy.util.DateUtils
+import com.imsx3d.classy.util.HolidayRangeOps
+import com.imsx3d.classy.util.WeekDisplayContext
+import com.imsx3d.classy.util.WeekDisplayResolver
+import com.imsx3d.classy.util.HolidayTransferEntry
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+
+data class ScheduleState(
+    val tables: List<TimeTableEntity> = emptyList(),
+    val selectedTableId: Long? = null,
+    val courses: List<CourseEntity> = emptyList(),
+    val currentWeek: Int = 1,
+    val selectedWeek: Int = 1,
+    val weekDisplayContext: WeekDisplayContext? = null,
+    /** true = 用户手动选周；false = 跟随自动展示周。 */
+    val weekSelectionManual: Boolean = false,
+    /** false=首次加载(本周), true=用户/系统已选定周 — 课程变更时 selectedWeek 不再被重置 */
+    val initialWeekSettled: Boolean = false,
+    val nodesPerDay: Int = 12,
+    val selectedCourseId: Long? = null,
+    val showCourseDialog: Boolean = false,
+    val error: String? = null,
+    /** issue#40: 当前表绑定的独立时间节次表(null=未绑定/悬空, 渲染回退旧兼容列) */
+    val effectivePeriodTable: com.imsx3d.classy.data.entity.PeriodTableEntity? = null,
+    /** issue#44: 当前表的调休映射; 切换课表/写盘后由 VM 刷新 */
+    val transfers: List<HolidayTransferEntry> = emptyList()
+) {
+    val currentWeekCourses: List<CourseEntity>
+        get() = courses.filter { it.inWeek(selectedWeek) }
+            .let { list ->
+                val tj = effectiveCurrentTable?.timeJson
+                if (tj == null) list else list.map { c -> c.normalizeNode(tj) }
+            }
+
+    /** 原始行(库内数据, timeJson 兼容列可能过期) */
+    val currentTable: TimeTableEntity?
+        get() = tables.find { it.id == selectedTableId }
+
+    /** issue#40: 水合后的当前表 — 节次时间域一律从这里读, 不得直接读 currentTable.timeJson */
+    val effectiveCurrentTable: TimeTableEntity?
+        get() = currentTable?.hydratedWith(effectivePeriodTable)
+
+    /** issue#44: 给定日期实际应"按星期几取课"; 命中映射=targetDate 星期, 未命中=自然星期 */
+    fun transferDayFor(date: LocalDate): Int =
+        com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.effectiveDayOfWeek(date, transfers)
+}
+
+class ScheduleViewModel : ViewModel() {
+
+    private val repo: ScheduleRepository = SleepyApp.get().repository
+
+    private val _state = MutableStateFlow(ScheduleState())
+    val state: StateFlow<ScheduleState> = _state.asStateFlow()
+
+    /** issue#40: 全部独立时间节次表(管理页列表) */
+    val allPeriodTables = repo.observeAllPeriodTables()
+        .stateIn(
+            viewModelScope,
+            kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
+    /** Whether the user has explicitly selected a table (vs auto-picking default on load) */
+    private var manualSelectDone = false
+
+    /**
+     * 当前在 observe 课程的协程。切换表时必须先 cancel 上一个，
+     * 否则多个协程同时往 state.courses 写，后启动的会被后 emit 的旧协程覆盖，
+     * 导致"显示成另一张表"的 bug。
+     */
+    private var coursesJob: Job? = null
+
+    init {
+        loadTables()
+    }
+
+    private fun loadTables() {
+        viewModelScope.launch {
+            combine(
+                repo.observeAllTables(),
+                kotlinx.coroutines.flow.flowOf(LocalDate.now())
+            ) { tables, _ -> tables }
+                .collect { tables ->
+                    if (tables.isEmpty()) {
+                        // 没有课表就老实空着，不强行造占位表。
+                        // selectedTableId = null，UI 走空态。
+                        _state.update {
+                            it.copy(
+                                tables = emptyList(),
+                                selectedTableId = null,
+                                weekDisplayContext = null,
+                                weekSelectionManual = false
+                            )
+                        }
+                        return@collect
+                    }
+                    val selectedId = _state.value.selectedTableId
+                    val targetId: Long = if (manualSelectDone && selectedId != null && tables.any { t -> t.id == selectedId }) {
+                        selectedId
+                    } else {
+                        tables.find { it.isDefault }?.id ?: tables.first().id
+                    }
+                    _state.update { it.copy(tables = tables, selectedTableId = targetId) }
+                    loadCourses(targetId)
+                }
+        }
+    }
+
+    private fun loadCourses(tableId: Long) {
+        // 取消旧协程，避免多个 observeCourses 同时写 state.courses 互相覆盖
+        coursesJob?.cancel()
+        // issue#44: 拉一次该表调休映射; 设置页改完走 refreshTransfer 主动刷
+        _state.update { it.copy(transfers = AppPrefs.getHolidayTransfers(SleepyApp.get(), tableId)) }
+        coursesJob = viewModelScope.launch {
+            // issue#40: 课程流与绑定时间节次表流合并 — 时间节次表改动会 emit 新值,
+            // 所有绑定课表立即按新作息解释节次(设计 §5.2 立即全部同步), 课程行不重算
+            combine(
+                repo.observeCourses(tableId),
+                repo.observeEffectivePeriodTable(tableId)
+            ) { courses, periodTable -> courses to periodTable }
+                .collect { (courses, periodTable) ->
+                    _state.update { st ->
+                        val rawTable = st.tables.find { it.id == tableId }
+                        // 水合: 绑定存在时 nodesPerDay/timeJson/smartConfigJson 以时间节次表为准
+                        val table = rawTable?.hydratedWith(periodTable)
+                        val displayContext = table?.let {
+                            WeekDisplayResolver.resolve(
+                                startDate = it.startDate,
+                                maxWeek = it.maxWeek,
+                                now = LocalDateTime.now(),
+                                courses = courses,
+                                timeJson = it.timeJson,
+                                // 2026-09-27 用户决定：**「最近有课日」只在小组件生效**，
+                                // App 内不再自动跳到最近有课那天 —— 用户原话"用在 app 内效果不是很好、
+                                // 不够简洁美观"。设置项（通用→小组件）保留，只喂组件。
+                                // 传 false 时 resolve 的 targetDate=today / targetWeek=actualWeek / status=NORMAL，
+                                // 于是首屏稳定落在真实周，顶栏也不再出现那行状态副文案。
+                                enabled = false
+                            )
+                        }
+                        val week = displayContext?.actualWeek ?: 1
+                        // v7.10.16s: 只更新真实周(currentWeek, 供"回到本周"), 不再重置 selectedWeek —
+                        // 用户在第 x 周编辑/删课, 保存回来仍停在 x 周(此前被拽回真实周=跳回第一周体验)。
+                        // 首次加载(initial=true)仍落真实周, 保持原行为
+                        st.copy(
+                            courses = courses,
+                            currentWeek = week,
+                            selectedWeek = when {
+                                !st.initialWeekSettled -> displayContext?.targetWeek ?: week
+                                !st.weekSelectionManual -> displayContext?.targetWeek ?: week
+                                else -> st.selectedWeek
+                            },
+                            weekDisplayContext = displayContext,
+                            initialWeekSettled = true,
+                            nodesPerDay = table?.nodesPerDay ?: 12,
+                            effectivePeriodTable = periodTable
+                        )
+                    }
+                    // 课程数据变更后刷新所有 widget
+                    try {
+                        com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(
+                            com.imsx3d.classy.SleepyApp.get()
+                        )
+                    } catch (_: Exception) {}
+                }
+        }
+    }
+
+    fun selectTable(id: Long) {
+        manualSelectDone = true
+        // 切表 = 新学期语境, 周选择回到该表真实周(initialWeekSettled 复位, loadCourses 重新落周)
+        _state.update {
+            it.copy(
+                selectedTableId = id,
+                initialWeekSettled = false,
+                weekSelectionManual = false,
+                weekDisplayContext = null
+            )
+        }
+        loadCourses(id)
+        // 切表后同步数据库 isDefault，使小组件严格跟随 App 当前选中表（widget 按默认表解析）
+        viewModelScope.launch {
+            try {
+                repo.setDefault(id)
+                com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(
+                    com.imsx3d.classy.SleepyApp.get()
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
+     * v7.10.15 创建课表副本 — 全量复制表配置+课程, 新副本不接管默认表也不切选中,
+     * 命名沿用导入路径的去重规则(原名+"2"/"3"...)。
+     * v7.10.16w: 建表+插课是一个撤回动作 — beginBatch 保首快照, 撤回一次整步回退
+     * (此前两步写两次覆盖快照, 撤回只删掉课程行留下空表壳)。
+     */
+    fun duplicateTable(id: Long) {
+        viewModelScope.launch {
+            val source = repo.getTable(id) ?: return@launch
+            val courses = repo.getCourses(id)
+            val existingNames = repo.getAllTables().map { it.name }
+            var index = 2
+            var name = "${source.name}2"
+            while (name in existingNames) { index++; name = "${source.name}$index" }
+            com.imsx3d.classy.data.undo.UndoManager.beginBatch()
+            try {
+                val newId = repo.insertTable(
+                    source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis())
+                )
+                if (courses.isNotEmpty()) {
+                    // groupId 整组映射到新 UUID — 同一门课的节次共享新组 ID, 副本内仍可整组编辑
+                    val groupMap = courses.associate { it.groupId to java.util.UUID.randomUUID().toString() }
+                    repo.insertCourses(courses.map { it.copy(id = 0, groupId = groupMap[it.groupId] ?: it.groupId, tableId = newId) })
+                }
+            } finally {
+                com.imsx3d.classy.data.undo.UndoManager.endBatch()
+            }
+            com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(com.imsx3d.classy.SleepyApp.get())
+        }
+    }
+
+    /** Create a new empty table with auto-generated name.
+     *  @param commitSelection if true (default), immediately switches the selected table
+     *         to the new one. If false, the table is inserted but selection is not changed —
+     *         useful when the caller plans to either roll back the new table or commit the
+     *         selection later. */
+    suspend fun createEmptyTable(commitSelection: Boolean = true): Long {
+        val existingNames = _state.value.tables.map { it.name }
+        var index = _state.value.tables.size + 1
+        var name = com.imsx3d.classy.SleepyApp.get().getString(R.string.default_table_with_num, index)
+        while (name in existingNames) { index++; name = com.imsx3d.classy.SleepyApp.get().getString(R.string.default_table_with_num, index) }
+        val now = LocalDate.now()
+        val lastWeekMonday = now.with(java.time.DayOfWeek.MONDAY).minusWeeks(1)
+        // 没有任何表时，新表自动 isDefault = true，避免出现"无默认表"
+        val isFirstTable = _state.value.tables.isEmpty()
+        val table = TimeTableEntity(
+            name = name,
+            startDate = lastWeekMonday.toString(),
+            isDefault = isFirstTable
+        )
+        val id = repo.insertTable(table)
+        if (isFirstTable) {
+            // 数据库侧 isDefault 唯一性保证（其他表如有 isDefault 会自动清掉）
+            repo.setDefault(id)
+        }
+        if (commitSelection) {
+            // 创建后立刻把 state 切到新表，并加载新课程。
+            // 否则 loadTables 协程 observeAllTables emit 会因为 manualSelectDone=true + selectedTableId!=null
+            // 继续保留旧表选择，导致 UI 显示"默认课表"而非用户新建的课表。
+            manualSelectDone = true
+            _state.update { it.copy(selectedTableId = id) }
+            loadCourses(id)
+        } else {
+            // 不切选中：仅通知 widget 刷新（observeAllTables 会带回新表，但不切 selectedTableId）
+        }
+        // 通知 widget
+        try {
+            com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(
+                com.imsx3d.classy.SleepyApp.get()
+            )
+        } catch (_: Exception) {}
+        return id
+    }
+
+    /** issue#40: 修改共享时间节次表内容 — 全部绑定课表立即生效, 课程行零改动 */
+    fun updatePeriodTableContent(table: com.imsx3d.classy.data.entity.PeriodTableEntity) {
+        viewModelScope.launch {
+            repo.savePeriodTable(table)
+        }
+    }
+
+    /** issue#40: 换绑课程表的时间节次表(只写 periodTableId, 课程行零改动) */
+    fun bindPeriodTable(timeTableId: Long, periodTableId: Long?) {
+        viewModelScope.launch { repo.bindPeriodTable(timeTableId, periodTableId) }
+    }
+
+    /** issue#40: 复制时间节次表, 返回新副本 id (-1 = 源不存在) */
+    suspend fun copyPeriodTable(sourceId: Long): Long = repo.copyPeriodTable(sourceId)
+
+    /**
+     * v1.0.56 T8: 复制作息表预填名 — 原名参与全局唯一名顺延(原名2/3/4…),
+     * 原名本身不占位(复制期间源表仍在, 建议名永远 ≠ 源名, 无需排除源自身)。
+     */
+    suspend fun suggestPeriodTableCopyName(sourceId: Long): String? {
+        val src = repo.getAllPeriodTables().firstOrNull { it.id == sourceId } ?: return null
+        val courseNames = repo.getAllTables().map { it.name }
+        val periodNames = repo.getAllPeriodTables().map { it.name }
+        return com.imsx3d.classy.util.TimeTableUtils.suggestUniqueName(
+            src.name, courseNames, periodNames
+        )
+    }
+
+    /**
+     * v1.0.56 T8: 按用户确认的名字建副本(编辑弹窗确认后才落库)。
+     * 返回新副本 id; 名字为空回退源名。撞名由调用方先查(guard 已在 repo 层无, UI 层实时标错)。
+     */
+    suspend fun copyPeriodTableAs(sourceId: Long, newName: String): Long {
+        val src = repo.getPeriodTable(sourceId) ?: return -1L
+        val courseNames = repo.getAllTables().map { it.name }
+        val periodNames = repo.getAllPeriodTables().map { it.name }
+        if (newName.isNotBlank() && com.imsx3d.classy.util.TimeTableUtils.isTableNameTaken(
+                newName, courseNames, periodNames
+            )
+        ) return -2L
+        return repo.copyPeriodTableAs(sourceId, newName.ifBlank { src.name })
+    }
+
+    /** issue#40: 全库课程(保存预览用) — 预览须覆盖所有绑定表的课, state.courses 只装当前选中表 */
+    suspend fun getAllCourses(): List<com.imsx3d.classy.data.entity.CourseEntity> = repo.getAllCourses()
+
+    /** issue#40: 删除时间节次表(被引用时 false, UI 提示先改绑) */
+    suspend fun deletePeriodTable(id: Long): Boolean = repo.deletePeriodTable(id)
+
+    /**
+     * issue#40: 丢弃一个从未保存过的新建时间节次表(创建即落库的残留清理)。
+     * 与课表侧 [discardNewTable] 同语义 — 用户在编辑页点了返回(=放弃), 该空行
+     * 不应遗留在管理页列表里。丢弃不走删除守卫(刚建的表不可能有绑定)。
+     */
+    fun discardNewPeriodTable(id: Long) {
+        viewModelScope.launch { repo.deletePeriodTable(id) }
+    }
+
+    /** issue#40: 新建空白时间节次表 */
+    suspend fun insertPeriodTable(
+        name: String,
+        timeJson: String = com.imsx3d.classy.util.TimeTableUtils.DEFAULT_TIME_JSON,
+        nodesPerDay: Int = 12,
+        smartConfigJson: String = ""
+    ): Long = repo.insertPeriodTable(
+        com.imsx3d.classy.data.entity.PeriodTableEntity(
+            name = name, nodesPerDay = nodesPerDay,
+            timeJson = timeJson, smartConfigJson = smartConfigJson
+        )
+    )
+
+    /**
+     * v1.0.56 T7: 新建作息表(自动唯一命名) — 全局唯一名(课表∪作息表)顺延,
+     * 空 name 走默认名「新建作息表」参与顺延。新建入口(管理页卡/管理页按钮)统一走这里。
+     */
+    suspend fun insertPeriodTableWithUniqueName(
+        name: String,
+        defaultName: String,
+        timeJson: String = com.imsx3d.classy.util.TimeTableUtils.DEFAULT_TIME_JSON,
+        nodesPerDay: Int = 12,
+        smartConfigJson: String = ""
+    ): Long {
+        val courseNames = repo.getAllTables().map { it.name }
+        val periodNames = repo.getAllPeriodTables().map { it.name }
+        val unique = com.imsx3d.classy.util.TimeTableUtils.suggestUniqueName(
+            name, courseNames, periodNames, defaultName = defaultName
+        )
+        return insertPeriodTable(unique, timeJson, nodesPerDay, smartConfigJson)
+    }
+
+    /** v1.0.56 T9: 全局唯一名预填用 — 一次性取全部课表名 */
+    suspend fun getAllTableNamesOnce(): List<String> = repo.getAllTables().map { it.name }
+
+    /** v1.0.56 T9: 全局唯一名预填用 — 一次性取全部作息表名 */
+    suspend fun getAllPeriodTableNamesOnce(): List<String> = repo.getAllPeriodTables().map { it.name }
+
+    fun updateTable(table: TimeTableEntity) {
+        viewModelScope.launch { repo.updateTable(table) }
+    }
+
+    /** issue#28 P3: 保存课表编辑 — timeJson 变更时课程节次按绝对时间自适应 */
+    fun updateTableRemappingCourses(table: TimeTableEntity) {
+        viewModelScope.launch { repo.updateTableRemappingCourses(table) }
+    }
+
+    fun deleteTable(id: Long) {
+        viewModelScope.launch {
+            repo.deleteTable(id)
+            manualSelectDone = false
+        }
+    }
+
+    /** Discard a newly-created table that was never saved by the user.
+     *  Deletes the table and reverts selection to the previous default table. */
+    fun discardNewTable(newId: Long, fallbackId: Long?) {
+        viewModelScope.launch {
+            repo.deleteTable(newId)
+            // The observeAllTables flow will re-emit; ensure selectedTableId falls back
+            // to the previous default table (or first remaining table).
+            manualSelectDone = false
+            val remaining = repo.observeAllTables().first().filter { it.id != newId }
+            val targetId = fallbackId?.takeIf { id -> remaining.any { it.id == id } }
+                ?: remaining.find { it.isDefault }?.id
+                ?: remaining.firstOrNull()?.id
+            if (targetId != null) {
+                selectTable(targetId)
+            }
+        }
+    }
+
+    fun changeWeek(week: Int) {
+        // 防呆: 下限 1, 上限 maxWeek — 之前只有下限, 右箭头可以无限翻出学期范围外
+        val maxWeek = _state.value.currentTable?.maxWeek ?: 20
+        if (week < 1 || week > maxWeek) return
+        _state.update { it.copy(selectedWeek = week, weekSelectionManual = true) }
+    }
+
+    private fun recalculateWeekDisplay() {
+        val current = _state.value
+        val table = current.effectiveCurrentTable ?: return
+        val context = WeekDisplayResolver.resolve(
+            startDate = table.startDate,
+            maxWeek = table.maxWeek,
+            now = LocalDateTime.now(),
+            courses = current.courses,
+            timeJson = table.timeJson,
+            // 同 recalculateWeekDisplay 上方的说明：App 内不做「最近有课日」自动跳转，只喂小组件。
+            enabled = false
+        )
+        _state.update {
+            val selected = if (it.weekSelectionManual) it.selectedWeek else context.targetWeek
+            it.copy(
+                currentWeek = context.actualWeek,
+                weekDisplayContext = context,
+                selectedWeek = selected
+            )
+        }
+    }
+
+    /**
+     * v7.10.16 撤回最近一次数据改动(导入/加课/编辑/删课/删表/建表...)。
+     * 返回 false = 没有可撤回的操作(调用方 toast 提示)。
+     */
+    suspend fun undoLastChange(): Boolean {
+        val ok = repo.restoreLastSnapshot()
+        if (ok) manualSelectDone = false   // 恢复后选中态交回 default 表
+        return ok
+    }
+
+    /**
+     * 2026-09-21 用户令: 取消最近一次撤回(单级 redo)。
+     * 返回 false = 没有可取消的撤回(调用方 toast 提示)。
+     */
+    suspend fun redoLastUndo(): Boolean {
+        val ok = repo.redoLastUndo()
+        if (ok) manualSelectDone = false   // 恢复后选中态交回 default 表(与 undo 同语义)
+        return ok
+    }
+
+    fun openCourse(id: Long) {
+        _state.update { it.copy(selectedCourseId = id, showCourseDialog = true) }
+    }
+
+    fun dismissCourseDialog() {
+        _state.update { it.copy(showCourseDialog = false) }
+    }
+
+    /**
+     * issue#44: 设置页保存调休映射后, 通知 VM 重新拉当前表的映射。
+     * 现有 courses 列表不需重查, 只需刷新 dayFor() 的真源, 一次 reload 即生效。
+     */
+    fun refreshTransfer() {
+        val id = _state.value.selectedTableId ?: return
+        _state.update { it.copy(transfers = AppPrefs.getHolidayTransfers(SleepyApp.get(), id)) }
+    }
+
+    fun addEmptyCourse() {
+        viewModelScope.launch {
+            val tableId = _state.value.selectedTableId
+                ?: createEmptyTable()  // 没课表就先生成一张，再加课
+            val empty = CourseEntity(
+                groupId = java.util.UUID.randomUUID().toString(),
+                tableId = tableId,
+                courseName = com.imsx3d.classy.SleepyApp.get().getString(com.imsx3d.classy.R.string.new_course),
+                teacher = "",
+                room = "",
+                day = DateUtils.todayDayOfWeek(),
+                startNode = 1,
+                step = 1,
+                startWeek = _state.value.currentWeek,
+                endWeek = _state.value.currentWeek + 16,
+                color = "#FF6750A4"
+            )
+            val id = repo.insertCourse(empty)
+            openCourse(id)
+        }
+    }
+
+    fun updateCourse(course: CourseEntity) {
+        viewModelScope.launch { repo.updateCourse(course) }
+    }
+
+    fun deleteCourse(id: Long) {
+        viewModelScope.launch {
+            repo.deleteCourse(id)
+            dismissCourseDialog()
+        }
+    }
+}

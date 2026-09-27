@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件课程格底色·widget_cell_top（运行时 setBackgroundTintList 上色）。
+     跨节次块的首行：只圆上两角；与下一行重叠 2px（insetBottom 负值=外扩），
+     桌面按自身密度分层绘制相邻行时不会漏出卡片底色的细线。 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetTop="5px"
+    android:insetBottom="-2px">
+    <shape android:shape="rectangle">
+        <solid android:color="#FFFFFFFF" />
+        <corners android:topLeftRadius="6dp" android:topRightRadius="6dp" />
+    </shape>
+</inset>

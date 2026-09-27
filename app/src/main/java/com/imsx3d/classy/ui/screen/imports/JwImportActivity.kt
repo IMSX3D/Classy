@@ -1,0 +1,932 @@
+package com.imsx3d.classy.ui.screen.imports
+
+import android.content.res.Configuration
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.SaveableStateHolder
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.imsx3d.classy.SleepyApp
+import com.imsx3d.classy.data.entity.CourseEntity
+import com.imsx3d.classy.data.entity.SmartPeriodConfig
+import com.imsx3d.classy.data.jw.JwCourse
+import com.imsx3d.classy.data.jw.JwImportDraftPhase
+import com.imsx3d.classy.data.jw.JwImportDraftPeriod
+import com.imsx3d.classy.data.jw.JwImportDraftSnapshot
+import com.imsx3d.classy.data.jw.JwImportDraftCodec
+import com.imsx3d.classy.data.jw.JwImportViewModel
+import com.imsx3d.classy.data.jw.JwParseDiagnostics
+import com.imsx3d.classy.data.jw.JwProtocol
+import com.imsx3d.classy.data.jw.JwSchoolInfo
+import com.imsx3d.classy.data.jw.UcasDetailFetch
+import com.imsx3d.classy.data.parser.ScheduleParser
+import com.imsx3d.classy.ui.component.DatePickerField
+import com.imsx3d.classy.ui.component.DialogActionButtons
+import com.imsx3d.classy.ui.component.PeriodTableOption as TimeSlotEditorPeriodTableOption
+import com.imsx3d.classy.ui.component.TimeSlotEditor
+import com.imsx3d.classy.ui.component.resolveAutoPeriodConfig
+import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
+import com.imsx3d.classy.ui.theme.SleepyTheme
+import com.imsx3d.classy.ui.theme.SleepyThemeProvider
+import android.webkit.WebView
+import com.imsx3d.classy.util.AppPrefs
+import com.imsx3d.classy.util.TimeTableUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.runtime.rememberCoroutineScope
+import com.imsx3d.classy.R
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import com.imsx3d.classy.ui.component.GlasenseSnackbarHost
+
+/**
+ * 教务直连导入主屏
+ *
+ * 流程：学校选择 → WebView 登录抓 HTML → 解析 → 复用 ImportScreen 现有预览 → 落库
+ *
+ * HEU 走 WISEDU 金智教务协议；其他学校按学校配置的协议类型选择 parser。
+ */
+class JwImportActivity : ComponentActivity() {
+
+    companion object {
+        const val EXTRA_DRAFT_ID = "extra_import_draft_id"
+    }
+
+    // configChanges="uiMode" 不重建 Activity → isSystemInDarkTheme() 不 recomposition。
+    // 初始值在 onCreate 赋 — 属性初始化器读 resources 会在构造函数阶段执行,
+    // 此时 attachBaseContext 未调, resources 访问 NPE → 启动秒崩(v1.0.55 翻车点)。
+    private val uiNightModeState: androidx.compose.runtime.MutableState<Int> =
+        androidx.compose.runtime.mutableStateOf(Configuration.UI_MODE_NIGHT_UNDEFINED)
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        uiNightModeState.value = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        uiNightModeState.value =
+            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        enableEdgeToEdge()
+        setContent {
+            val systemDark = uiNightModeState.value == Configuration.UI_MODE_NIGHT_YES
+            val dark = remember(systemDark) {
+                AppPrefs.isDarkMode(this@JwImportActivity, systemDark)
+            }
+            val themeKey by AppPrefs.themeKeyFlow(this@JwImportActivity)
+                .collectAsState(initial = AppPrefs.getThemeKey(this@JwImportActivity))
+            SleepyThemeProvider(darkTheme = dark, themeKey = themeKey) {
+                val jwViewModel: JwImportViewModel = viewModel()
+                val scheduleViewModel: ScheduleViewModel = viewModel()
+                // v1.0.56 T6: 第三 Tab「作息表」数据源 — 绑定现有作息表直接用
+                val allPeriodTables by scheduleViewModel.allPeriodTables.collectAsState(initial = emptyList())
+                val scope = rememberCoroutineScope()
+                val draftRepository = SleepyApp.get().importDraftRepository
+                val incomingDraftId = intent.getStringExtra(EXTRA_DRAFT_ID)
+                // 组合树, 滚动位置/搜索词全部销毁。各 stage 分支内容包独立 key 的
+                // SaveableStateProvider(key = stage 类名), WebView 登录返回学校列表时
+                // 列表滚动位置与 rememberSaveable 态原样恢复。
+                val saveableStateHolder: SaveableStateHolder = rememberSaveableStateHolder()
+
+                var selectedSchool by remember { mutableStateOf<JwSchoolInfo?>(null) }
+                var stage by remember { mutableStateOf<Stage>(Stage.SelectSchool) }
+                var errorMsg by remember { mutableStateOf<String?>(null) }
+                var statusMsg by remember { mutableStateOf<String?>(null) }
+                val statusSnackbarHostState = remember { SnackbarHostState() }
+                // 排查全量包导出: 错误弹窗点"导出排查全量包"按钮后由 JwCaptureDump 落 zip
+                var lastCaptureResult by remember { mutableStateOf<FrameCaptureResult?>(null) }
+                var webViewForDump by remember { mutableStateOf<WebView?>(null) }
+                // 排查包导出原子进度 (2026-09-21 用户: 每一步在哪+百分之多少, 禁黑箱等待)
+                var dumpProgress by remember { mutableStateOf<DiagDumpProgress?>(null) }
+                // #27: 红条此前只置不清,报错后必须退出页面才消失。阶段一切换即清零。
+                LaunchedEffect(stage) { errorMsg = null }
+                var importFinished by remember { mutableStateOf(false) }
+                var exitDraftState by remember { mutableStateOf(ExitDraftState()) }
+                // 解析后的课程暂存 + 配置确认状态
+                var parsedCourses by remember { mutableStateOf<List<JwCourse>>(emptyList()) }
+                var parsedSchool by remember { mutableStateOf<JwSchoolInfo?>(null) }
+                var draftId by remember { mutableStateOf(incomingDraftId) }
+                var configStartDate by remember { mutableStateOf("") }
+                var configTimeJson by remember { mutableStateOf("") }
+                var configRows by remember { mutableStateOf(emptyList<TimeTableUtils.TimeSlotRow>()) }
+                // issue#28 P2: 自动模式"添加课间"的状态 — 旧代码没传 smartConfig/
+                // onSmartConfigChange, 落到默认 no-op 回调, 点击无效。
+                // issue#23 T5: 初值统一走共享推断(此刻行还为空 → null → 保底默认);
+                // 真正的播种发生在解析出 rows / 草稿恢复两个入口。
+                var configSmartConfig by remember {
+                    mutableStateOf(
+                        TimeTableUtils.inferSmartPeriodConfig(configRows) ?: SmartPeriodConfig()
+                    )
+                }
+                // v1.0.56 T6: 第三 Tab 绑定选择 — null=未绑定(用教务解析出的节次); 落库时同步 periodTableId
+                var configBindPeriodTableId by remember { mutableStateOf<Long?>(null) }
+                // 用户可改的导入课表名; 初值 = "教务导入 - {学校名}"; 留空 = 沿用初值
+                var configTableName by remember(parsedSchool) {
+                    mutableStateOf(
+                        parsedSchool?.let { getString(R.string.jw_import_title, it.name) } ?: ""
+                    )
+                }
+
+                fun currentDraftSnapshot(): JwImportDraftSnapshot? {
+                    val school = parsedSchool ?: return null
+                    if (parsedCourses.isEmpty()) return null
+                    return JwImportDraftSnapshot(
+                        school = school,
+                        courses = parsedCourses,
+                        periods = configRows.map { JwImportDraftPeriod(it.node, it.start, it.end) },
+                        termStartDate = configStartDate,
+                        tableName = configTableName,
+                        smartConfigJson = Json.encodeToString(configSmartConfig),
+                    )
+                }
+
+                fun checkpointDraft() {
+                    val id = draftId ?: return
+                    val snapshot = currentDraftSnapshot() ?: return
+                    scope.launch { draftRepository.update(id, snapshot) }
+                }
+
+                fun requestExit() {
+                    val result = reduceExitDraftState(exitDraftState, ExitDraftEvent.RequestExit)
+                    exitDraftState = result.state
+                    if (result.outcome == ExitDraftOutcome.FinishDirectly) finish()
+                }
+                // 错误弹窗「导出排查全量包」— DOM 可点元素清单点按钮时现抓(页面还在,
+                // 弹窗不关页), zip 组装落 IO 线程, 成功即拉系统分享面板(2A 动线)。
+                // 每完成一个原子步骤推进一次 dumpProgress — UI 实时显示 步骤 x/n + 百分比。
+                fun exportDiagnosticDump(school: JwSchoolInfo?) {
+                    val result = lastCaptureResult ?: run {
+                        statusMsg = getString(R.string.jw_diag_export_failed, getString(R.string.jw_diag_no_capture))
+                        return
+                    }
+                    var stepsDone = 0
+                    // 宣布-再执行: 卡片永远显示"正在跑"的段。2026-09-22 用户反馈:
+                    // 旧 advance-after 惯性下执行第 N 段时卡片仍标第 N-1 段名,
+                    // 用户盯着"网络快照"字样却是在跑 30s 重放, 误判死循环。
+                    fun entering(stage: DumpStage) {
+                        dumpProgress = DiagDumpProgress(stage, stepsDone)
+                    }
+                    fun leaveStage() { stepsDone++ }
+                    entering(DumpStage.DomInventory)
+                    val wv = webViewForDump
+                    val ctx = this
+                    scope.launch {
+                        // 现场抓取辅助 — 页面还在, 弹窗不关页: DOM 清单 + Storage + Links
+                        // 三段 JS 顺序跑 (同 main thread 串行, evaluateJavascript 回调顺序有保)
+                        suspend fun evalJs(js: String): String? = wv?.let { webView ->
+                            withContext(Dispatchers.Main) {
+                                suspendCancellableCoroutine { cont ->
+                                    webView.evaluateJavascript(js) { raw ->
+                                        cont.resumeWith(
+                                            Result.success(
+                                                if (raw.isNullOrEmpty() || raw == "null") null
+                                                else runCatching {
+                                                    org.json.JSONTokener(raw).nextValue().toString()
+                                                }.getOrNull()
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        val inventoryJson = evalJs(DOM_INVENTORY_JS)
+                        leaveStage()
+                        entering(DumpStage.Storage)
+                        val storageJson = evalJs(STORAGE_JS)
+                        leaveStage()
+                        entering(DumpStage.Links)
+                        val linksJson = evalJs(LINKS_JS)
+                        leaveStage()
+                        entering(DumpStage.NetworkSnapshot)
+                        // 页面运行时真实 fetch/XHR 记录，和资源重取分开保存。
+                        val networkLiveSnapshot = wv?.let { webView ->
+                            withContext(Dispatchers.Main) {
+                                suspendCancellableCoroutine { cont ->
+                                    webView.evaluateJavascript(DIAGNOSTIC_NETWORK_SNAPSHOT_JS) { raw ->
+                                        if (cont.isActive) cont.resumeWith(Result.success(raw))
+                                    }
+                                }
+                            }
+                        }
+                        leaveStage()
+                        entering(DumpStage.NetworkReplay)
+                        val networkReplayJson = wv?.let { webView ->
+                            withContext(Dispatchers.Main) {
+                                withTimeoutOrNull(30_000L) {
+                                    suspendCancellableCoroutine { cont ->
+                                        val bridge = DiagnosticReplayBridge { json ->
+                                            webView.removeJavascriptInterface("__sleepyDiagBridge")
+                                            if (cont.isActive) cont.resumeWith(Result.success(json))
+                                        }
+                                        webView.addJavascriptInterface(bridge, "__sleepyDiagBridge")
+                                        webView.evaluateJavascript(DIAGNOSTIC_NETWORK_EXPORT_JS, null)
+                                        // invokeOnCancellation 在任意线程触发 — WebView API 必须 main.post
+                                        cont.invokeOnCancellation {
+                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                runCatching { webView.removeJavascriptInterface("__sleepyDiagBridge") }
+                                            }
+                                        }
+                                    }
+                                }.also { webView.removeJavascriptInterface("__sleepyDiagBridge") }
+                            }
+                        }
+                        leaveStage()
+                        entering(DumpStage.ResourceReplay)
+                        // evaluateJavascript 不等待 Promise; 资源重取通过一次性 JS bridge 回传。
+                        val resourceReplayJson = wv?.let { webView ->
+                            withContext(Dispatchers.Main) {
+                                withTimeoutOrNull(16_000L) {
+                                    suspendCancellableCoroutine { cont ->
+                                        val bridge = DiagnosticReplayBridge { json ->
+                                            webView.removeJavascriptInterface("__sleepyDiagBridge")
+                                            if (cont.isActive) cont.resumeWith(Result.success(json))
+                                        }
+                                        webView.addJavascriptInterface(bridge, "__sleepyDiagBridge")
+                                        webView.evaluateJavascript(RESOURCE_REPLAY_JS, null)
+                                        // invokeOnCancellation 在任意线程触发 — WebView API 必须 main.post
+                                        cont.invokeOnCancellation {
+                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                runCatching { webView.removeJavascriptInterface("__sleepyDiagBridge") }
+                                            }
+                                        }
+                                    }
+                                }.also {
+                                    // JS has its own 15s deadline; this also covers pages where the
+                                    // injected interface is unavailable and no callback can arrive.
+                                    webView.removeJavascriptInterface("__sleepyDiagBridge")
+                                }
+                            }
+                        }
+                        leaveStage()
+                        entering(DumpStage.Cookies)
+                        // Cookie 全量值 — CookieManager 主线程约束(部分 ROM), 与 JS 段同在 Main 取
+                        val cookiesFull: String? = wv?.let { webView ->
+                            withContext(Dispatchers.Main) {
+                                runCatching {
+                                    android.webkit.CookieManager.getInstance()
+                                        .getCookie(webView.url)?.takeIf { it.isNotEmpty() }
+                                }.getOrNull()
+                            }
+                        }
+                        leaveStage()
+                        entering(DumpStage.ZipAssembly)
+                        val dumpResult = withContext(Dispatchers.IO) {
+                            if (school == null) {
+                                JwCaptureDump.DumpResult.Fail(getString(R.string.jw_diag_no_school))
+                            } else {
+                                JwCaptureDump.exportDump(
+                                    ctx, school, result, inventoryJson,
+                                    cookiesFull, storageJson, linksJson, resourceReplayJson,
+                                    networkReplayJson ?: networkLiveSnapshot
+                                )
+                            }
+                        }
+                        leaveStage()
+                        when (dumpResult) {
+                            is JwCaptureDump.DumpResult.Ok -> {
+                                entering(DumpStage.SaveShare)
+                                dumpProgress = null
+                                statusMsg = getString(R.string.jw_diag_export_saved, dumpResult.zipName)
+                                JwCaptureDump.share(ctx, dumpResult.zipName, dumpResult.uri)
+                            }
+                            is JwCaptureDump.DumpResult.Fail -> {
+                                dumpProgress = null
+                                statusMsg = getString(R.string.jw_diag_export_failed, dumpResult.reason)
+                            }
+                        }
+                    }
+                }
+                fun handleExitChoice(choice: ExitDraftChoice) {
+                    val result = reduceExitDraftState(exitDraftState, ExitDraftEvent.Choose(choice))
+                    exitDraftState = result.state
+                    when (result.outcome) {
+                        ExitDraftOutcome.KeepDraft -> {
+                            val id = draftId
+                            val snapshot = currentDraftSnapshot()
+                            if (id != null && snapshot != null) {
+                                scope.launch {
+                                    draftRepository.update(id, snapshot)
+                                    finish()
+                                }
+                            } else {
+                                finish()
+                            }
+                        }
+                        ExitDraftOutcome.DeleteDraft -> {
+                            val id = draftId
+                            if (id != null) {
+                                scope.launch {
+                                    draftRepository.delete(id)
+                                    finish()
+                                }
+                            } else {
+                                finish()
+                            }
+                        }
+                        ExitDraftOutcome.None,
+                        ExitDraftOutcome.FinishDirectly -> Unit
+                    }
+                }
+                // 学校选择 stage 的系统返回键与顶栏返回同路 — 否则系统返回直接 finish Activity
+                // 绕过退出确认(activeImport 已置位时用户误触返回=静默丢进度,issue#39 痛点本体)
+                BackHandler(enabled = exitDraftState.activeImport && stage is Stage.SelectSchool) {
+                    requestExit()
+                }
+
+                LaunchedEffect(incomingDraftId) {
+                    val id = incomingDraftId ?: return@LaunchedEffect
+                    val snapshot = withContext(Dispatchers.IO) { draftRepository.get(id) }
+                    if (snapshot == null) {
+                        errorMsg = getString(R.string.import_drafts_empty)
+                        return@LaunchedEffect
+                    }
+                    draftId = id
+                    parsedSchool = snapshot.school
+                    selectedSchool = snapshot.school
+                    parsedCourses = snapshot.courses
+                    configStartDate = snapshot.termStartDate
+                    configTableName = snapshot.tableName.ifBlank {
+                        getString(R.string.jw_import_title, snapshot.school.name)
+                    }
+                    configRows = snapshot.periods.map {
+                        TimeTableUtils.TimeSlotRow(it.node, it.start, it.end)
+                    }
+                    configTimeJson = TimeTableUtils.buildTimeJsonFromRows(configRows)
+                    // issue#23 T5: 草稿已存配置仍能 derive 出恢复的行 → 原样保留;
+                    // 缺失/损坏 → 从恢复行重推断; 行不可推断(不完整/畸形) → 保底默认,
+                    // TimeSlotEditor 内保持手动模式 + 既有校验兜底, 不写猜测值。
+                    val restoredStored = snapshot.smartConfigJson.takeIf { it.isNotBlank() }
+                        ?.let { runCatching { Json.decodeFromString<SmartPeriodConfig>(it) }.getOrNull() }
+                    configSmartConfig = resolveAutoPeriodConfig(
+                        configRows, restoredStored
+                    ) ?: SmartPeriodConfig(
+                        totalPeriods = configRows.size.coerceAtLeast(1),
+                        startTime = configRows.firstOrNull()?.start?.takeIf { it.isNotBlank() } ?: "08:00"
+                    )
+                    // v1.0.56 T10: 默认选中「本次导入自动建作息表」(合成 id=-1)
+                    configBindPeriodTableId = -1L
+                    exitDraftState = exitDraftState.copy(activeImport = true)
+                    stage = Stage.ConfigureConfirm
+                }
+
+                when {
+                    importFinished -> {
+                        LaunchedEffect(Unit) { finish() }
+                    }
+
+                    stage is Stage.ConfigureConfirm && parsedCourses.isNotEmpty() -> {
+                        val school = parsedSchool
+                        if (school == null) {
+                            stage = Stage.WebViewLogin
+                            parsedCourses = emptyList()
+                        } else saveableStateHolder.SaveableStateProvider("ConfigureConfirm") {
+                        val colors = MaterialTheme.colorScheme
+                        var confirmError by remember { mutableStateOf<String?>(null) }
+                        AlertDialog(
+                            onDismissRequest = { requestExit() },
+                            title = {
+                                Column {
+                                    Text(getString(R.string.jw_config_title), color = colors.onSurface)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = "${parsedCourses.size} ${getString(R.string.import_courses)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            text = {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 360.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    DatePickerField(
+                                        value = configStartDate,
+                                        onValueChange = { configStartDate = it; checkpointDraft() },
+                                        label = getString(R.string.import_week_start),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        // 只在日期错误时标红; 节次错误标到节次区(2026-09-20 反馈: 节次错也标日期框误导)
+                                        isError = confirmError != null && (configStartDate.isBlank() ||
+                                            !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(configStartDate))
+                                    )
+                                    // 用户可改的导入课表名 — 教务直连此前无任何命名入口,
+                                    // 硬编码成 "教务导入 - {学校名}" 后用户改名要进课表管理.
+                                    // 此次把命名入口放到导入前, 落库前最后一次修改机会.
+                                    TextField(
+                                        value = configTableName,
+                                        onValueChange = { configTableName = it; checkpointDraft() },
+                                        label = { Text(getString(R.string.jw_table_name_label)) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    if (confirmError != null) {
+                                        Text(text = confirmError!!, color = colors.error, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    TimeSlotEditor(
+                                        rows = configRows,
+                                        onRowsChange = { newRows ->
+                                            configRows = newRows
+                                            configTimeJson = TimeTableUtils.buildTimeJsonFromRows(newRows)
+                                            checkpointDraft()
+                                        },
+                                        smartConfig = configSmartConfig,
+                                        onSmartConfigChange = { configSmartConfig = it; checkpointDraft() },
+                                        // v1.0.56 T6: 第三 Tab「作息表」— 选一张现有作息表直接用;
+                                        // v1.0.56 T10: id=-1 合成项 = 「本次导入自动建表」(教务解析出的
+                                        // 节次将落成独立作息表, 名随课表名, 撞名自动后缀), 默认选中;
+                                        // 不选(null) = 节次只作课表内置, 不建独立表
+                                        periodTableOptions = buildList {
+                                            if (configRows.isNotEmpty()) {
+                                                add(TimeSlotEditorPeriodTableOption(
+                                                    -1L,
+                                                    configTableName.ifBlank { getString(R.string.jw_import_title, school.name) },
+                                                    configRows.size
+                                                ))
+                                            }
+                                            addAll(allPeriodTables.map {
+                                                TimeSlotEditorPeriodTableOption(it.id, it.name, it.nodesPerDay)
+                                            })
+                                        },
+                                        selectedPeriodTableId = configBindPeriodTableId,
+                                        onSelectPeriodTable = { configBindPeriodTableId = it }
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    // UI-31d：与全 app 弹窗一致的色块按钮行（原来是裸 TextButton）
+                                    com.imsx3d.classy.ui.component.DialogActionButtons(
+                                        confirmText = getString(R.string.jw_config_confirm),
+                                        onConfirm = {
+                                        if (configStartDate.isBlank() || !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(configStartDate)) {
+                                            confirmError = getString(R.string.start_date_format)
+                                            return@DialogActionButtons
+                                        }
+                                        // v1.0.56 T6 修正: 绑了作息表(id>0)时以表的 timeJson 为真源;
+                                        // 教务协议没回节次时间 → 手动 rows 全空 → 旧代码误报「第 X 节时间不能为空」(用户反馈 2026-09-20)。
+                                        val effectiveRows = TimeTableUtils.effectiveRowsForConfirm(
+                                            manualRows = configRows,
+                                            bindId = configBindPeriodTableId,
+                                            tables = allPeriodTables.map { it.id to it.timeJson }
+                                        )
+                                        val emptyRows = effectiveRows.filter { it.start.isBlank() || it.end.isBlank() }
+                                        if (emptyRows.isNotEmpty()) {
+                                            confirmError = getString(R.string.slot_time_required, emptyRows.first().node)
+                                            return@DialogActionButtons
+                                        }
+                                        val invalidRows = effectiveRows.filter {
+                                            !Regex("""^\d{2}:\d{2}$""").matches(it.start) || !Regex("""^\d{2}:\d{2}$""").matches(it.end) || it.start >= it.end
+                                        }
+                                        if (invalidRows.isNotEmpty()) {
+                                            confirmError = getString(R.string.slot_time_invalid, invalidRows.first().node)
+                                            return@DialogActionButtons
+                                        }
+                                        confirmError = null
+                                        configTimeJson = TimeTableUtils.buildTimeJsonFromRows(effectiveRows)
+                                        // 落库
+                                        statusMsg = getString(R.string.import_parsing)
+                                        scope.launch {
+                                            try {
+                                                val maxNode = effectiveRows.maxOfOrNull { it.node } ?: 0
+                                                // v1.0.56 T10: id=-1 = 本次导入自动建作息表(名字随课表名, VM 内
+                                                // 走全局唯一名顺延); id>0 = 绑定既有表; null = 不建不绑。
+                                                // effectiveRows 已按绑定语义解析(id>0 = 表时间, 否则手动 rows)
+                                                val autoPeriodEntity =
+                                                    if (configBindPeriodTableId == -1L && effectiveRows.isNotEmpty()) {
+                                                        com.imsx3d.classy.data.entity.PeriodTableEntity(
+                                                            name = configTableName.ifBlank {
+                                                                getString(R.string.jw_import_title, school.name)
+                                                            },
+                                                            nodesPerDay = effectiveRows.size,
+                                                            timeJson = configTimeJson
+                                                        )
+                                                    } else null
+                                                val tableId = jwViewModel.importAsNewTable(
+                                                    courses = parsedCourses,
+                                                    tableName = configTableName.ifBlank {
+                                                        getString(R.string.jw_import_title, school.name)
+                                                    },
+                                                    startDate = configStartDate,
+                                                    timeJson = configTimeJson,
+                                                    nodesPerDay = maxNode,
+                                                    smartConfigJson = Json.encodeToString(configSmartConfig),
+                                                    periodTable = autoPeriodEntity
+                                                )
+                                                // v1.0.56 T6: 选了既有作息表 Tab → 导入的课表直接绑定该表(节次以表为准)
+                                                val chosenId = configBindPeriodTableId
+                                                if (chosenId != null && chosenId > 0) {
+                                                    scheduleViewModel.bindPeriodTable(tableId, chosenId)
+                                                }
+                                                draftId?.let { draftRepository.delete(it) }
+                                                Log.d("JwImport", "importAsNewTable tableId=$tableId courses=${parsedCourses.size}")
+                                                statusMsg = getString(R.string.jw_import_success, parsedCourses.size)
+                                                importFinished = true
+                                                exitDraftState = exitDraftState.copy(activeImport = false)
+                                            } catch (e: Exception) {
+                                                Log.e("JwImport", "import failed", e)
+                                                errorMsg = getString(R.string.jw_parse_failed, e.message ?: "")
+                                                statusMsg = null
+                                            }
+                                        }
+                                        },
+                                        dismissText = getString(R.string.back),
+                                        onDismiss = { requestExit() }
+                                    )
+                                }
+                            },
+confirmButton = {},
+                            dismissButton = {}
+                        )
+                        } // end else (school != null) — SaveableStateProvider("ConfigureConfirm")
+                    }
+
+                    stage is Stage.SelectSchool -> {
+                        saveableStateHolder.SaveableStateProvider("SelectSchool") {
+                            SchoolSelectScreen(
+                                customEntryName = getString(R.string.school_custom_entry),
+                                onSchoolSelected = { school ->
+                                    if (school.url.isBlank()) {
+                                        errorMsg = getString(R.string.jw_no_url)
+                                        return@SchoolSelectScreen
+                                    }
+                                    selectedSchool = school
+                                    exitDraftState = exitDraftState.copy(activeImport = true)
+                                    stage = Stage.WebViewLogin
+                                },
+                                onBack = { requestExit() }
+                            )
+                        }
+                    }
+
+                    stage is Stage.WebViewLogin -> {
+                        val school = selectedSchool
+                        if (school == null) {
+                            stage = Stage.SelectSchool
+                        } else saveableStateHolder.SaveableStateProvider("WebViewLogin") {
+                            JwWebViewLoginScreen(
+                                school = school,
+                                onHtmlCaptured = { html, sch, periods, termStartDate ->
+                                    // T6 双层判定：sch.type 已知直接用；空 → HTML/URL 组合兜底
+                                    val rawType = sch.type
+                                    val effectiveType = rawType?.takeIf { it.isNotBlank() }
+                                        ?: jwViewModel.detectProtocol(html, sch.url.ifBlank { null })
+                                    Log.d("JwImport", "onHtmlCaptured htmlLen=${html.length} rawType=$rawType effectiveType=$effectiveType periods=${periods.size} termStartDate=$termStartDate")
+                                    statusMsg = getString(R.string.import_parsing)
+                                    scope.launch {
+                                        try {
+                                            // #18 UCAS: 课程格链到跨源详情站 xkcts:8443 (WebView fetch 被 CORS
+                                            // 挡), 详情页免登录 → 原生 HTTP 逐课直抓补全周次/教室; 失败降级原 HTML
+                                            // (parser 落 1-16 占位, 与既有行为一致)
+                                            val htmlForParse = if (effectiveType == JwProtocol.TYPE_UCAS) {
+                                                runCatching { UcasDetailFetch.enrich(html) }.getOrDefault(html)
+                                            } else html
+                                            val courses = jwViewModel.parseHtml(htmlForParse, effectiveType ?: "")
+                                            Log.d("JwImport", "parseHtml returned ${courses.size} courses")
+                                            if (courses.isEmpty()) {
+                                                // T9 诊断壳: classify 拿精确分类再选文案
+                                                val diag = try {
+                                                    JwParseDiagnostics.classify(
+                                                        html = html, url = "", school = sch,
+                                                        parsersAttempted = jwViewModel.lastDiagAttempts
+                                                    )
+                                                } catch (e: Exception) { null }
+                                                errorMsg = if (diag != null) {
+                                                    DiagMapper.mapImpl(diag, sch, this@JwImportActivity)
+                                                } else {
+                                                    getString(R.string.jw_err_empty_semester)
+                                                }
+                                                statusMsg = null
+                                                return@launch
+                                            }
+                                            // 不直接落库，进配置确认页
+                                            parsedCourses = courses
+                                            parsedSchool = sch
+                                            exitDraftState = exitDraftState.copy(activeImport = true)
+                                            // 根据课程实际节次数生成行；
+                                            // 如果 WebView 抓到 periods 则预填，否则空行让用户填
+                                            val maxNode = courses.maxOf { maxOf(it.startNode, it.endNode) }
+                                            val periodMap = periods.associate { it.first to (it.second to it.third) }
+                                            val newRows = (1..maxNode).map { node ->
+                                                val filled = periodMap[node]
+                                                TimeTableUtils.TimeSlotRow(
+                                                    node = node,
+                                                    start = filled?.first ?: "",
+                                                    end = filled?.second ?: ""
+                                                )
+                                            }
+                                            configRows = newRows
+                                            // 学期起始日预填: JSON 直连协议 (boya_pp/cqu/chaoxing) 能从
+                                            // 接口拿到第一周周一 (如燕大 2026-2027-1 实为 2026-08-31,
+                                            // 本地 9 月首一推断会差一周), 用户仍可在确认页修改
+                                            configStartDate = termStartDate
+                                            configTimeJson = ""
+                                            // issue#23 T5: seed both live confirmation state and draft
+                                            // persistence from the same inference result. Incomplete rows
+                                            // retain the simple fallback and remain on manual validation.
+                                            val inferredSmartConfig =
+                                                TimeTableUtils.inferSmartPeriodConfig(newRows)
+                                                    ?: SmartPeriodConfig(
+                                                        totalPeriods = newRows.size.coerceAtLeast(1),
+                                                        startTime = newRows.firstOrNull()?.start?.takeIf { it.isNotBlank() } ?: "08:00"
+                                                    )
+                                            configSmartConfig = inferredSmartConfig
+                                            val snapshot = JwImportDraftSnapshot(
+                                                school = sch,
+                                                courses = courses,
+                                                periods = newRows.map { JwImportDraftPeriod(it.node, it.start, it.end) },
+                                                termStartDate = termStartDate,
+                                                tableName = getString(R.string.jw_import_title, sch.name),
+                                                smartConfigJson = Json.encodeToString(inferredSmartConfig),
+                                            )
+                                            draftId = withContext(Dispatchers.IO) {
+                                                draftRepository.save(snapshot, sourceType = "jw", sourceUrl = sch.url)
+                                            }
+                                            stage = Stage.ConfigureConfirm
+                                            // v1.0.56 T10: 默认选中「本次导入自动建作息表」(合成 id=-1)
+                                            configBindPeriodTableId = -1L
+                                            statusMsg = null
+                                        } catch (e: Exception) {
+                                            Log.e("JwImport", "parseHtml failed", e)
+                                            errorMsg = getString(R.string.jw_parse_failed, e.message ?: "") + getString(R.string.jw_parse_failed_hint)
+                                            statusMsg = null
+                                        }
+                                    }
+                                },
+                                onCaptureError = { result, hint ->
+                                    Log.w("JwImport", "capture failed status=${result.status} hint=$hint")
+                                    errorMsg = when (result.status) {
+                                        FrameCaptureStatus.CROSS_DOMAIN_IFRAME_BLOCKED -> getString(R.string.jw_err_cross_domain_iframe, hint)
+                                        FrameCaptureStatus.CONTAINER_EMPTY_AFTER_DELAY -> getString(R.string.jw_err_container_empty_after_delay)
+                                        FrameCaptureStatus.IFRAME_NAV_PENDING          -> getString(R.string.jw_err_iframe_nav_pending)
+                                        // #18: UCAS SEP 门户页上的导入, LoginScreen 已把 hint 换成
+                                        // 精确动线指引 (jw_err_ucas_sep_portal), 非空则优先展示
+                                        FrameCaptureStatus.WRONG_PAGE ->
+                                            hint.ifBlank { getString(R.string.jw_err_wrong_page) }
+                                        FrameCaptureStatus.SESSION_EXPIRED             -> getString(R.string.jw_err_session_expired)
+                                        else                                           -> getString(R.string.jw_parse_empty)
+                                    }
+                                    // 保留 FrameCaptureResult 给 JwErrorDialog 导出按钮
+                                    lastCaptureResult = result
+                                    statusMsg = null
+                                },
+                                onBack = { requestExit() },
+                                onWebViewReady = { wv -> webViewForDump = wv }
+                            )
+                        } // end SaveableStateProvider("WebViewLogin") (school != null)
+                    }
+                }
+
+                exitDraftState.takeIf { it.confirmationVisible }?.let {
+                    ExitDraftConfirmationDialog(
+                        onContinue = { handleExitChoice(ExitDraftChoice.Continue) },
+                        onKeepDraft = { handleExitChoice(ExitDraftChoice.KeepDraft) },
+                        onDeleteDraft = { handleExitChoice(ExitDraftChoice.DeleteDraft) },
+                    )
+                }
+
+                // 错误提示统一 AlertDialog 双按钮 (2026-09-18 用户: 全 app 报错必须是弹窗,
+                // 确定 + 导出排查全量包 — 学生把包发给开发者, 免来回截图问诊)
+                errorMsg?.let { msg ->
+                    val dumpSchool = parsedSchool ?: selectedSchool
+                    AlertDialog(
+                        onDismissRequest = { errorMsg = null },
+                        title = { Text(getString(R.string.jw_error_dialog_title)) },
+                        text = {
+                            Column {
+                                Text(
+                                    text = msg,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 320.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(20.dp))
+                                // 导出(第三位 secondary) / 确定(confirm 位 primary)
+                                // #27: 确定只关弹窗, 不退出页面 — 用户改完环境可当场重试
+                                DialogActionButtons(
+                                    confirmText = getString(R.string.jw_err_dismiss),
+                                    onConfirm = { errorMsg = null },
+                                    thirdText = getString(R.string.jw_diag_export_btn),
+                                    onThird = { exportDiagnosticDump(dumpSchool) },
+                                )
+                                // 点击导出后在同一个错误弹窗内向下展开进度区 — 用户不离开
+                                // 当前问题上下文即可看到步骤、阶段文案和百分比。
+                                dumpProgress?.let { progress ->
+                                    val colors = MaterialTheme.colorScheme
+                                    Spacer(Modifier.height(12.dp))
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = colors.surfaceContainerHigh
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                text = getString(
+                                                    R.string.jw_diag_progress_step,
+                                                    progress.stepsDone + 1,
+                                                    progress.totalCount
+                                                ),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = colors.onSurfaceVariant
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(
+                                                text = stringResource(progress.stage.labelRes),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = colors.onSurface
+                                            )
+                                            Spacer(Modifier.height(8.dp))
+                                            com.imsx3d.classy.ui.component.GlasenseProgressBar(
+                                                progress = progress.percent / 100f,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(
+                                                text = getString(
+                                                    R.string.jw_diag_progress_percent,
+                                                    progress.percent
+                                                ),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = colors.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {}
+                    )
+                }
+                LaunchedEffect(statusMsg) {
+                    val msg = statusMsg ?: return@LaunchedEffect
+                    statusSnackbarHostState.currentSnackbarData?.dismiss()
+                    statusSnackbarHostState.showSnackbar(msg)
+                    // Snackbar 自带短时生命周期；结束后清空状态，避免提示永久占据底部。
+                    statusMsg = null
+                }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    GlasenseSnackbarHost(
+                        hostState = statusSnackbarHostState,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    private sealed class Stage {
+        object SelectSchool : Stage()
+        object WebViewLogin : Stage()
+        object ConfigureConfirm : Stage()
+    }
+}
+
+/**
+ * T9: 诊断结果 → 用户文案映射。
+ * Activity 实例走 [mapImpl] 带 Context 拉 strings.xml；
+ * 纯 JVM 单测走 [mapForTest]，context=null 时用静态拼接（VPN/hint 类提示不依赖资源）。
+ */
+@androidx.annotation.VisibleForTesting
+internal object DiagMapper {
+
+    @JvmStatic
+    fun mapForTest(diag: JwParseDiagnostics.Result, school: com.imsx3d.classy.data.jw.JwSchoolInfo): String =
+        mapImpl(diag, school, context = null)
+
+    /** 内部实现 — context 非空时用 strings 资源（生产路径永远非空）；
+     *  context == null 只出现在 [mapForTest]（纯 JVM 单测拿不到资源），那里的中文兜底**不进 App**。 */
+    fun mapImpl(
+        diag: JwParseDiagnostics.Result,
+        school: com.imsx3d.classy.data.jw.JwSchoolInfo,
+        context: android.content.Context?
+    ): String {
+        fun str(resId: Int, vararg args: Any): String =
+            context?.getString(resId, *args)
+                ?: when (resId) {
+                    R.string.jw_diag_session_expired ->
+                        "${school.name} 的会话已过期或未登录。请重新登录后停留到「个人课表」页再点抓取"
+                    R.string.jw_diag_no_container ->
+                        "${school.name} 的页面未找到课表容器。可能原因：①抓取时机过早课表未加载；②页面为图片课表或跨域 iframe；③教务系统已升级"
+                    R.string.jw_diag_header_no_node ->
+                        "${school.name} 的课表缺少逐节行头。可能为图片课表或组头合并"
+                    R.string.jw_diag_image_cells ->
+                        "${school.name} 的课表单元格为图片，无法识别。请改用文件导入或手动添加课程"
+                    R.string.jw_diag_empty_semester ->
+                        "${school.name} 的页面声明本学期暂无课程。请确认已选对学期"
+                    R.string.jw_diag_wrong_protocol ->
+                        "${school.name} 的学校标注协议与实际页面不一致。请反馈开发者"
+                    // 下面两条是"校内网络 / 强智不稳"提示：同样只在测试路径（context == null）用到
+                    R.string.jw_hint_campus_only ->
+                        "该校教务系统仅校内可访问。若在校外，请先连接校园网或 VPN 后再试"
+                    R.string.jw_hint_qz_unstable ->
+                        "若强智教务长时间无法加载，多为会话被踢或校外网络限制，请重新登录或换网络"
+                    else ->
+                        "${school.name} 解析结果为空。诊断特征：${diag.matchedFeatures.take(5).joinToString("/")}"
+                }
+        val catResId = when (diag.category) {
+            JwParseDiagnostics.Category.SESSION_EXPIRED -> R.string.jw_diag_session_expired
+            JwParseDiagnostics.Category.NO_TABLE_CONTAINER -> R.string.jw_diag_no_container
+            JwParseDiagnostics.Category.HEADER_NO_NODE -> R.string.jw_diag_header_no_node
+            JwParseDiagnostics.Category.IMAGE_OR_EMPTY_CELLS -> R.string.jw_diag_image_cells
+            JwParseDiagnostics.Category.EMPTY_SEMESTER -> R.string.jw_diag_empty_semester
+            JwParseDiagnostics.Category.WRONG_PROTOCOL -> R.string.jw_diag_wrong_protocol
+            JwParseDiagnostics.Category.UNKNOWN_EMPTY -> R.string.jw_diag_unknown_empty
+        }
+        val base = str(catResId, school.name)
+        // 特殊学校 hint: 临沂大学(校园网限制) / 强智系(会话踢下线) / B 档 985 校(校外多须 VPN/WebVPN)
+        val schoolHint = when {
+            school.url.contains("jwgl.lyu.edu.cn") ||
+            school.url.contains("jwxt.lyu.edu.cn") ||
+            // v1.0.46 B 档新 985 校: 教务域名普遍校外受限, 0 课兜底文案易被误读为学期选错
+            school.url.contains("jwxt.neu.edu.cn") ||        // 东北大学
+            school.url.contains("newxk.urp.seu.edu.cn") ||   // 东南大学
+            school.url.contains("xsjw2018.jw.scut.edu.cn") ||// 华南理工大学
+            school.url.contains("jxglstu.hfut.edu.cn") ||    // 合肥工业大学
+            school.url.contains("zdbk.zju.edu.cn") ||        // 浙江大学
+            school.url.contains("jw.ustc.edu.cn") ||         // 中国科学技术大学
+            school.url == "https://scu.edu.cn/" ||           // 四川大学 (条目 URL 即门户域)
+            school.url.contains("jwms.bit.edu.cn") ||        // 北京理工大学 (legacy URL 兼容)
+            school.url.contains("jxzxehallapp.bit.edu.cn") || // 北京理工大学 (现行 URL)
+            school.url.contains("csujwc.its.csu.edu.cn") ||  // 中南大学
+            school.url.contains("jwxt.whut.edu.cn") ||       // 武汉理工大学 (登录后偶发限流, 提示换网络)
+            // 2026-09 211 批量收录: 海外探测超时率高/域名校内受限的新校, 0 课兜底文案易误读为学期选错
+            school.url.contains("jwxt.scnu.edu.cn") ||       // 华南师范大学
+            school.url.contains("hdjw.hnu.edu.cn") ||        // 湖南大学 (Njw2017)
+            school.url.contains("jw.ruc.edu.cn") ||          // 中国人民大学 (Njw2017)
+            school.url.contains("jw.dhu.edu.cn") ||          // 东华大学
+            school.url.contains("jw.ahu.edu.cn") ||          // 安徽大学 (supwisdom 新版)
+            school.url.contains("jwxt.cumtb.edu.cn") ||      // 矿大北京 (supwisdom 新版)
+            school.url.contains("jwxt.ybu.edu.cn") ||        // 延边大学
+            school.url.contains("jwgl.shzu.edu.cn") ||       // 石河子大学
+            school.url.contains("eams.uestc.edu.cn") ||      // 电子科技大学 (经典 EAMS, 202 鉴权)
+            school.url.contains("eams.sufe.edu.cn") ||       // 上海财经大学 (经典 EAMS)
+            school.url.contains("jwglnew.hunnu.edu.cn") ||   // 湖南师范大学 (经典 EAMS, iframe)
+            school.url.contains("aao-eas.nuaa.edu.cn") ||    // 南京航空航天大学 (经典 EAMS)
+            school.url.contains("jwgl.gzhmu.edu.cn") ->      // 广州医科大学 (强智, 教务域公网不解析, 校外须 VPN/WebVPN)
+                str(R.string.jw_hint_campus_only)
+            school.type in setOf(
+                com.imsx3d.classy.data.jw.JwProtocol.TYPE_QZ,
+                com.imsx3d.classy.data.jw.JwProtocol.TYPE_QZ_CRAZY,
+                com.imsx3d.classy.data.jw.JwProtocol.TYPE_QZ_BR,
+                com.imsx3d.classy.data.jw.JwProtocol.TYPE_QZ_WITH_NODE,
+                com.imsx3d.classy.data.jw.JwProtocol.TYPE_QZ_OLD
+            ) -> str(R.string.jw_hint_qz_unstable)
+            else -> ""
+        }
+        val hintPart = if (schoolHint.isNotBlank()) "\n\n$schoolHint" else ""
+        // UNKNOWN_EMPTY 应回显诊断特征
+        return if (diag.category == JwParseDiagnostics.Category.UNKNOWN_EMPTY) {
+            "$base（${diag.matchedFeatures.take(5).joinToString("/")}）$hintPart"
+        } else {
+            base + hintPart
+        }
+    }
+}

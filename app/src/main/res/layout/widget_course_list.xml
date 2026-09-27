@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 可滚动课程列表 · 容器（集合型组件）。
+     与既有 widget_scroll_*.xml 的区别：这里 ListView 的每一行是**真实布局**
+     （widget_course_row.xml），不是「整张长图切成一行」。因此没有位图缩放、
+     没有 setViewLayoutHeight 钉行高那套 API31+ 依赖，各厂商 launcher 都能滚动。
+     @see com.imsx3d.classy.widget.CourseRowWidgetService -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_scroll_clip"
+    android:outlineProvider="background"
+    android:clipToOutline="true">
+
+    <LinearLayout
+        android:id="@+id/widget_list_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp">
+
+        <!-- UI-6a（2026-09-27 用户令"今日/近日组件照抄 wakeup 顶行"）：
+             顶行 = 左「课表名」（占满剩余宽度、可省略）+ 右「M/D 周X」（wrap_content，恒定可见）。
+             为什么拆两个：课表名可能很长（如"教务导入 - 福州外语外贸学院"），
+             挤在一行里会把日期一起截掉；分开后名字可以省略号，日期永远读得到。 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/widget_list_header"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FF1D1B20" />
+
+            <TextView
+                android:id="@+id/widget_list_header_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FF49454F" />
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/widget_course_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:overScrollMode="never"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:scrollbars="none"
+            android:cacheColorHint="@android:color/transparent"
+            android:listSelector="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/widget_list_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="13sp"
+            android:textColor="#FF49454F"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

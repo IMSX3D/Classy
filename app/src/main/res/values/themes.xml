@@ -1,0 +1,44 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- NIA 式 night-adjusted 拆分: night 侧只重声明父主题 + 状态栏语义,
+         其余属性写在中间层, 两侧共用不被覆盖 (NIA: NightAdjusted.Theme.Nia)。
+         运行时主题: 纯色系, 无任何 logo windowBackground。
+         2026-09-20 定法 (NIA 模式): 启动底衬只属于 Theme.Sleepy.Splash
+         (androidx Theme.SplashScreen 系), installSplashScreen() 后自动
+         postSplashScreenTheme 切到本主题 — 窗口背景归零为默认纯色,
+         系统任何窗口预览 (EMUI predictive back 预演 / 最近任务快照 /
+         Activity 切换缩略图) 都拿不到"白底+居中 logo"残留。
+         此前 Theme.Sleepy.Splash 挂 logo layer-list 当 windowBackground
+         是翻车根源: 底衬挂在整个窗口生命周期上, 返回预览缩的就是它。 -->
+    <style name="NightAdjusted.Theme.Sleepy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.Sleepy" parent="NightAdjusted.Theme.Sleepy" />
+
+    <!-- 启动主题 (androidx core-splashscreen): 纯色底 + 居中启动图标。
+         只在冷启动首屏存在, installSplashScreen() 立即切到 Theme.Sleepy。
+         windowSplashScreenBackground 取 values(-night)/colors.xml 的
+         splash_background — 暗色模式自动切深底, 无闪白。
+         注意 parent 不挂 Theme.Sleepy: SplashScreen 系自带窗口底衬与
+         状态栏语义, 沿用旧父链会把 logo 底衬带回运行时窗口。 -->
+    <style name="NightAdjusted.Theme.Sleepy.Splash" parent="Theme.SplashScreen">
+        <!-- UI-4v（2026-09-26 用户令「冷启动那一下也要解决」）：
+             冷启动的底衬由**系统**画（App 代码还没跑），它按**系统**配置解析资源 ——
+             所以"应用内深色 + 系统浅色"时永远是浅底（-night 选不中）。
+             这里把底衬改成**透明**：不再有任何模式相关的底色，深浅两侧都只剩系统自己的
+             启动动画（图标 + 上帧快照），从根上消掉"闪一下亮底 / 或反向闪一下暗底"。 -->
+        <item name="windowSplashScreenBackground">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_full</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- 关键一击：**关掉系统的启动预览窗口**（"snapshot + 图标"那层）。
+             它由系统在 App 进程起来之前画，底色按系统配置解析 —— 是浅底的真正来源。 -->
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+
+    <style name="Theme.Sleepy.Splash" parent="NightAdjusted.Theme.Sleepy.Splash">
+        <item name="postSplashScreenTheme">@style/Theme.Sleepy</item>
+    </style>
+</resources>

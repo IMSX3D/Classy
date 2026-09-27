@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- bitmap 宽高比 == 容器宽高比 (OPTION_APPWIDGET_SIZES 真实当前尺寸) →
+     fitXY = 1:1 像素映射, 无拉伸无黑边无畸变。
+     adjustViewBounds=false: 不让 ImageView 按 bitmap 原宽高比收缩, 必须撑满容器。
+     背景 transparent (UI-4 2026-09-26): 原先填 splash_background 不透明色 → 位图自带的
+     圆角被这层方形底填平, 组件看着是方的; 透明后圆角外露出桌面壁纸, 圆角才成立。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <ImageView
+        android:id="@+id/widget_bitmap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:adjustViewBounds="false"
+        android:contentDescription="@string/widget_week_grid_label" />
+</FrameLayout>

@@ -1,0 +1,653 @@
+package com.imsx3d.classy.ui.screen.imports
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.imsx3d.classy.R
+import com.imsx3d.classy.data.jw.JwImportViewModel
+import com.imsx3d.classy.data.jw.JwProtocol
+import com.imsx3d.classy.data.jw.JwSchoolInfo
+import com.imsx3d.classy.data.jw.SchoolDomainMatch
+import com.imsx3d.classy.ui.component.SettingsPageHeader
+import com.imsx3d.classy.ui.theme.SleepyTheme
+import com.imsx3d.classy.ui.theme.noRippleClickable
+import com.imsx3d.classy.util.PinyinMatcher
+import kotlinx.coroutines.launch
+
+private fun looksLikeUrl(s: String): Boolean {
+    val t = s.trim()
+    if (t.startsWith("http://") || t.startsWith("https://")) return true
+    if (t.matches(Regex("""[a-zA-Z0-9][-a-zA-Z0-9]{0,62}\.[a-zA-Z]{2,}([/:].*)?"""))) return true
+    if (t.matches(Regex("""\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?(/.*)?"""))) return true
+    return false
+}
+
+private fun normalizeUrl(s: String): String {
+    val t = s.trim()
+    return if (t.startsWith("http://") || t.startsWith("https://")) t else "https://$t"
+}
+
+/** 学校首字母分组 */
+private data class SchoolSection(
+    val letter: String,
+    val schools: List<JwSchoolInfo>
+)
+
+/**
+ * 生成学校的完整拼音排序键。
+ * 使用 schools.json 中的 sortKeyFull 字段（完整拼音，如 "haerbingongchengdaxue"），
+ * 保证同首字母内严格按拼音字典序排列（ha < hai < hang < he ... < hua < huanan）。
+ */
+private fun schoolSortKey(s: JwSchoolInfo): String {
+    val firstLetter = if (s.sortKey.isNotEmpty() && s.sortKey[0].isLetter()) {
+        s.sortKey[0].uppercase()
+    } else {
+        "★"
+    }
+    // sortKeyFull 由 pypinyin 预生成，如 "haerbingongchengdaxue"
+    // 缺失时 fallback 到 name（自定义 URL 场景）
+    return "$firstLetter|${s.sortKeyFull.ifBlank { s.name }}"
+}
+
+/** 把扁平学校列表按完整拼音排序后，按首字母分组 */
+private fun groupByLetter(schools: List<JwSchoolInfo>): List<SchoolSection> {
+    if (schools.isEmpty()) return emptyList()
+    // 1. 按完整拼音排序
+    val sorted = schools.sortedWith(compareBy { schoolSortKey(it) })
+    // 2. 按首字母分组
+    val groups = linkedMapOf<String, MutableList<JwSchoolInfo>>()
+    for (s in sorted) {
+        val letter = if (s.sortKey.isNotEmpty() && s.sortKey[0].isLetter()) {
+            s.sortKey[0].uppercase()
+        } else {
+            "★"
+        }
+        groups.getOrPut(letter) { mutableListOf() }.add(s)
+    }
+    return groups.map { (k, v) -> SchoolSection(k, v) }
+}
+
+/**
+ * 学校选择页 — 教务直连第一步
+ *
+ * 数据来自 assets/schools.json（145 所带真 URL+type）
+ * 右侧字母索引栏可点击/滑动跳转到对应分组
+ */
+@Composable
+fun SchoolSelectScreen(
+    onSchoolSelected: (JwSchoolInfo) -> Unit,
+    onBack: () -> Unit,
+    /** 「自定义教务」这个条目名 —— 由调用方传入（onClick 里拿不到 CompositionLocal） */
+    customEntryName: String,
+    viewModel: JwImportViewModel = viewModel()
+) {
+    val schools by viewModel.schools.collectAsState()
+    // 搜索词 rememberSaveable: 选校进 WebView 再返回, 列表滚动位置由 JwImportActivity
+    // stage 分支的 SaveableStateProvider 恢复, 搜索词也要跟着回来(remember 会随覆盖销毁)
+    var query by rememberSaveable { mutableStateOf("") }
+    val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+
+    // 「自定义教务链接」入口 → 聚焦搜索框 + 弹键盘 (用户点入口直接开始输入 URL)
+    val searchFocusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    val fieldColors = SleepyTheme.fieldColors()
+
+    val filtered = remember(schools, query) {
+        if (query.isBlank()) schools
+        else {
+            val q = query.trim().lowercase()
+            val matched = schools.filter { PinyinMatcher.match(it.name, it.sortKey, query, it.aliases) }
+            matched.sortedByDescending { it.aliases.any { a -> a.lowercase() == q } }
+        }
+    }
+
+    val isUrl = remember(query) { looksLikeUrl(query) }
+    val urlProtocol = remember(query, isUrl) {
+        if (isUrl) viewModel.detectProtocolFromUrl(query) else null
+    }
+
+    // 按字母分组（仅无搜索时显示分组+索引栏）
+    val sections = remember(filtered) { groupByLetter(filtered) }
+    val showIndexBar = query.isBlank() && sections.size > 1
+
+    val listState = rememberLazyListState()
+
+    // section letter → list index 映射（LazyColumn item index: section header 占偶数位, school 占奇数位）
+    // item index 0 恒为「自定义教务链接」入口 — 字母目标索引从 1 起算
+    val letterToIndex = remember(sections) {
+        val map = mutableMapOf<String, Int>()
+        var idx = 1 // custom_url_entry
+        for (sec in sections) {
+            map[sec.letter] = idx
+            idx++ // header
+            idx += sec.schools.size // schools
+        }
+        map
+    }
+
+    // 当前激活字母（用于高亮）— runningIdx 从 1 起 (item 0 = 自定义教务链接入口)
+    val activeLetter by remember {
+        derivedStateOf {
+            val firstVisible = listState.firstVisibleItemIndex
+            // 找当前第一个 section header
+            var runningIdx = 1 // custom_url_entry
+            for (sec in sections) {
+                val headerIdx = runningIdx
+                val lastSchoolIdx = runningIdx + sec.schools.size
+                if (firstVisible in headerIdx..lastSchoolIdx) return@derivedStateOf sec.letter
+                runningIdx = lastSchoolIdx + 1
+            }
+            null
+        }
+    }
+
+    Scaffold(
+        containerColor = colors.background
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // UI-8b：顶栏换成「我的」页那套大标题页头。**故意不用 SettingsScaffold** ——
+            // 这一页的 LazyColumn 要喂给外部 `listState`，字母索引栏靠 `letterToIndex`
+            // 精确算 item 下标（item 0 恒为「自定义教务链接」入口）；换成脚手架会把搜索框/
+            // 计数行变成列表项，下标全体偏移，索引栏会跳错位置。
+            // 这里只替换顶栏：页头与搜索框保持**常驻**（原 M3 顶栏也是常驻），下标映射一行不动。
+            // 页头左右 16dp 与 SettingsScaffold 的 contentPadding 对齐，否则大标题会顶到屏幕边缘。
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                SettingsPageHeader(
+                    title = stringResource(R.string.select_school),
+                    onBack = onBack
+                )
+            }
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(searchFocusRequester)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text(stringResource(R.string.search_school_url), color = colors.onSurfaceVariant) },
+                supportingText = {
+                    Text(
+                        stringResource(R.string.school_pinyin_hint),
+                        color = colors.onSurfaceVariant
+                    )
+                },
+                singleLine = true,
+                shape = SleepyTheme.fieldShape,
+                colors = fieldColors
+            )
+
+            // 计数行
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.school_count_total, schools.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+                if (query.isNotBlank()) {
+                    Text(
+                        text = stringResource(R.string.school_match_count, filtered.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.primary
+                    )
+                }
+            }
+
+            if (isUrl) {
+                // issue #25: 输入 URL 的注册域若与目录条目同域, 直接映射到目录条目
+                // (拿权威教务 URL + 协议 type), 而不是建 type=null 的自定义条目。
+                val matchedSchool = remember(query, schools) {
+                    SchoolDomainMatch.matchSchool(normalizeUrl(query.trim()), schools)
+                }
+                UrlDirectRow(
+                    url = query.trim(),
+                    protocolType = urlProtocol,
+                    matchedSchool = matchedSchool,
+                    onClick = {
+                        val school = matchedSchool ?: JwSchoolInfo(
+                            sortKey = "",
+                            name = customEntryName,
+                            url = normalizeUrl(query.trim()),
+                            type = urlProtocol,
+                            status = JwSchoolInfo.STATUS_SUPPORTED
+                        )
+                        onSchoolSelected(school)
+                    }
+                )
+            }
+
+            if (filtered.isEmpty() && !isUrl) {
+                EmptyState(schools.isEmpty())
+            } else if (isUrl && filtered.isEmpty()) {
+                // URL only, no school list
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // 学校列表
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        // 自定义教务链接入口 — 恒在列表最顶 (A 分组之前), 不随搜索过滤消失:
+                        // 学校不在目录里的用户从这里走, 点了直接聚焦搜索框弹键盘输 URL
+                        item(key = "custom_url_entry") {
+                            CustomUrlEntryRow(
+                                onClick = {
+                                    searchFocusRequester.requestFocus()
+                                    keyboard?.show()
+                                }
+                            )
+                            HorizontalDivider(color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline))
+                        }
+                        sections.forEach { section ->
+                            // Section header
+                            item(key = "header_${section.letter}") {
+                                SectionHeader(letter = section.letter)
+                            }
+                            // Schools
+                            items(
+                                items = section.schools,
+                                key = { "${it.sortKey}_${it.name}" }
+                            ) { school ->
+                                SchoolRow(
+                                    school = school,
+                                    onClick = { onSchoolSelected(school) }
+                                )
+                                HorizontalDivider(color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline))
+                            }
+                        }
+                    }
+
+                    // 字母索引栏
+                    if (showIndexBar) {
+                        AlphabetIndexBar(
+                            letters = sections.map { it.letter },
+                            activeLetter = activeLetter,
+                            onLetterTap = { letter ->
+                                val targetIdx = letterToIndex[letter]
+                                if (targetIdx != null) {
+                                    scope.launch {
+                                        listState.animateScrollToItem(targetIdx)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .width(32.dp)
+                                .fillMaxSize()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 「自定义教务链接」入口 — 恒居列表最顶 (A 分组之前)。
+ * 与 UrlDirectRow 同构 (Link 图标 + primary 色) 但语义是引导: 点击不导入,
+ * 而是聚焦搜索框弹键盘, 让用户把教务 URL 输进去 — 输入合法 URL 后
+ * 搜索框下方出现 UrlDirectRow 完成实际导入。
+ */
+@Composable
+private fun CustomUrlEntryRow(onClick: () -> Unit) {
+    // UI-4t: 实心主色按钮共享取色（深色下不再实心亮主色，见 ui/theme/SelectedSurface.kt）
+    val selButton = com.imsx3d.classy.ui.theme.selectedSurfaceColors()
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .noRippleClickable(onClick)
+            .padding(vertical = 14.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(SleepyTheme.shapes.small)
+                .background(selButton.container),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Link,
+                contentDescription = null,
+                tint = selButton.content,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.custom_url_entry),
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.primary
+            )
+            Text(
+                text = stringResource(R.string.custom_url_entry_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** Section header — 显示首字母 */
+@Composable
+private fun SectionHeader(letter: String) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+    ) {
+        Text(
+            text = letter,
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.primary,
+            modifier = Modifier
+                .clip(SleepyTheme.shapes.extraSmall)
+                .background(colors.primaryContainer.copy(alpha = SleepyTheme.Alpha.hairline))
+                .padding(horizontal = 10.dp, vertical = 2.dp)
+        )
+    }
+}
+
+/** 右侧字母索引栏 — 支持点击+滑动 */
+@Composable
+private fun AlphabetIndexBar(
+    letters: List<String>,
+    activeLetter: String?,
+    onLetterTap: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+    var barCoords: LayoutCoordinates? by remember { mutableStateOf(null) }
+
+    Box(
+        modifier = modifier
+            .onGloballyPositioned { barCoords = it }
+            .pointerInput(letters) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.type == PointerEventType.Press || event.type == PointerEventType.Move) {
+                            val change = event.changes.firstOrNull() ?: continue
+                            if (!change.pressed) continue
+                            val coords = barCoords ?: continue
+                            val y = change.position.y
+                            val barHeight = coords.size.height.toFloat()
+                            if (barHeight <= 0f) continue
+                            val ratio = (y / barHeight).coerceIn(0f, 0.999f)
+                            val idx = (ratio * letters.size).toInt()
+                            if (idx in letters.indices) {
+                                onLetterTap(letters[idx])
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(end = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // 用 Layout 均匀撑满高度，每个字母占 1/N，触摸 Y→index 精准对应
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            for (letter in letters) {
+                val isActive = letter == activeLetter
+                Text(
+                    text = letter,
+                    style = if (isActive) MaterialTheme.typography.labelSmall
+                    else MaterialTheme.typography.labelSmall,
+                    color = if (isActive) colors.primary else colors.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(SleepyTheme.shapes.extraSmall)
+                        .background(
+                            if (isActive) colors.primaryContainer.copy(alpha = SleepyTheme.Alpha.inactive) else Color.Transparent
+                        )
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchoolRow(school: JwSchoolInfo, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    // T13: status 分流 — supported+有 URL 才可点; pending/legacy/no-url 不响应
+    val isClickable = school.isSupported && school.hasUrl
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isClickable) Modifier.noRippleClickable(onClick) else Modifier)
+            .padding(vertical = 14.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(SleepyTheme.shapes.small)
+                .background(colors.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.School,
+                contentDescription = null,
+                tint = colors.onPrimaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // T13: status badge (supported 不渲染, 避免冗余)
+                // 徽章与校名之间的间距必须和徽章本身同增同减 — 无条件 Spacer 会让无徽章
+                // (supported, 占绝大多数) 的校名比第二行「协议 · 网址」凭空右移, 两行首端错位
+                if (school.status != JwSchoolInfo.STATUS_SUPPORTED) {
+                    SchoolStatusBadge(school = school)
+                    Spacer(modifier = Modifier.size(6.dp))
+                }
+                Text(
+                    text = school.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isClickable) colors.onSurface else colors.onSurfaceVariant
+                )
+            }
+            if (!school.url.isBlank()) {
+                Text(
+                    text = JwProtocol.displayName(school.type) + " · " + school.url.replace("https://", "").replace("http://", "").trimEnd('/'),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 学校状态 badge — T13 新增。
+ * supported 不渲染 badge（默认全功能）; pending=「待适配」tertiary chip;
+ * grad_supported=「研究生」secondary chip; legacy=「旧版」surfaceVariant chip。
+ * 文案消费 strings.xml 既有 jw_pending_* 键（此前 0 引用的 dead 字符串）。
+ */
+@Composable
+private fun SchoolStatusBadge(school: JwSchoolInfo) {
+    if (school.status == JwSchoolInfo.STATUS_SUPPORTED) return
+    val colors = MaterialTheme.colorScheme
+    val (label, bg, fg) = when (school.status) {
+        JwSchoolInfo.STATUS_PENDING -> Triple(
+            stringResource(R.string.jw_pending_pending),
+            colors.tertiaryContainer,
+            colors.onTertiaryContainer
+        )
+        JwSchoolInfo.STATUS_GRAD_PENDING -> Triple(
+            stringResource(R.string.jw_pending_pending) + " · " + stringResource(R.string.jw_pending_grad),
+            colors.tertiaryContainer,
+            colors.onTertiaryContainer
+        )
+        JwSchoolInfo.STATUS_GRAD_SUPPORTED -> Triple(
+            stringResource(R.string.jw_pending_grad),
+            colors.secondaryContainer,
+            colors.onSecondaryContainer
+        )
+        JwSchoolInfo.STATUS_LEGACY -> Triple(
+            stringResource(R.string.jw_pending_legacy),
+            colors.surfaceVariant,
+            colors.onSurfaceVariant
+        )
+        else -> return
+    }
+    Box(
+        modifier = Modifier
+            .clip(SleepyTheme.shapes.small)
+            .background(bg)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = fg
+        )
+    }
+}
+
+@Composable
+private fun UrlDirectRow(url: String, protocolType: String?, matchedSchool: JwSchoolInfo?, onClick: () -> Unit) {
+    // UI-4t: 实心主色按钮共享取色（深色下不再实心亮主色，见 ui/theme/SelectedSurface.kt）
+    val selButton = com.imsx3d.classy.ui.theme.selectedSurfaceColors()
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .noRippleClickable(onClick)
+            .padding(vertical = 14.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(SleepyTheme.shapes.small)
+                .background(selButton.container),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Link,
+                contentDescription = null,
+                tint = selButton.content,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.url_direct_login),
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.primary
+            )
+            Text(
+                text = url,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1
+            )
+            val protoName = JwProtocol.displayName(if (protocolType.isNullOrBlank()) "" else protocolType)
+            when {
+                // issue #25: 域名映射命中目录条目时, 显示学校名, 比协议名更可确认
+                matchedSchool != null -> Text(
+                    text = stringResource(R.string.url_match_school, matchedSchool.name),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.primary
+                )
+                protocolType != null -> Text(
+                    text = "${stringResource(R.string.url_detected)} $protoName",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.primary
+                )
+                else -> Text(
+                    text = stringResource(R.string.url_auto_detect),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(isLoading: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (isLoading) stringResource(R.string.loading) else stringResource(R.string.no_school_found),
+            color = colors.onSurfaceVariant
+        )
+    }
+}

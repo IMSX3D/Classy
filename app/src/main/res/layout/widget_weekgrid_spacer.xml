@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件 · 一个节次高度的透明占位格。两个用途：
+     ① 塞进 widget_weekgrid_block 的 wg_blk_sizer → 决定"这门课跨几节"的块高度；
+     ② 直接塞进某天的列里 → 占据"这一节没课"的空白（保证各列与左侧时间轴严格对齐）。
+     无背景 → 相邻占位之间不会出现任何接缝。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_grid_row_h"
+    android:orientation="horizontal" />

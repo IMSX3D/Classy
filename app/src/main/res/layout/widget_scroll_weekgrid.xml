@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 可滚动 周网格 — 同 widget_scroll_today 结构（壳图 + 条带 ListView）。
+     UI-4b（2026-09-26）：周网格此前只会把 12 个节次压进容器高度（行高可低到 3dp）→
+     课名只剩"1 个字 + …"。现在容器装不下可读排版（40dp/节）时改走这条管线：
+     壳 = 可读高度长图的顶部裁切，条带 = 同一张长图 → 滚动位 0 与首屏逐像素一致。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_scroll_clip"
+    android:outlineProvider="background"
+    android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/widget_shell"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:adjustViewBounds="false" />
+
+    <ListView
+        android:id="@+id/widget_strip_list"
+        android:overScrollMode="never"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:scrollbars="none"
+        android:cacheColorHint="@android:color/transparent"
+        android:listSelector="@android:color/transparent" />
+</FrameLayout>

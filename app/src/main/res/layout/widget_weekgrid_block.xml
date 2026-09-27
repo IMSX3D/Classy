@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件 · 一门课 = **一个**视图（UI-4t 定案）
+     ────────────────────────────────────────────────────────────────────────────
+     为什么不是"每节次一个格子拼起来"：桌面会把组件按自身密度缩放，而**相邻两个视图**
+     的边界处会各抗锯齿、漏出底下卡片底色 1px（实测：纯矩形底、drawable 负 inset 外扩、
+     clipChildren=false、真·视图外扩、负 dividerHeight、乃至"整个网格塞进一个 ListView
+     条目"——接缝全都还在）。结论：只要同色区域跨视图边界，就会有这条淡线。
+     ⇒ 干脆让同色区域不跨视图：一门课（含跨节次）就是**一个** FrameLayout，高度由
+       `wg_blk_sizer` 里的占位格（每节次一个 @layout/widget_weekgrid_spacer）堆出来，
+       圆角/底色画在 `wg_blk_bg` 上 → 块内没有任何边界，天然无缝。
+     块与块之间留 2dp（底色 drawable 自带上下 inset）作为视觉分隔。
+     ⚠️ 只允许 RemoteViews 白名单视图（禁 View / Space / 自定义 View）。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- 高度来源：每节次一个 44dp 占位格（工厂 addView），本块跨几节就塞几个 -->
+    <LinearLayout
+        android:id="@+id/wg_blk_sizer"
+        android:layout_width="1dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    <ImageView
+        android:id="@+id/wg_blk_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_cell_single" />
+
+    <TextView
+        android:id="@+id/wg_blk_name"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:maxLines="5"
+        android:ellipsize="end"
+        android:paddingStart="1dp"
+        android:paddingEnd="1dp"
+        android:paddingBottom="10dp"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/wg_blk_room"
+        android:layout_width="match_parent"
+        android:layout_height="12dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textSize="8sp" />
+</FrameLayout>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 网格组件（真实布局版）行几何 —— UI-4t（2026-09-26 用户报障）：
+         行高必须**固定**且取整 dp（480dpi 下 1dp = 3px，故整数 dp 即整数像素），否则内容撑高
+         会让各行高度不一（实测 84/85/84/100/100/70 px → 左侧节次/时间间距忽大忽小），
+         且相邻行接缝会露出 1px 卡片底色（用户看到的"不明显的横线截断"）。
+         44dp = 课名 2 行(28dp) + 教室 1 行(12dp) + 行内余量 4dp。 -->
+    <dimen name="widget_grid_row_h">44dp</dimen>
+    <dimen name="widget_grid_cell_name_h">28dp</dimen>
+    <dimen name="widget_grid_cell_room_h">12dp</dimen>
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FIXED 窗口页脚点击条 (设计 §6.5, 评审 #10): 位图 + 底部 20dp 透明条。
+     位图内画页脚文字, 透明条挂 WidgetConfigureActivity PI → 点页脚直达本组件
+     编辑页(强制滚动开关所在)。仅 FIXED 溢出有页脚时使用; 无页脚仍用
+     widget_bitmap_container。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_scroll_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_scroll_clip"
+    android:outlineProvider="background"
+    android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/widget_bitmap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:adjustViewBounds="false"
+        android:contentDescription="@string/widget_week_grid_label" />
+
+    <!-- ImageView 而非 View: RemoteViews 只允许 @RemoteView 白名单类,
+         android.view.View 不在其列 → launcher 端 InflateException「载入组件出错」 -->
+    <ImageView
+        android:id="@+id/widget_footer_bar"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:layout_gravity="bottom"
+        android:background="@android:color/transparent"
+        android:clickable="true"
+        android:contentDescription="@string/widget_footer_more" />
+</FrameLayout>

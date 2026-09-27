@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 组件预览用卡片底（selector sheet 里 launcher 渲染 previewLayout 时的可见底）。
+     UI-4b（2026-09-26）：此前所有组件的 previewLayout 都指向 widget_bitmap_container
+     （一个空 ImageView，预览时没有位图可画）→ 预览一片空白。改为每个组件家族各给一张
+     "样例内容"预览布局，底色用这张卡片底。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="12dp" />
+    <stroke android:width="1dp" android:color="#14000000" />
+</shape>

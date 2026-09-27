@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 组件预览 · 今日课程（样例内容，不是真实数据）。
+     UI-7（2026-09-28 用户报障「组件视图展示太简陋」）：本布局**逐项对齐生产**
+     —— 容器 `widget_course_list` + 行 `widget_course_row` 的真实边距/字号/字色
+     （顶行 = 左「课表名」onSurfaceVariant + 右「周X M/D」onSurface；行 = 4dp 色条 +
+     14sp 加粗课名 + 11sp 地点·教师 + 11sp 节次·时间），只把 ListView/适配器换成静态行。
+     ⚠️ 只允许 RemoteViews 支持的视图/属性（launcher 是当 RemoteViews 渲染的）。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_preview_card"
+    android:paddingTop="8dp"
+    android:paddingBottom="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="示例课表"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FF49454F" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:maxLines="1"
+            android:text="周一 9/28"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FF1D1B20" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
+
+        <ImageView
+            android:layout_width="4dp"
+            android:layout_height="34dp"
+            android:background="#FF8FA8E8" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="9dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:text="管理学原理"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FF1D1B20" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="教4502 · 张艺煜"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:text="第1-2节 · 08:25-10:00"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
+
+        <ImageView
+            android:layout_width="4dp"
+            android:layout_height="34dp"
+            android:background="#FFE8A0A8" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="9dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:text="中级财务会计II"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FF1D1B20" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="教2604"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:text="第3-4节 · 10:15-11:50"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
+
+        <ImageView
+            android:layout_width="4dp"
+            android:layout_height="34dp"
+            android:background="#FFA8D8C0" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="9dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:text="大学体育3（定向运动）"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FF1D1B20" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="田径场"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:text="第5-6节 · 13:55-15:30"
+                android:textSize="11sp"
+                android:textColor="#FF49454F" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

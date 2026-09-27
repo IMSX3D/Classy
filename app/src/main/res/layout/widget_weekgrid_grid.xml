@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件（真实布局版）· 整个星期 = **一个** ListView 条目（UI-4t 架构调整）
+     ────────────────────────────────────────────────────────────────────────────
+     为什么不是"一行一个节次"：桌面把组件按自身密度缩放，且 ListView 的**每一行是独立的
+     渲染层**（各自光栅化再按比例摆放）→ 相邻两行色块在接缝处各抗锯齿、漏出 1px 卡片底色，
+     就是用户看到的"课程块里不明显的横线截断"（跨节次的块会有多条）。
+     实测排除过的画法：drawable 负 inset 外扩、clipChildren=false、真·视图外扩、纯矩形底、
+     XML 与运行时的负 dividerHeight —— 接缝全在（都是被行边界裁掉或忽略）。
+     ⇒ 换成**单条目**：整个网格在一个条目内，纵向相邻的格子是同一条目的兄弟视图 →
+       同一次绘制、没有层间过滤 → 天然无缝；顺带还能让每列严格按节次对齐（空节次也占位）。
+     ⚠️ 只允许 RemoteViews 白名单视图（禁 View / Space / 自定义 View）。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wg_grid"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <!-- 左侧时间列：每节次一个格子，由工厂 addView 填充 -->
+    <LinearLayout
+        android:id="@+id/wg_timecol"
+        android:layout_width="34dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col3"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col4"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col5"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col6"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+
+    <LinearLayout
+        android:id="@+id/wg_col7"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="1dp"
+        android:orientation="vertical" />
+</LinearLayout>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网格组件 · 一个节次 × 某一天的课程格。
+     高度固定 = 一行节点高（@dimen/widget_grid_row_h）；跨节次的课在同一列相邻行用
+     top/mid/bottom 三种底色拼成"一整块"—— 单条目架构下这些相邻格是**同一次绘制**里的
+     兄弟视图，不会出现层间过滤造成的 1px 接缝（见 widget_weekgrid_grid.xml 注释）。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_grid_row_h">
+
+    <ImageView
+        android:id="@+id/wg_cell_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_cell_single"
+        android:visibility="invisible" />
+
+    <TextView
+        android:id="@+id/wg_cell_name"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/widget_grid_cell_name_h"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:paddingStart="1dp"
+        android:paddingEnd="1dp"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/wg_cell_room"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/widget_grid_cell_room_h"
+        android:layout_gravity="bottom|center_horizontal"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textSize="8sp" />
+</FrameLayout>
