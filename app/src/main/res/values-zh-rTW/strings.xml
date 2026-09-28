@@ -384,7 +384,6 @@
     <string name="today_no_course">今日無課程</string>
     <string name="today_rest">休息 / 自習 都可以</string>
     <string name="widget_footer_more">+%1$d 節待上</string>
-    <string name="widget_status_all_done">今日課程已結束</string>
     <string name="widget_footer_more_short">+%1$d</string>
 
     <string name="ok">確定</string>

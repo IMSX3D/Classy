@@ -49,7 +49,6 @@ class StringsKeyParityTest {
     private val widgetRedesignKeys = listOf(
         "widget_footer_more",
         "widget_footer_more_short",
-        "widget_status_all_done",
         // 2026-09-29：滚动方式那一节的 6 条文案（widget_edit_section_scroll /
         // widget_edit_scroll_subtitle / widget_scroll_dialog_*）随该节一起删除 ——
         // 三个已收敛组件都走桌面原生滚动，开关本身已无意义。

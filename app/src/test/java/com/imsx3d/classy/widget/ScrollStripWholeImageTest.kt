@@ -96,15 +96,6 @@ class ScrollStripWholeImageTest {
     // ---- 壳图层: 今日导航滚动布局 v4 已整体删除 (真实视图覆盖层 = ColorOS 腐坏源) ----
 
     @Test
-    fun `nav scroll layout removed in v4 pager architecture`() {
-        val lay = File(".").resolve("app/src/main/res/layout/widget_scroll_today_nav.xml")
-        assertTrue(
-            "widget_scroll_today_nav.xml 必须已删 (v5 复用 widget_scroll_today, 无覆盖层布局)",
-            !lay.exists()
-        )
-    }
-
-    @Test
     fun `non-nav scroll layouts keep shell contract untouched`() {
         // WeekGrid 最小档等非导航滚动路径不在本次重写范围 — 布局零改动契约
         val xml = layoutFile("widget_scroll_today.xml").readText()
@@ -136,43 +127,6 @@ class ScrollStripWholeImageTest {
     // v6 无壳 (shellBitmap=null) 翻车教训保留: overflow 必须有壳图兜底。
 
     @Test
-    fun `today nav overflow uses twoday-identical shell plus strip with bar row`() {
-        val src = widgetSource("TodayWidget.kt").readText()
-        val body = src.substringAfter("Today 系 overflow").substringBefore("fun loadDataSync")
-        assertTrue(
-            "v9 overflow 必须走 pushScrollable (竖排滑动)",
-            body.contains("pushScrollable")
-        )
-        assertTrue(
-            "v9 overflow 必须用 widget_scroll_today (TwoDay 同构滚动层, 头部随内容滚)",
-            body.contains("widget_scroll_today")
-        )
-        assertTrue(
-            "v9 overflow 必须有壳图 (TwoDay 同构: 条带加载期间壳图兜底, 不透明闪空)",
-            body.contains("renderToday(")
-        )
-        assertTrue(
-            "v9 overflow 条带必须带头 (stripHeaderless 缺省 false = 头部画进长图随滚)",
-            !body.contains("stripHeaderless")
-        )
-        assertTrue(
-            "v9 overflow 禁 bar 行 (widget_today_overflow 已删, configureTodayOverflow 已删)",
-            !body.contains("widget_today_overflow") && !src.contains("configureTodayOverflow")
-        )
-        assertTrue(
-            "v9 overflow 禁翻页残留 (TodayPagerCore 已删)",
-            !body.contains("TodayPagerCore")
-        )
-        // 取证标签: 所有元素 drawn or not 全打标 — spacer 也要有 (静态分支仍在用)
-        val nav = src.substringAfter("fun configureTodayBar(")
-            .substringBefore("val zones = listOf(")
-        assertTrue(
-            "configureTodayBar 必须给 spacer 打标签",
-            nav.contains("widget_spacer_l")
-        )
-    }
-
-    @Test
     fun `overflow scroll layer is twoday-identical unbarred frame`() {
         // v9 结构铁律: overflow 布局 = widget_scroll_today 与 !navEnabled 分支共用
         // (根 FrameLayout 直下 match_parent ListView — 全网 collection widget 标准形态,
@@ -196,12 +150,4 @@ class ScrollStripWholeImageTest {
         assertFalse("禁裸 <View>", Regex("<View\\b").containsMatchIn(xml))
     }
 
-    @Test
-    fun `nav layouts label every element including spacers and root`() {
-        listOf("widget_today_nav_static.xml", "widget_today_nav_static_compact.xml").forEach { name ->
-            val xml = layoutFile(name).readText()
-            assertTrue("$name spacer 左须有 id", xml.contains("widget_spacer_l"))
-            assertTrue("$name 底部条容器须有 id", xml.contains("widget_today_bar"))
-        }
-    }
 }

@@ -21,9 +21,10 @@ android {
         // 0.0.3 = 关于页加「联系开发者（QQ）」；
         // 0.0.4 = 契约测试全绿（37 → 0）＋修回许可页贡献者外链；
         // 0.0.5 = 组件编辑页去掉已失效的「滚动方式」节（整条 per-widget 开关链）+ 清三块死代码；
-        // 0.0.6 = 「来自开发者的心声」语气软化（用户令）+ 更新说明同步
-        versionCode = 6
-        versionName = "0.0.6"
+        // 0.0.6 = 「来自开发者的心声」语气软化（用户令）+ 更新说明同步；
+        // 0.0.7 = 整块清掉休眠的「位图组件管线」（用户拍板 A）
+        versionCode = 7
+        versionName = "0.0.7"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
             localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")

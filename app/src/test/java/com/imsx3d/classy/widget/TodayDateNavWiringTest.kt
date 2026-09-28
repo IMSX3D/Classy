@@ -14,7 +14,7 @@ import java.time.LocalDate
  * 每日课程小组件日期导航 — wiring 级单测。
  *
  * 仓库无 Robolectric, 这里覆盖:
- * 1) Action 常量字符串稳定契约 + navDelta / navRequestCode 算术 (R2 PendingIntent 带参
+ * 1) Action 常量字符串稳定契约 + navDelta 算术 (R2 PendingIntent 带参
  *    在 Android 端只靠这两个常量 + companion 方法做反 disambiguation; 在 JVM 端以
  *    纯函数形式断言);
  * 2) WidgetData.isToday 默认值 + 标题头渲染 (todayHeaderParts) 在 JVM 上的字符串分支
@@ -47,17 +47,6 @@ class TodayDateNavWiringTest {
     }
 
     // ---- R2 PendingIntent requestCode 反碰撞: (widgetId, zoneOrdinal) 全空间唯一 ----
-
-    @Test
-    fun `navRequestCode distinct for each widgetId and zone ordinal`() {
-        val pairs = (1..6).flatMap { id -> (0..2).map { ord -> id to ord } }
-        val codes = pairs.map { (id, ord) -> TodayWidgetReceiver.navRequestCode(id, ord) }
-        assertEquals("每个 (widgetId, zoneOrdinal) 组合必须唯一", pairs.size, codes.toSet().size)
-        // 与 open-app PI 的 requestCode (= widgetId) 不冲突: open-app 不同 ComponentName
-        // → filterEquals 不同, 本断言只保证 nav 之间互不撞
-        assertFalse("navRequestCode 不能等于 widgetId 本身(会与别的 widget 撞同一个整数池)",
-            TodayWidgetReceiver.navRequestCode(42, 0) == 42)
-    }
 
     // ---- WidgetData.isToday 字段 (R6 标题渲染需) ----
 
@@ -156,35 +145,6 @@ class TodayDateNavWiringTest {
     }
 
     @Test
-    fun `TodayWidget source wires nav pipeline with view header`() {
-        val src = widgetSource("TodayWidget.kt").readText()
-        // onReceive 三 action 派发 (R2)
-        assertTrue("onReceive 必须 switch 三个 nav action",
-            src.contains("ACTION_PREV_DAY") && src.contains("ACTION_NEXT_DAY") &&
-                src.contains("ACTION_RESET_DAY"))
-        // 持久化钩子 (R4 隔离 / R3 回到今天)
-        assertTrue("必须调 TodayDateNavStore.shift", src.contains("TodayDateNavStore.shift"))
-        assertTrue("必须调 TodayDateNavStore.remove (回到今天)",
-            src.contains("TodayDateNavStore.remove"))
-        // onDeleted 必须清掉导航状态
-        assertTrue("onDeleted 必须调 TodayDateNavStore.remove",
-            src.contains("onDeleted") && src.contains("TodayDateNavStore.remove"))
-        // pushTodayData 静态 = 真实视图顶栏容器 (bitmap 头部留白防双重标题)
-        assertTrue("pushTodayData 必须用 widget_today_nav_static 静态容器",
-            src.contains("widget_today_nav_static"))
-        assertTrue("v4/v5/v6 均禁引用已删的 widget_scroll_today_nav (真实视图覆盖层 = ColorOS 腐坏源)",
-            !src.contains("widget_scroll_today_nav"))
-        assertTrue("底部条定稿: 静态壳图带头渲染, 禁 emptyHeader 留白 (顶栏控件条已退场)",
-            !src.contains("emptyHeader = true"))
-        assertTrue("v9 overflow 必须竖排滑动 (pushScrollable + TwoDay 同构滚动层, 头部随内容滚)",
-            src.contains("pushScrollable") && src.contains("widget_scroll_today"))
-        assertTrue("v5 翻页机制必须已删净 (TodayPagerCore 废弃)",
-            !src.contains("TodayPagerCore") && !src.contains("ACTION_PREV_PAGE"))
-        assertTrue("pushTodayData 必须调 configureTodayBar",
-            src.contains("configureTodayBar"))
-    }
-
-    @Test
     fun `TodayWidget source loadDataSync resolves nav target`() {
         val src = widgetSource("TodayWidget.kt").readText()
         assertTrue("loadDataSync 必须解析 nav 状态为当前 target",
@@ -192,46 +152,6 @@ class TodayDateNavWiringTest {
         assertTrue("loadDataSync 必须把 target 当作数据日期",
             src.contains("WidgetData(date = target") || src.contains("date = target"))
     }
-
-    @Test
-    fun `nav zones in both today layouts use RemoteViews-whitelisted view classes`() {
-        // launcher 端 RemoteViews.apply 只放行 @RemoteView 注解的 view 类
-        // (AOSP RemoteViews.INFLATER_FILTER = clazz.isAnnotationPresent(RemoteView.class));
-        // android.view.View 无 @RemoteView 注解 → 裸 <View> 在 launcher inflate 必炸
-        // → 「载入窗口小组件时出现问题」(v1.0.53 回归: 两个今日变体都走 nav 布局,
-        //   周课表布局无裸 View 所以只有今日挂)。
-        listOf("widget_today_nav_static.xml", "widget_today_nav_static_compact.xml").forEach { name ->
-            val xml = layoutFile(name).readText()
-            assertFalse(
-                "$name 禁止裸 <View> (无 @RemoteView 注解, launcher 端 inflate 抛异常)",
-                Regex("<View\\b").containsMatchIn(xml)
-            )
-            mapOf(
-                "widget_nav_more" to "ImageView",
-                "widget_today_nav_today" to "ImageView",
-                "widget_today_nav_prev" to "ImageView",
-                "widget_today_nav_next" to "ImageView",
-            ).forEach { (id, expect) ->
-                val idIdx = xml.indexOf("android:id=\"@+id/$id\"")
-                assertTrue("$name missing nav zone $id", idIdx >= 0)
-                val tagStart = xml.lastIndexOf('<', idIdx)
-                val tag = Regex("[A-Za-z][A-Za-z0-9.]*")
-                    .find(xml.substring(tagStart + 1))?.value
-                assertEquals("$name 的 $id 必须用 $expect (RemoteViews 白名单类)",
-                    expect, tag)
-            }
-            // prev/refresh/next 大点击区 (40x28dp = 视图尺寸 = 热区; refresh 按钮 2×2 定稿)
-            listOf("widget_today_nav_prev", "widget_today_nav_next",
-                "widget_today_nav_today").forEach { id ->
-                val idIdx = xml.indexOf("android:id=\"@+id/$id\"")
-                val blockEnd = xml.indexOf('>', idIdx)
-                val block = xml.substring(xml.lastIndexOf('<', idIdx), blockEnd + 1)
-                assertTrue("$name 的 $id 必须保留 android:clickable=\"true\"",
-                    block.contains("android:clickable=\"true\""))
-            }
-        }
-    }
-
 
     @Test
     fun `RemoteViewsWidgetHelper renderAndPush and pushScrollable expose configureViews hook`() {
@@ -291,8 +211,9 @@ class TodayDateNavWiringTest {
     }
 
     @Test
-    fun `WeekGrid minimum variant reuses pushTodayData without nav zones (scope guard)`() {        // issue #24 范围铁律: 日期导航只在每日小组件。WeekGrid 最小档复用 pushTodayData
-        // 管线, 但不得获得导航布局/点击区 — 守卫 WeekGrid 侧零沾染。
+    fun `WeekGrid goes real-layout and never touches nav zones (scope guard)`() {
+        // issue #24 范围铁律: 日期导航只在每日小组件。UI-4k 起 WeekGrid 也走真实布局，
+        // 但依旧不得引用导航布局/点击区 — 守卫 WeekGrid 侧零沾染。
         val grid = widgetSource("WeekGridWidgetProvider.kt").readText()
         assertFalse("WeekGrid 不得引用 widget_today_nav_static",
             grid.contains("widget_today_nav_static"))

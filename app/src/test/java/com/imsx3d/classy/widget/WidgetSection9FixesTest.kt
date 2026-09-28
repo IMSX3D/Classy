@@ -58,8 +58,10 @@ class WidgetSection9FixesTest {
     fun `bitmap-family widgets parse size through the single computeSizeDp entry`() {
         // UI-4k 起 WeekGrid 也走真实布局，自己不再解析尺寸（由 launcher 量测）。
         // §9.3「尺寸解析必须走统一入口」这条口径现在落在**仍在画位图的**那些组件上。
+        // TodayWidget 已不在名单里：它的尺寸解析随休眠位图管线一起删除
+        //（真实行布局由 launcher 量测），剩下的四个才是仍在画位图的组件。
         for (name in listOf(
-            "TodayWidget.kt", "WeekListWidget.kt", "WeekViewWidget.kt",
+            "WeekListWidget.kt", "WeekViewWidget.kt",
             "ScrollStripService.kt", "CourseRowWidgetService.kt"
         )) {
             val s = src(name)

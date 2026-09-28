@@ -49,14 +49,14 @@ class TodayOverflowGeometryTest {
         val src = widgetSource("WidgetBitmapRenderers.kt").readText()
         // 渲染与内容高度必须调用同一行几何真值函数 (禁再手写 maxStack*rowH 镜像)
         val body = src.substringAfter("fun todayContentHeightDp(")
-            .substringBefore("fun renderNavTriangle")
+            .substringBefore("fun twoDayCompactTexts")
         assertTrue(
             "todayContentHeightDp 必须经 TodayRowGeometry 计算行几何 (镜像失配根除)",
             body.contains("TodayRowGeometry")
         )
         // 渲染端也必须用同一真值 (v4 硬编码 14+24 起点 = 丢失末行根因)
         val render = src.substringAfter("fun renderTodayRegular(")
-            .substringBefore("fun renderNavTriangle")
+            .substringBefore("fun twoDayCompactTexts")
         assertTrue(
             "renderTodayRegular 必须经 TodayRowGeometry 取行 span (禁硬编码 contentTopPx)",
             render.contains("TodayRowGeometry")
@@ -229,39 +229,6 @@ class TodayOverflowGeometryTest {
         )
     }
 
-    @Test
-    fun `nav overflow branch is byte-identical to non-nav overflow pattern`() {
-        // v11 定稿: Today overflow = TwoDay overflow 同构 (壳图按 contentH 全展开
-        // 渲染 + 条带带头, 头部画进长图随内容滚)。v9.x 分页/v10 逐行子项都已退场。
-        val src = widgetSource("TodayWidget.kt").readText()
-        val body = src.substringAfter("Today 系 overflow").substringBefore("fun loadDataSync")
-        assertTrue(
-            "v11 overflow 必须走 pushScrollable (竖排滑动)",
-            body.contains("pushScrollable")
-        )
-        assertTrue(
-            "v11 overflow 必须用 widget_scroll_today (与 !navEnabled overflow 同一布局)",
-            body.contains("widget_scroll_today")
-        )
-        assertTrue(
-            "v11 overflow 禁 bar 行布局 (widget_today_overflow 已删)",
-            !body.contains("widget_today_overflow")
-        )
-        assertTrue(
-            "v11 overflow 条带必须带头 (stripHeaderless=false = TwoDay 行为, 头部随内容滚)",
-            !body.contains("stripHeaderless")
-        )
-        assertTrue(
-            "v11 overflow 壳图按 contentH 全展开渲染 (v9.1 契约, 与条带同参)",
-            Regex("renderToday\\(\\s*context,\\s*\\w*[dD]ata,\\s*wDp\\.toFloat\\(\\),\\s*\\w*[cC]ontentH,").containsMatchIn(body)
-        )
-        val xml = File(layoutDir(), "widget_today_overflow.xml")
-        assertFalse(
-            "widget_today_overflow.xml 布局必须已删 (bar 行形态整体退场)",
-            xml.exists()
-        )
-    }
-
     private fun layoutDir(): File {
         var dir: File? = File(".").absoluteFile
         while (dir != null) {
@@ -346,12 +313,12 @@ class TodayOverflowGeometryTest {
             "标题行前进量必须 = HEADER_ADVANCE_DP (${TodayRowGeometry.HEADER_ADVANCE_DP})",
             src.contains("y += ${TodayRowGeometry.HEADER_ADVANCE_DP.toInt()}f * density"),
         )
-        // 双日三处镜像: 渲染器行几何 ↔ 窗口预算, 数字必须成对出现
-        val two = widgetSource("TwoDayWidget.kt").readText()
+        // 双日渲染侧镜像（位图渲染器里手写的数字必须与真值一致）。
+        // 2026-09-29：原先还断言 TwoDayWidget 里"窗口预算"侧的数字（gapDp=6 / hDp-44f），
+        // 那两个窗口包装函数已随休眠位图管线删除 —— 现在只保渲染侧这一半，
+        // 若将来窗口逻辑复活，把对侧断言一并加回。
         assertTrue("双日渲染行高 36", src.contains("val maxRowH = 36f * density"))
         assertTrue("双日渲染行距 6", src.contains("val rowGap = 6f * density"))
-        assertTrue("双日窗口行距 6", two.contains("gapDp = 6f"))
-        assertTrue("双日窗口 availH 预算 = pad12+列头20+pad12 = 44", two.contains("hDp - 44f"))
     }
 
     // ---- issue #37: 非标准时间课在小组件误判冲突 — timeJson 必须贯穿 Today 管线 ----
@@ -379,26 +346,4 @@ class TodayOverflowGeometryTest {
         assertEquals(2, byNode.single().row.laneCount)
     }
 
-    @Test
-    fun `today pipeline threads timeJson through window geometry and strip`() {
-        assertTrue(
-            "FIXED 窗口未按时间域聚簇",
-            widgetSource("TodayWidget.kt").readText()
-                .contains("weekLaneRows(data.courses, data.timeJson)")
-        )
-        val r = widgetSource("WidgetBitmapRenderers.kt").readText()
-        assertTrue(
-            "渲染行 span 未按时间域聚簇",
-            r.contains("rowSpans(visibleCourses ?: data.courses, headerSpace, data.timeJson)")
-        )
-        assertTrue(
-            "内容高度未按时间域聚簇",
-            r.contains("contentHeightDp(data.courses, headerSpace, data.timeJson)")
-        )
-        assertTrue(
-            "条带行数未按时间域聚簇",
-            widgetSource("ScrollStripService.kt").readText()
-                .contains("rowSpans(d.courses, emptyHeader, d.timeJson)")
-        )
-    }
 }

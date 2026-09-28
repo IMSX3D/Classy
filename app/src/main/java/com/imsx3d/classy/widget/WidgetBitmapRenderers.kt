@@ -204,17 +204,7 @@ object WidgetBitmapRenderers {
         visibleCourses
     )
 
-    /**
-     * Today 状态内容判定 (纯 JVM 可测) — 无课表 / 学期外 / 无课。
-     * 与 renderTodayRegular 的三个提前 return 分支逐一对应:
-     * 这些内容在固定 y 画状态行, 无可翻页的行轴 → 强制 pageOffset=0。
-     */
-    fun isTodayStatusContent(data: WidgetData): Boolean =
-        !data.hasTable ||
-            data.semesterStatus != DateUtils.SemesterStatus.IN_RANGE ||
-            data.courses.isEmpty()
-
-    /**
+        /**
      * 小档纯文本行(渲染与单测共用单一事实来源)。空课表/学期外也各有对应一行。
      * resolver 抽象掉 Context 资源访问 → 核心选取逻辑可在纯 JVM 单测断言(仓库无 Robolectric)。
      */
@@ -490,40 +480,6 @@ object WidgetBitmapRenderers {
     const val NAV_BUTTON_H_DP = 28f
     const val NAV_HEADER_H_DP = 36f
 
-    /**
-     * 今日导航三角按钮 — 40×28dp 位图, 内缩 4dp×3dp 的圆角矩形(半径 7dp),
-     * 低对比配色: surfaceVariant 底 + onSurfaceVariant 三角形图标 (M3 标准安静配色,
-     * 修掉上一版 primary 高饱和实心圆钮的“对比度太高”)。三角形走 Canvas Path,
-     * 禁字体 glyph (‹› U+25B8 依赖系统字体)。
-     */
-    fun renderNavTriangle(context: Context, data: WidgetData, pointLeft: Boolean): Bitmap {
-        val density = context.resources.displayMetrics.density
-        val w = (NAV_BUTTON_W_DP * density).toInt()
-        val h = (NAV_BUTTON_H_DP * density).toInt()
-        val s = scheme(context, data.themeKey, data.isDark)
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-
-        // 低对比圆角矩形底 — 内缩留出的透明边 = 按钮之间的呼吸空隙, 视图本身即点击区
-        p.color = s.surfaceVariant
-        c.drawRoundRect(RectF(4f * density, 3f * density, w - 4f * density, h - 3f * density),
-            7f * density, 7f * density, p)
-
-        // 三角形图标 — tip 3.5dp, 半高 4dp, 视觉居中 (底边中心后移 0.5dp)
-        val cx = w / 2f
-        val cy = h / 2f
-        val tipDx = (if (pointLeft) -3.5f else 3.5f) * density
-        val path = android.graphics.Path().apply {
-            moveTo(cx + tipDx, cy)
-            lineTo(cx - tipDx, cy - 4f * density)
-            lineTo(cx - tipDx, cy + 4f * density)
-            close()
-        }
-        p.color = s.onSurfaceVariant
-        c.drawPath(path, p)
-        return bmp
-    }
 
     /**
      * 刷新图标按钮 (回到今天) — 与 [renderNavTriangle] 同风格: surfaceVariant 圆角底
@@ -573,29 +529,6 @@ object WidgetBitmapRenderers {
     const val NAV_CAPSULE_H_DP = 20f
     const val NAV_CAPSULE_MIN_W_DP = 30f
 
-    /**
-     * 底部条「+N」胶囊 — 隐藏课提示 + 配置页自救入口 (2026-09-15 底部导航条定稿,
-     * 替代旧「还有 N 节未上」文字页脚)。与三角按钮同配色 (surfaceVariant 底 +
-     * onSurfaceVariant 字), 全圆角胶囊形; 宽 = 文本测量 + 左右 8dp, 下限 30dp。
-     */
-    fun renderNavCapsule(context: Context, data: WidgetData, text: String): Bitmap {
-        val density = context.resources.displayMetrics.density
-        val s = scheme(context, data.themeKey, data.isDark)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 11f * density
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val w = (NAV_CAPSULE_MIN_W_DP.coerceAtLeast(p.measureText(text) / density + 16f) * density).toInt()
-        val h = (NAV_CAPSULE_H_DP * density).toInt()
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        p.color = s.surfaceVariant
-        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), h / 2f, h / 2f, p)
-        p.color = s.onSurfaceVariant
-        val fm = p.fontMetrics
-        c.drawText(text, (w - p.measureText(text)) / 2f, h / 2f - (fm.ascent + fm.descent) / 2f, p)
-        return bmp
-    }
 
     /**
      * 今日导航顶栏运行时配色 — 顶栏真实视图 (标题/动作文字/背景) 与卡面 bitmap 同一 scheme
@@ -603,10 +536,6 @@ object WidgetBitmapRenderers {
      */
     data class TodayNavHeaderColors(val title: Int, val action: Int, val bg: Int)
 
-    fun todayNavHeaderColors(context: Context, data: WidgetData): TodayNavHeaderColors {
-        val s = scheme(context, data.themeKey, data.isDark)
-        return TodayNavHeaderColors(title = s.primary, action = s.primary, bg = s.bg)
-    }
 
     /**
      * TwoDay 小档纯文本行(渲染与单测共用单一事实来源)。

@@ -384,7 +384,6 @@
     <string name="today_no_course">No hay clases hoy</string>
     <string name="today_rest">Día libre</string>
     <string name="widget_footer_more">+%1$d más</string>
-    <string name="widget_status_all_done">Clases de hoy terminadas</string>
     <string name="widget_footer_more_short">+%1$d</string>
 
     <string name="ok">Aceptar</string>

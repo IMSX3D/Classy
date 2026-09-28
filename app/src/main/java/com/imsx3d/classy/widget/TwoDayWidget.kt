@@ -25,20 +25,9 @@ import java.time.LocalDate
  * Glance 版 TwoDayWidget 类已删除(决策 D5-11); loadDataSync 自 Glance companion 迁入本类。
  */
 /**
- * ⚠️ 休眠子系统提示（2026-09-29 清点）
- *
- * 本文件里的**位图推送管线**（`pushTodayData` / `configureTodayBar` / `todayBarLayout` /
- * `computeTodayWindow` / `footerConfigurePi` 一族）自 UI-4c 起**已无任何调用方**：
- * 生产路径改为 CourseRowPusher（真实行布局 + 桌面原生滚动），这里的代码既不是"改个配置就能恢复"
- * （当时的切换是代码改动），也不参与任何已注册组件的渲染。
- *
- * 仍在用的是本文件其它部分：receiver 生命周期（onUpdate/optionsChanged/onDeleted）、
- * `loadDataSync`（真实行布局管线也在用）、导航广播（handleNav → push）、世代号与尺寸工具。
- *
- * 为什么没就地删：它与 8 个契约测试（BottomBarFitTest / TodayDateNavWiringTest /
- * TodayDateNavHeaderWiringTest / FixedWindowWiringTest / WidgetDegradationLadderTest /
- * TodayOverflowScrollParityTest / TodayOverflowGeometryTest / ScrollStripWholeImageTest）的
- * 几何口径互相咬合，整块清需要连同这些契约一起重写 —— 那是一个独立的决定，记在仓库外的待办清单里。
+ * 2026-09-29（整块清理）：`computeTwoDayWindows` / `footerConfigureViews` 两个休眠的位图推送包装已删除
+ * （UI-4c 起零调用；用户拍板整块清掉，需要时从 git 历史取回）。本类剩下的都是 live 路径：
+ * receiver 生命周期与 `loadDataSync`。
  */
 open class TwoDayWidgetReceiver : AppWidgetProvider() {
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -91,47 +80,7 @@ open class TwoDayWidgetReceiver : AppWidgetProvider() {
     companion object {
         private const val TAG = "TwoDayRV"
 
-        /** 页脚条点击 PI 挂接 (任一列有「+N」才挂); 与 Today 系同一自救通道 */
-        internal fun footerConfigureViews(
-            context: Context, widgetId: Int, footerTexts: List<String?>?
-        ): ((android.widget.RemoteViews) -> Unit)? {
-            if (footerTexts == null) return null
-            val pi = TodayWidgetReceiver.footerConfigurePi(context, widgetId)
-            return { v: android.widget.RemoteViews ->
-                v.setOnClickPendingIntent(com.imsx3d.classy.R.id.widget_footer_bar, pi)
-            }
-        }
 
-        /**
-         * TwoDay 每列 FIXED 窗口 (设计 §4.2): availH = hDp − 44 (pad12+列头20+pad12,
-         * 2026-09-14c 顶部标签行删除); 行高/聚类与 twoDayContentHeightDp·renderTwoDayRegular
-         * 逐字节同源 (timeJson 聚类, 单行 36, 堆叠 maxStack×36+(maxStack−1)×3, 行距 6)。
-         * 今天列 TIME_WINDOW(nowMin), 明天列 HEAD。
-         */
-        internal fun computeTwoDayWindows(
-            data: TwoDayData,
-            hDp: Float,
-            nowMin: Int?
-        ): List<FixedWindowCore.WindowResult> = data.days.map { day ->
-            val availH = hDp - 44f
-            val rows = com.imsx3d.classy.util.ConflictLayoutEngine.weekLaneRows(day.courses, day.timeJson)
-            val entries = FixedWindowCore.entriesOf(rows, day.timeJson) { row ->
-                if (row.laneCount == 1) 36f
-                else {
-                    val maxStack = row.courses.groupBy { row.laneOf[it.id] }.values
-                        .maxOf { it.size }.coerceAtLeast(1)
-                    maxStack * 36f + (maxStack - 1) * 3f
-                }
-            }
-            FixedWindowCore.window(
-                entries = entries,
-                availH = availH,
-                mode = if (day.isToday && nowMin != null) FixedWindowCore.Mode.TIME_WINDOW
-                else FixedWindowCore.Mode.HEAD,
-                nowMin = if (day.isToday) nowMin else null,
-                gapDp = 6f
-            )
-        }
 
         /**
          * 同步版数据加载 — 今天 + 明天课程。

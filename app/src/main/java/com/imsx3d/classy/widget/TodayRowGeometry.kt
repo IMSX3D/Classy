@@ -34,13 +34,6 @@ object TodayRowGeometry {
     /** 底 pad — 内容区底部内边距。 */
     const val PAD_BOTTOM_DP = 14f
 
-    /**
-     * 底部导航条高 (2026-09-14d 密度二调: 36→28): 翻页键/回今天/「+N」胶囊从顶栏迁到底部固定条,
-     * 顶栏只剩位图内日期标题 → 顶栏与按钮不再抢宽度。内容预算恒扣此高度,
-     * 条内元素永远放得下 (不再需要顶栏降级档位)。布局 XML 条容器高必须与此一致 (测试锁死)。
-     */
-    const val NAV_BAR_H_DP = 28f
-
     /** 一行的纵向 span (dp) — 行序 + [topDp, bottomDp) 区间。 */
     data class RowSpan(
         val rowIndex: Int,

@@ -105,44 +105,6 @@ class WidgetDegradationLadderTest {
     )
 
     @Test
-    fun `today window at 40 80 600 dp never crashes and keeps anchor row`() {
-        for (hDp in floatArrayOf(40f, 80f)) {
-            val w = TodayWidgetReceiver.computeTodayWindow(todayData(5), hDp, h("07:00"))
-            assertEquals("极小高度 forceFirst 保 1 锚行", 1, w.visible.size)
-            // 底部条定稿: 填满档 (footerH=0) 截断即点亮「+N」胶囊 → footer=true
-            assertTrue("截断须点亮胶囊", w.footer)
-            assertEquals(4, w.hiddenAheadCourses)
-        }
-        val big = TodayWidgetReceiver.computeTodayWindow(todayData(5), 600f, h("07:00"))
-        assertEquals(5, big.visible.size)
-        assertFalse(big.footer)
-        assertEquals(0, big.hiddenAheadCourses)
-    }
-
-    @Test
-    fun `twoday window at 40 80 600 dp never crashes and keeps anchor row`() {
-        val data = TwoDayData(
-            days = listOf(
-                DayData(LocalDate.now(), 1, (1..4).map { course(it.toLong()) }, ""),
-                DayData(LocalDate.now().plusDays(1), 2, (101..103).map { course(it.toLong()) }, "")
-            ),
-            hasTable = true
-        )
-        for (hDp in floatArrayOf(40f, 80f)) {
-            val wins = TwoDayWidgetReceiver.computeTwoDayWindows(data, hDp, h("07:00"))
-            assertEquals(2, wins.size)
-            wins.forEach { w ->
-                assertEquals("每列 forceFirst 保 1 锚行", 1, w.visible.size)
-                assertFalse(w.footer)
-            }
-        }
-        val big = TwoDayWidgetReceiver.computeTwoDayWindows(data, 600f, h("07:00"))
-        assertEquals(4, big[0].visible.size)
-        assertEquals(3, big[1].visible.size)
-        big.forEach { assertFalse(it.footer); assertEquals(0, it.hiddenAheadCourses) }
-    }
-
-    @Test
     fun `weeklist window at 40 80 600 dp never crashes and keeps anchor row`() {
         for (hDp in floatArrayOf(40f, 80f)) {
             val w = WeekListWidgetReceiver.computeWeekListWindows(listOf(day(1, 5)), hDp, 0f).single()
