@@ -22,9 +22,10 @@ android {
         // 0.0.4 = 契约测试全绿（37 → 0）＋修回许可页贡献者外链；
         // 0.0.5 = 组件编辑页去掉已失效的「滚动方式」节（整条 per-widget 开关链）+ 清三块死代码；
         // 0.0.6 = 「来自开发者的心声」语气软化（用户令）+ 更新说明同步；
-        // 0.0.7 = 整块清掉休眠的「位图组件管线」（用户拍板 A）
-        versionCode = 7
-        versionName = "0.0.7"
+        // 0.0.7 = 整块清掉休眠的「位图组件管线」（用户拍板 A）；
+        // 0.0.8 = 分发前的收口：自动检查更新恢复默认开（原始顾虑已消失）+ 注释与实现对齐
+        versionCode = 8
+        versionName = "0.0.8"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
             localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")

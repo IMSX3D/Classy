@@ -94,7 +94,7 @@ object AppPrefs {
     const val KEY_WEEK_USE_ALIAS = "week_use_alias"     // bool default false — 周视图显示别名
     const val KEY_GRID_USE_ALIAS = "grid_use_alias"     // bool default false — 网格视图显示别名
     const val KEY_WIDGET_USE_ALIAS = "widget_use_alias" // bool default false — 全部小组件显示别名
-    const val KEY_UPDATE_CHECK_ENABLED = "update_check_enabled" // bool default true — 启动检查 GitHub releases latest
+    const val KEY_UPDATE_CHECK_ENABLED = "update_check_enabled" // bool default true — 启动时检查 GitHub releases latest（失败静默）
     const val KEY_UPDATE_NOTICE_DISMISSED_VERSION = "update_notice_dismissed_version" // string — 关闭该版本更新提醒
     const val KEY_HIGH_REFRESH = "high_refresh_rate" // bool default true — 窗口 preferredDisplayModeId 钉屏幕最高刷率(流畅优先); 关=跟随系统省电调度
     const val KEY_NAV_DOCK = "nav_dock" // bool default false — 底栏形态: false=贴底(通栏), true=悬浮药丸(Dock, 底边留距)
@@ -784,11 +784,13 @@ object AppPrefs {
 
     // ===== 启动检查更新开关 =====
 
-    // UI-5（2026-09-26）：默认 true → false。检查的是**上游 lingion/sleepy 的 Releases**，
-    // 但本包已改名为自有版本、签名也自有一把钥匙 —— 跟着提示去装上游包只会安装失败
-    // （签名不同）或被系统卸载重装（课表数据丢失）。要恢复"跟随上游更新"把它改回 true 即可。
+    // 2026-09-29（准备分发给同学时）恢复为默认 **true**：
+    // UI-5 当时默认关，是因为检查指向**上游 lingion/sleepy** —— 跟着提示装上游包会因签名不同而失败。
+    // 现在检查源是**我们自己的仓库**（AppIdentity.REPO_URL）且签名一致、资产名对得上，
+    // 默认关的原始理由已不存在；而关于页那句「启动时自动检查 GitHub Releases」本来也是这么写的。
+    // 失败静默（UpdateNotifier.maybeCheckOnStart 内 runCatching + 不弹错），下载走镜像 + 直连兜底。
     fun isUpdateCheckEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_UPDATE_CHECK_ENABLED, false)
+        sp(ctx).getBoolean(KEY_UPDATE_CHECK_ENABLED, true)
 
     fun setUpdateCheckEnabled(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_UPDATE_CHECK_ENABLED, v).apply()
