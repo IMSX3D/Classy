@@ -153,7 +153,8 @@ Classy 课表是基于 [lingion/sleepy](https://github.com/lingion/sleepy)（GPL
 
 Releases 提供单架构 APK（`app-arm64-v8a-release.apk`，绝大多数手机选这个）。安装后系统会提示「未知来源应用」，允许即可。
 
-> **注意**：本仓库当前尚未发布正式签名的安装包。等自有签名就位后才会在 Releases 放出 APK —— 这样你装的就是能一路升级的那一个，不必因为中途换签名而卸载重装（卸载会清掉课表数据）。在那之前，源码可以自行构建、自行安装。
+> **注意**：本仓库当前尚未在 Releases 放出安装包。自有签名已就位（自 v0.0.2 起 release 用项目自己的密钥签名），
+> 放出时你装的就是能一路升级的那一个，不必因为中途换签名而卸载重装。在那之前，源码可以自行构建、自行安装。
 
 ## 从源码构建
 
@@ -173,10 +174,15 @@ adb install app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
 
 Windows 原生环境请用 `gradlew.bat`，并把 `JAVA_HOME` 指到 JDK 根目录、`ANDROID_HOME` 指到 SDK 根目录（或写进 `local.properties` 的 `sdk.dir`）。首次构建需要联网拉依赖。
 
+> **签名**：仓库里**不含**密钥库与口令（两者都在源码树之外）。你自己的 clone 构建 release 时会自动回退到 debug 签名 ——
+> 能装能跑，只是不能覆盖升级官方包。项目自己的发包流程是：密钥库放在工程上级目录 + 口令写进 `local.properties`
+> （`classy.storePassword` / `classy.keyAlias` / `classy.keyPassword`），构建脚本检测到密钥库就走自有签名。
+
 ## 已知问题
 
 - **契约测试有历史遗留失败。** `./gradlew testDebugUnitTest` 全量 2260 个用例里还有 37 个失败，基本都是「组件从 15 项收敛到 3 项」「撤销胶囊移除」等改动之后没有同步更新的过期断言；另有部分用例写死了上游开发机的绝对路径，非 macOS 环境需要走 `sleepy.test.root` 兜底（已修一批）。它们不影响 App 运行，但会让 `test` 任务整体变红，正在清理。
-- **当前 release 构建仍使用调试密钥签名**（`CN=Android Debug`），仅供本地自用与测试；公开发包前会换成项目自有密钥。
+- ~~release 构建使用调试密钥签名~~ —— 自 **v0.0.2** 起 release 用项目自有密钥签名
+  （证书主体 `CN=Classy 课表`，SHA-256 `95:9D:…:68:56`）；密钥库与口令都不在仓库里，见上面构建段落。
 
 ## 开源许可与致谢
 

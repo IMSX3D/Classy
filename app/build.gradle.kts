@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.Test
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -15,14 +16,38 @@ android {
         applicationId = "com.imsx3d.classy"
         minSdk = 26
         targetSdk = 37
-        // 换包名后改回自有序列：仓库里的初版即 v0.0.1（用户 2026-09-28 定）
-        versionCode = 1
-        versionName = "0.0.1"
+        // 0.0.1 = 仓库初版（换包名后归零，debug 签名）；
+        // 0.0.2 = 第一版**自有签名**的包（2026-09-28，用户定"发包给同学之前切"）
+        versionCode = 2
+        versionName = "0.0.2"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
             localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")
         }
     }
+
+    // ── 签名（v0.0.2 起：自有密钥库，取代原来的"release 复用 debug 证书"）──
+    // 为什么写成"存在才用"：密钥库与口令**都在仓库之外**
+    //   · 密钥库 E:/T1/classy-release.keystore（工程目录是 E:/T1/vendor/sleepy → 退两级）
+    //   · 口令   local.properties（不进发布树）
+    // 于是公开仓库里既没有密钥也没有口令：别人 clone 下来本块不生效 → 自动回退 debug 签名，
+    // `./gradlew assembleRelease` 照样能构建；我方机器上有密钥库 → 走自有签名。
+    // 指纹（SHA-256）：95:9D:7F:1B:95:6F:52:03:C0:19:BE:FD:FE:13:BF:40:82:CF:D6:00:47:47:7A:9F:10:75:9D:F2:B9:5D:68:56
+    val classyKeystoreFile = rootProject.file("../../classy-release.keystore")
+    val classySigning = if (classyKeystoreFile.exists()) {
+        val localProps = Properties().apply {
+            val f = rootProject.file("local.properties")
+            if (f.exists()) f.inputStream().use { load(it) }
+        }
+        signingConfigs.create("classy") {
+            storeFile = classyKeystoreFile
+            storePassword = localProps.getProperty("classy.storePassword")
+                ?: error("classy-release.keystore 在，但 local.properties 里没有 classy.storePassword")
+            keyAlias = localProps.getProperty("classy.keyAlias") ?: "classy"
+            keyPassword = localProps.getProperty("classy.keyPassword")
+                ?: error("classy-release.keystore 在，但 local.properties 里没有 classy.keyPassword")
+        }
+    } else null
 
     buildTypes {
         debug {
@@ -37,7 +62,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // 有自有密钥库就用它；没有（公开仓库里的 clone）回退 debug 签名，保证能构建
+            signingConfig = classySigning ?: signingConfigs.getByName("debug")
         }
     }
 
