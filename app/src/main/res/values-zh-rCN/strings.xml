@@ -777,6 +777,10 @@
     <string name="about_license_row_detail">GPL-3.0 · 基于 sleepy 二次开发</string>
     <string name="about_issue">问题反馈</string>
     <string name="about_issue_detail">在 GitHub 仓库提 Issue</string>
+    <string name="about_contact_dev">联系开发者</string>
+    <string name="about_contact_dev_detail">QQ %1$s</string>
+    <string name="about_contact_copied">已复制 QQ 号：%1$s</string>
+    <string name="about_contact_copy_a11y">复制 QQ 号</string>
     <string name="about_update_available">新版 %1$s 可用,点此查看</string>
     <string name="about_update_dismiss">关闭更新提示</string>
     <string name="theme_name_default">淡紫</string>

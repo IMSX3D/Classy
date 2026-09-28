@@ -62,7 +62,7 @@
 - **教务直连导入。** 内置 345 所高校的教务适配（正方 / 强智 / 金智 / URP / 青果 / 超星 等协议族），WebView 登录后**本地**解析，课表不进任何第三方服务器。
 - **格式不锁死。** 支持 Classy 原生格式、ICS 日历、CSV、WakeUp 分享文本 / JSON、教务系统 HTML 表格；导出也是一等公民，随时能带走。
 - **一套统一的设计体系。** 控件、字体、动效各有一份规范文档与红线脚本约束，全 App 只有一套设置页版式、一套分段控件、一套动效曲线 —— 不出现"某个页面看着就不像这个 App"的突兀感。
-- **小。** Release 单架构 APK 约 3.7 MB。
+- **小。** Release 单架构 APK 约 4.0 MB（3914 KB）。
 
 ## 截图
 
@@ -151,10 +151,28 @@ Classy 课表是基于 [lingion/sleepy](https://github.com/lingion/sleepy)（GPL
 
 ## 下载与安装
 
-Releases 提供单架构 APK（`app-arm64-v8a-release.apk`，绝大多数手机选这个）。安装后系统会提示「未知来源应用」，允许即可。
+**去 [Releases](https://github.com/IMSX3D/Classy/releases/latest) 下载对应架构的 APK**，绝大多数手机选 `app-arm64-v8a-release.apk`：
 
-> **注意**：本仓库当前尚未在 Releases 放出安装包。自有签名已就位（自 v0.0.2 起 release 用项目自己的密钥签名），
-> 放出时你装的就是能一路升级的那一个，不必因为中途换签名而卸载重装。在那之前，源码可以自行构建、自行安装。
+1. 下载后用文件管理器点开安装（首次会提示「未知来源应用」，允许即可）；
+2. 装好后打开 App，`课表管理 → 导入课表/作息表` 把课表导进来即可用。
+
+| 版本 | 说明 |
+|---|---|
+| **v0.0.3**（最新） | 关于页新增「联系开发者」；**推荐装这个** |
+| v0.0.2 | 第一个用项目自有密钥签名的版本（从这一版起可覆盖升级） |
+| v0.0.1 | 仓库初版，仅源码（当时是调试签名，装过它的人需要先卸载） |
+
+**从 v0.0.2 起，后续版本都能直接覆盖安装升级**，不会再要求你卸载重装、数据也不会丢。
+App 内 `我的 → 关于 → 获取更新` 也能就地检查并下载新版本（默认关闭自动检查，手动点一下即可）。
+
+> 三个资产按 ABI 分列（`app-<abi>-release.apk`），应用内更新检查就是按这个名字找的 ——
+> 所以每个 release 都必须把三个都传上去。
+
+**用 iPhone 的同学怎么办？** 目前只有 Android 版 —— iOS 版技术上可行（核心的教务解析代码基本能整套复用），
+但需要一台 Mac 构建、Apple 开发者账号（99 美元/年）以及一台真机来验证，暂时不做。
+临时办法很简单：让用安卓的人（或我）在 App 里 `课表管理 → 导出课表/作息表 → ICS 日历` 导出一份，
+把文件发给你 —— iPhone 上点开，选择「添加到日历」，课表就以日历事件的形式进了系统自带「日历」，
+周视图、提醒、锁屏日历组件、iCloud 多设备同步全都有。
 
 ## 从源码构建
 
@@ -177,12 +195,12 @@ Windows 原生环境请用 `gradlew.bat`，并把 `JAVA_HOME` 指到 JDK 根目�
 > **签名**：仓库里**不含**密钥库与口令（两者都在源码树之外）。你自己的 clone 构建 release 时会自动回退到 debug 签名 ——
 > 能装能跑，只是不能覆盖升级官方包。项目自己的发包流程是：密钥库放在工程上级目录 + 口令写进 `local.properties`
 > （`classy.storePassword` / `classy.keyAlias` / `classy.keyPassword`），构建脚本检测到密钥库就走自有签名。
+> 自 **v0.0.2** 起所有 release 包都由它签名（证书主体 `CN=Classy 课表`，SHA-256 `95:9D:7F:…:68:56`），
+> 装过 v0.0.2 及以后版本的机器都能直接覆盖升级。
 
 ## 已知问题
 
 - **契约测试有历史遗留失败。** `./gradlew testDebugUnitTest` 全量 2260 个用例里还有 37 个失败，基本都是「组件从 15 项收敛到 3 项」「撤销胶囊移除」等改动之后没有同步更新的过期断言；另有部分用例写死了上游开发机的绝对路径，非 macOS 环境需要走 `sleepy.test.root` 兜底（已修一批）。它们不影响 App 运行，但会让 `test` 任务整体变红，正在清理。
-- ~~release 构建使用调试密钥签名~~ —— 自 **v0.0.2** 起 release 用项目自有密钥签名
-  （证书主体 `CN=Classy 课表`，SHA-256 `95:9D:…:68:56`）；密钥库与口令都不在仓库里，见上面构建段落。
 
 ## 开源许可与致谢
 
@@ -218,9 +236,11 @@ Windows 原生环境请用 `gradlew.bat`，并把 `JAVA_HOME` 指到 JDK 根目�
 - **Academic-system import** — 345 Chinese universities covered (Zhengfang, Qiangzhi, Wisedu, URP, Qingguo, Chaoxing …), parsed **locally** after you log in; nothing is uploaded.
 - **Formats** — native Classy format, ICS, CSV, WakeUp share text / JSON, and HTML tables. Imports always show a preview before writing anything.
 - **One design system** — controls, typography and motion are each governed by a written spec, with lint scripts enforcing them.
-- **Small** — roughly 3.7 MB per ABI in release.
+- **Small** — roughly 4.0 MB per ABI in release.
 
-**Install.** Build from source with JDK 17+ and Android SDK 37 (`./gradlew assembleRelease`). A properly signed APK will appear in [Releases](https://github.com/IMSX3D/Classy/releases) once the project's own signing key is in place.
+**Install.** Grab `app-arm64-v8a-release.apk` from [Releases](https://github.com/IMSX3D/Classy/releases/latest) (pick another ABI only if you know you need one), allow unknown sources, install. Since **v0.0.2** the release builds are signed with the project's own key, so later versions upgrade in place — no uninstall, no data loss.
+
+**Build from source.** JDK 17+ and Android SDK 37: `./gradlew assembleRelease` (falls back to the debug key when the project keystore isn't present).
 
 **License.** [GPL-3.0](LICENSE). Free and open source — if anyone sells it to you, please refuse.
 

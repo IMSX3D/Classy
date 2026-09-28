@@ -616,6 +616,10 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="about_license_row_detail">GPL-3.0 · a fork of sleepy</string>
     <string name="about_issue">Feedback</string>
     <string name="about_issue_detail">Open an issue on GitHub</string>
+    <string name="about_contact_dev">Contact the developer</string>
+    <string name="about_contact_dev_detail">QQ %1$s</string>
+    <string name="about_contact_copied">QQ number copied: %1$s</string>
+    <string name="about_contact_copy_a11y">Copy QQ number</string>
     <string name="about_update_available">Version %1$s is available — tap to view</string>
     <string name="about_license_title">Open Source License</string>
     <string name="about_source">Source Code</string>

@@ -1,7 +1,11 @@
 package com.imsx3d.classy.ui.screen.mine
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
@@ -99,6 +104,17 @@ fun AboutScreen(
     fun openUrl(url: String) {
         if (url.isBlank()) return
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    }
+
+    /** 复制开发者 QQ（行与行尾图标共用；不拉起 QQ，见 AppIdentity.AUTHOR_QQ 的说明） */
+    fun copyAuthorQq() {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("QQ", AppIdentity.AUTHOR_QQ))
+        Toast.makeText(
+            context,
+            context.getString(R.string.about_contact_copied, AppIdentity.AUTHOR_QQ),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     fun checkUpdate() {
@@ -288,6 +304,23 @@ fun AboutScreen(
                         trailing = { RowChevron() }
                     )
                 }
+                // 联系开发者（UI-7e 用户令「关于页面留一个 QQ 联系方式方便大家联系我」）：
+                // 号码**直接印在副标题里**（看得见、抄得走），点一下复制到剪贴板 + toast。
+                // 不拉起 QQ —— 装的人手机上不一定有，复制才是"一定成功"的动作。
+                SettingsRowDivider()
+                SettingsGroupRow(
+                    title = stringResource(R.string.about_contact_dev),
+                    subtitle = stringResource(R.string.about_contact_dev_detail, AppIdentity.AUTHOR_QQ),
+                    onClick = { copyAuthorQq() },
+                    trailing = {
+                        GlasenseIconButton(
+                            icon = Icons.Outlined.ContentCopy,
+                            contentDescription = stringResource(R.string.about_contact_copy_a11y),
+                            onClick = { copyAuthorQq() },
+                            compact = true
+                        )
+                    }
+                )
             }
         }
 

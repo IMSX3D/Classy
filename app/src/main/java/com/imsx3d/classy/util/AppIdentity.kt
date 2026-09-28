@@ -20,6 +20,14 @@ object AppIdentity {
     const val REPO_URL = "https://github.com/IMSX3D/Classy"
     const val REPO_SLUG = "IMSX3D/Classy"
 
+    /**
+     * 开发者 QQ（2026-09-28 用户令「在关于页面留一个 qq 联系方式方便大家联系我」）。
+     * 「关于」页那一行只读这一个常量；点一下 = 复制到剪贴板 ——
+     * 不拉起 QQ：装的人手机上不一定有 QQ，而复制是"一定成功"的动作，
+     * 号码本身也直接印在行里（看得见、抄得走）。
+     */
+    const val AUTHOR_QQ = "547991704"
+
     /** 上游项目与新版界面的设计体系来源（「特别鸣谢」的链接） */
     const val SLEEPY_URL = "https://github.com/lingion/sleepy"
     const val NEVOIT_URL = "https://github.com/Nevodev"

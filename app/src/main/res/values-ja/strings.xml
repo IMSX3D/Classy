@@ -922,6 +922,10 @@
     <string name="about_dev_tagline">Classy 時間割の開発者</string>
     <string name="about_issue">問題の報告</string>
     <string name="about_issue_detail">GitHub リポジトリで Issue を作成</string>
+    <string name="about_contact_dev">開発者に連絡</string>
+    <string name="about_contact_dev_detail">QQ %1$s</string>
+    <string name="about_contact_copied">QQ 番号をコピーしました：%1$s</string>
+    <string name="about_contact_copy_a11y">QQ 番号をコピー</string>
     <string name="about_license_row_detail">GPL-3.0 · sleepy の二次開発</string>
     <string name="about_repo">ソース公開先</string>
     <string name="about_repo_pending">準備中</string>

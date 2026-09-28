@@ -891,6 +891,10 @@
     <string name="about_dev_tagline">Classy 課表的開發者</string>
     <string name="about_issue">問題回報</string>
     <string name="about_issue_detail">在 GitHub 倉庫提 Issue</string>
+    <string name="about_contact_dev">聯絡開發者</string>
+    <string name="about_contact_dev_detail">QQ %1$s</string>
+    <string name="about_contact_copied">已複製 QQ 號：%1$s</string>
+    <string name="about_contact_copy_a11y">複製 QQ 號</string>
     <string name="about_license_row_detail">GPL-3.0 · 基於 sleepy 二次開發</string>
     <string name="about_repo">開源位址</string>
     <string name="about_repo_pending">建置中</string>

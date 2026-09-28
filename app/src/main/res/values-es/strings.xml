@@ -922,6 +922,10 @@ Agradecimientos por universidad (una tarjeta por universidad, expandir para ver 
     <string name="about_dev_tagline">Desarrollador de Classy Horario</string>
     <string name="about_issue">Informar de un problema</string>
     <string name="about_issue_detail">Abre un issue en el repositorio de GitHub</string>
+    <string name="about_contact_dev">Contactar con el desarrollador</string>
+    <string name="about_contact_dev_detail">QQ %1$s</string>
+    <string name="about_contact_copied">Numero de QQ copiado: %1$s</string>
+    <string name="about_contact_copy_a11y">Copiar el numero de QQ</string>
     <string name="about_license_row_detail">GPL-3.0 · desarrollo derivado de sleepy</string>
     <string name="about_repo">Direccion del codigo</string>
     <string name="about_repo_pending">En preparacion</string>
