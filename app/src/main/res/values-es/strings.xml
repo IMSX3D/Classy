@@ -404,12 +404,6 @@
     <string name="widget_open_sleepy">Abre Classy para agregar</string>
     <string name="widget_edit_section_schedule">Horario mostrado</string>
     <string name="widget_edit_section_alias">Visualización del nombre</string>
-    <string name="widget_edit_section_scroll">Desplazamiento</string>
-    <string name="widget_edit_scroll_subtitle">Ventana fija de forma predeterminada, compatible con todos los launchers. Al activarla, el contenido excedente se puede desplazar (experimental).</string>
-    <string name="widget_scroll_dialog_title">¿Activar el desplazamiento forzado (experimental)?</string>
-    <string name="widget_scroll_dialog_body">El desplazamiento depende del servicio de widgets del sistema. En algunas ROM de fabricantes (Xiaomi, vivo, etc.) puede mostrar un espacio en blanco, ir con retardo o no actualizarse. Si algo va mal, desactiva este interruptor para volver a la ventana fija.</string>
-    <string name="widget_scroll_dialog_confirm">Activar experimental</string>
-    <string name="widget_scroll_dialog_cancel">Cancelar</string>
     <string name="widget_edit_default_label">Predeterminado (sigue el horario actual)</string>
     <string name="widget_manage_title">Administrar widgets del escritorio</string>
     <string name="widget_edit_title">Editar widget</string>

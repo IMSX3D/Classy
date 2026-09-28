@@ -523,12 +523,6 @@
     <string name="widget_open_sleepy">打开「Classy 课表」开始添加</string>
     <string name="widget_edit_section_schedule">呈现的课表</string>
     <string name="widget_edit_section_alias">课程名显示</string>
-    <string name="widget_edit_section_scroll">滚动方式</string>
-    <string name="widget_edit_scroll_subtitle">默认固定窗口，全部厂商桌面可用；开启后课程超出时可滚动（实验，仅本小组件）</string>
-    <string name="widget_scroll_dialog_title">开启强制滚动（实验）？</string>
-    <string name="widget_scroll_dialog_body">滚动依赖系统小组件服务，部分厂商 ROM（小米、vivo 等）上可能空白、卡顿或无法刷新；出现异常请关闭本开关回到固定窗口。</string>
-    <string name="widget_scroll_dialog_confirm">开启实验</string>
-    <string name="widget_scroll_dialog_cancel">取消</string>
     <string name="widget_edit_default_label">默认（跟随当前课表）</string>
     <string name="widget_manage_title">管理桌面小组件</string>
     <string name="widget_edit_title">编辑小组件</string>

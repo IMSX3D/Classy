@@ -94,7 +94,6 @@ object AppPrefs {
     const val KEY_WEEK_USE_ALIAS = "week_use_alias"     // bool default false — 周视图显示别名
     const val KEY_GRID_USE_ALIAS = "grid_use_alias"     // bool default false — 网格视图显示别名
     const val KEY_WIDGET_USE_ALIAS = "widget_use_alias" // bool default false — 全部小组件显示别名
-    const val KEY_WIDGET_SCROLL_ENABLED = "widget_scroll_enabled" // bool default true（UI-4 起）— 内容溢出时改成可滑动长图; false = 固定窗口(截断/压扁)
     const val KEY_UPDATE_CHECK_ENABLED = "update_check_enabled" // bool default true — 启动检查 GitHub releases latest
     const val KEY_UPDATE_NOTICE_DISMISSED_VERSION = "update_notice_dismissed_version" // string — 关闭该版本更新提醒
     const val KEY_HIGH_REFRESH = "high_refresh_rate" // bool default true — 窗口 preferredDisplayModeId 钉屏幕最高刷率(流畅优先); 关=跟随系统省电调度
@@ -691,14 +690,6 @@ object AppPrefs {
     // 强制滚动(实验) — 旧全局一档 (设计 §6)。2026-09-14 起滚动改为 per-widget
     // (WidgetScrollStore), 本 key 只作「从未显式设置过的实例」的迁移默认, 不再写入。
     //
-    // UI-4（2026-09-26 用户令）：默认值 false → **true**。
-    // 理由：用户对比后明确偏好 WakeUp 的做法 —— 内容多时**不省略、不把版面压扁**，
-    // 而是让组件可上下滑动看全；固定窗口那条路会截断/压扁内容（用户报障"变形严重、
-    // 课程名显示不全"）。装得下时仍走原静态渲染（不进 ScrollStripService），
-    // 所以这只是一个"内容溢出时"的兜底行为改变。单个组件可随时在组件编辑页关掉。
-    fun isWidgetScrollEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_WIDGET_SCROLL_ENABLED, true)
-
     // ===== 节假日灰显 =====
 
     /** 法定节假日灰显开关 — 默认 true */

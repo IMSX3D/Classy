@@ -42,21 +42,20 @@ fun WidgetEditScreen(
 
     // To add a new section later, append here — the screen picks it up
     // automatically. Each section must implement WidgetEditSection.
+    // 2026-09-29：摘掉「滚动方式」节 —— 三个已收敛组件（今日/近日/网格）都改成了真实布局，
+    // 一律由桌面原生滚动，"本实例是否可滚动"这个开关对它们已无意义；它只对仍在画位图的
+    // WeekList / WeekView（不注册、用户拿不到）有意义，留在页面上就是骗人。
     val sections: List<WidgetEditSection> = remember {
-        listOf(WidgetEditScheduleSection, WidgetEditAliasSection, WidgetEditScrollSection)
+        listOf(WidgetEditScheduleSection, WidgetEditAliasSection)
     }
-    val scope = remember(state.currentBinding, state.availableTables, state.useAlias,
-        state.receiverSimpleName, state.scrollEnabled) {
+    val scope = remember(state.currentBinding, state.availableTables, state.useAlias) {
         WidgetEditScope(
             widgetId = widgetId,
             currentBinding = state.currentBinding,
             availableTables = state.availableTables,
             onSelectTable = { vm.setBinding(it) },
             useAlias = state.useAlias,
-            onUseAliasChange = { vm.setUseAlias(it) },
-            receiverSimpleName = state.receiverSimpleName,
-            scrollEnabled = state.scrollEnabled,
-            onScrollEnabledChange = { vm.setScrollEnabled(it) }
+            onUseAliasChange = { vm.setUseAlias(it) }
         )
     }
 

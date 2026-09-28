@@ -126,18 +126,6 @@ class MineNavRedoCourseListContractTest {
     // 原先锁"胶囊两半/中缝/配对显隐/onRedo 形参"的 4 条契约随之作废 —— 功能没了，契约留着只会误导。
 
 
-    @Test
-    fun `noRippleClickable supports enabled overload for capsule disabled halves`() {
-        // 撤回/取消撤回 一半 disable 时 onClick 不响应
-        // 用 overload fun Modifier.noRippleClickable(enabled: Boolean, onClick: () -> Unit)
-        assertTrue(
-            "noRippleClickable 必须新增 (enabled: Boolean, onClick: () -> Unit) 重载",
-            Regex(
-                """fun\s+Modifier\.noRippleClickable\(\s*enabled:\s*Boolean\s*,\s*onClick:\s*\(\)\s*->\s*Unit\s*\)"""
-            ).containsMatchIn(noRipple)
-        )
-    }
-
     // ---- D. 课程清单路由 + 导航入口 + 聚合/空态 ----
 
     @Test

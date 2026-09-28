@@ -19,13 +19,12 @@ data class WidgetEditScope(
     /** issue#26: 全部小组件共享一档 — widget 场景 课程名显示 原名/别名 */
     val useAlias: Boolean = false,
     val onUseAliasChange: (Boolean) -> Unit = {},
-    /** 设计 §6: receiver simpleName (如 TodaySmallWidgetReceiver), 供族判断; null=未知 */
-    val receiverSimpleName: String? = null,
-    /** 强制滚动(实验) — 本实例一档, 默认 false = FIXED 固定窗口 */
-    val scrollEnabled: Boolean = false,
-    val onScrollEnabledChange: (Boolean) -> Unit = {},
-    /** 最小档三天窗口 — 本实例一档 (仅「· 小」变体显示); true=今日居第一位 */
-    val onCompactTodayFirstChange: (Boolean) -> Unit = {}
+    /**
+     * 说明（2026-09-29）：`receiverSimpleName` / `scrollEnabled` / `onCompactTodayFirstChange`
+     * 三个字段随「滚动方式」「最小档三天窗口」两节一起删除 —— 那两节所服务的位图管线
+     * （固定窗口 / 强制滚动条带）已被真实布局取代，组件编辑页现在只剩"绑定哪张课表"与
+     * "课程名显示原名/别名"两件对用户真的有意义的事。
+     */
 )
 
 /**

@@ -404,12 +404,6 @@
     <string name="widget_open_sleepy">開啟「Classy 課表」開始新增</string>
     <string name="widget_edit_section_schedule">呈現的課表</string>
     <string name="widget_edit_section_alias">課程名顯示</string>
-    <string name="widget_edit_section_scroll">捲動方式</string>
-    <string name="widget_edit_scroll_subtitle">預設固定視窗，全部廠商桌面可用；開啟後課程超出時可捲動（實驗）</string>
-    <string name="widget_scroll_dialog_title">開啟強制捲動（實驗）？</string>
-    <string name="widget_scroll_dialog_body">捲動依賴系統小工具服務，部分廠商 ROM（小米、vivo 等）上可能空白、卡頓或無法重新整理；出現異常請關閉本開關回到固定視窗。</string>
-    <string name="widget_scroll_dialog_confirm">開啟實驗</string>
-    <string name="widget_scroll_dialog_cancel">取消</string>
     <string name="widget_edit_default_label">預設（跟隨當前課表）</string>
     <string name="widget_manage_title">管理桌面小工具</string>
     <string name="widget_edit_title">編輯小工具</string>

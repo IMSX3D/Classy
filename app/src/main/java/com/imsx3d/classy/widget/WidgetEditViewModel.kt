@@ -25,12 +25,6 @@ data class WidgetEditUiState(
     val availableTables: List<TimeTableEntity> = emptyList(),
     /** issue#26: widget 场景 课程名显示 原名/别名(全局一档, 全部小组件共享) */
     val useAlias: Boolean = false,
-    /** 设计 §6: 本实例 receiver simpleName (getAppWidgetInfo().provider 解析); null=未知 */
-    val receiverSimpleName: String? = null,
-    /** 强制滚动(实验) — 本实例一档 (2026-09-14: per-widget, 不再全局共享) */
-    val scrollEnabled: Boolean = false,
-    /** 最小档三天窗口 — 本实例一档 (2026-09-15: per-widget; true=今日居第一位) */
-
 )
 
 /**
@@ -74,8 +68,6 @@ class WidgetEditViewModel(
                 currentBinding = WidgetEditCore.displayBinding(raw),
                 availableTables = available,
                 useAlias = AppPrefs.isWidgetUseAlias(ctx),
-                receiverSimpleName = resolveReceiverSimpleName(),
-                scrollEnabled = WidgetScrollStore.isScrollEnabled(ctx, widgetId),
             )
         }
     }
@@ -87,25 +79,6 @@ class WidgetEditViewModel(
      * 此前只读 configure 导致族判断永远走"未知"分支)。
      * 实例已删除/厂商异常 → null (编辑页仍可用, 仅按族显隐的节按未知=隐藏)。
      */
-    private fun resolveReceiverSimpleName(): String? = runCatching {
-        val awm = android.appwidget.AppWidgetManager.getInstance(ctx)
-        val info = awm.getAppWidgetInfo(widgetId)
-        (info?.provider?.className ?: info?.configure?.className)
-            ?.substringAfterLast('.')
-    }.getOrNull()
-
-    /**
-     * 设计 §6: 切换强制滚动(实验)。本实例一档 (per-widget, 写 WidgetScrollStore),
-     * 写后 reload + 全量重推 (评审 #25: 否则「看着没生效」) — 与 setUseAlias 同管线。
-     */
-    fun setScrollEnabled(v: Boolean) {
-        WidgetScrollStore.setScrollEnabled(ctx, widgetId, v)
-        reload()
-        viewModelScope.launch {
-            runCatching { WidgetUpdater.notifyDataChanged(ctx) }
-        }
-    }
-
     /**
      * issue#26: 切换 widget 场景 课程名显示(原名/别名)。全局一档(所有小组件共享),
      * 写 AppPrefs 后 reload + 全量刷 widget — 与 setBinding 同管线。

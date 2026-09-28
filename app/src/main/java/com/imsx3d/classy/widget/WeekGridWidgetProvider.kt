@@ -90,7 +90,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         super.onDeleted(context, appWidgetIds)
-        for (id in appWidgetIds) { WidgetBindingStore.remove(context, id); WidgetScrollStore.remove(context, id) }
+        for (id in appWidgetIds) { WidgetBindingStore.remove(context, id) }
     }
 
     /**

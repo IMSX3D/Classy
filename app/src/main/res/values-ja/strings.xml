@@ -404,12 +404,6 @@
     <string name="widget_open_sleepy">Classyを開いて追加</string>
     <string name="widget_edit_section_schedule">表示する時間割</string>
     <string name="widget_edit_section_alias">科目名の表示</string>
-    <string name="widget_edit_section_scroll">スクロール</string>
-    <string name="widget_edit_scroll_subtitle">既定は固定ウィンドウで全メーカーのホーム画面に対応。有効にすると超過分をスクロールできます（実験的）</string>
-    <string name="widget_scroll_dialog_title">強制スクロールを有効にしますか（実験的）？</string>
-    <string name="widget_scroll_dialog_body">スクロールはシステムのウィジェットサービスに依存するため、一部のメーカー ROM（Xiaomi、vivo など）では空白表示・動作の重さ・更新不能が起こる可能性があります。異常が起きたらこのスイッチをオフにして固定ウィンドウに戻してください。</string>
-    <string name="widget_scroll_dialog_confirm">実験的に有効にする</string>
-    <string name="widget_scroll_dialog_cancel">キャンセル</string>
     <string name="widget_edit_default_label">デフォルト（現在の時間割に従う）</string>
     <string name="widget_manage_title">ホームウィジェットを管理</string>
     <string name="widget_edit_title">ウィジェットを編集</string>

@@ -416,12 +416,6 @@
     <string name="widget_open_sleepy">Open Classy to add</string>
     <string name="widget_edit_section_schedule">Schedule</string>
     <string name="widget_edit_section_alias">Course name display</string>
-    <string name="widget_edit_section_scroll">Scrolling</string>
-    <string name="widget_edit_scroll_subtitle">Fixed window by default, works on every launcher. When on, overflowing lists become scrollable (experimental, this widget only).</string>
-    <string name="widget_scroll_dialog_title">Enable forced scrolling (experimental)?</string>
-    <string name="widget_scroll_dialog_body">Scrolling relies on the system widget service. On some vendor ROMs (Xiaomi, vivo, etc.) it may render blank, lag, or fail to refresh. If anything looks wrong, turn this off to return to the fixed window.</string>
-    <string name="widget_scroll_dialog_confirm">Enable experimental</string>
-    <string name="widget_scroll_dialog_cancel">Cancel</string>
     <string name="widget_edit_default_label">Default (follow current schedule)</string>
     <string name="widget_manage_title">Manage Widgets</string>
     <string name="widget_edit_title">Edit Widget</string>

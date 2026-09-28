@@ -170,7 +170,9 @@ class FixedWindowWiringTest {
     @Test
     fun `today push wiring carries window footer and force-scroll gate`() {
         val s = src("TodayWidget.kt")
-        assertTrue("forceScroll 参数缺失", s.contains("forceScroll: Boolean = WidgetScrollStore.isScrollEnabled(context, id)"))
+        // 2026-09-29：per-widget 滚动开关已整条删除（编辑页那一节退了），
+        // 该参数的默认值现在是常量 true（位图系一律可滚动，保持原出厂行为）。
+        assertTrue("forceScroll 参数缺失", s.contains("forceScroll: Boolean = true"))
         assertTrue("窗口计算未接 push", s.contains("computeTodayWindow(data, hDp.toFloat()"))
         assertTrue("静态分支未放行窗口", s.contains("contentH <= hDp || win != null"))
         assertTrue("底部条布局未接", s.contains("R.layout.widget_today_nav_static"))

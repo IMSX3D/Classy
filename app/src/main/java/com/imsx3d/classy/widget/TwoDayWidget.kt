@@ -24,6 +24,22 @@ import java.time.LocalDate
  *
  * Glance 版 TwoDayWidget 类已删除(决策 D5-11); loadDataSync 自 Glance companion 迁入本类。
  */
+/**
+ * ⚠️ 休眠子系统提示（2026-09-29 清点）
+ *
+ * 本文件里的**位图推送管线**（`pushTodayData` / `configureTodayBar` / `todayBarLayout` /
+ * `computeTodayWindow` / `footerConfigurePi` 一族）自 UI-4c 起**已无任何调用方**：
+ * 生产路径改为 CourseRowPusher（真实行布局 + 桌面原生滚动），这里的代码既不是"改个配置就能恢复"
+ * （当时的切换是代码改动），也不参与任何已注册组件的渲染。
+ *
+ * 仍在用的是本文件其它部分：receiver 生命周期（onUpdate/optionsChanged/onDeleted）、
+ * `loadDataSync`（真实行布局管线也在用）、导航广播（handleNav → push）、世代号与尺寸工具。
+ *
+ * 为什么没就地删：它与 8 个契约测试（BottomBarFitTest / TodayDateNavWiringTest /
+ * TodayDateNavHeaderWiringTest / FixedWindowWiringTest / WidgetDegradationLadderTest /
+ * TodayOverflowScrollParityTest / TodayOverflowGeometryTest / ScrollStripWholeImageTest）的
+ * 几何口径互相咬合，整块清需要连同这些契约一起重写 —— 那是一个独立的决定，记在仓库外的待办清单里。
+ */
 open class TwoDayWidgetReceiver : AppWidgetProvider() {
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -69,7 +85,7 @@ open class TwoDayWidgetReceiver : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         super.onDeleted(context, appWidgetIds)
-        for (id in appWidgetIds) { WidgetBindingStore.remove(context, id); WidgetScrollStore.remove(context, id) }
+        for (id in appWidgetIds) { WidgetBindingStore.remove(context, id) }
     }
 
     companion object {
