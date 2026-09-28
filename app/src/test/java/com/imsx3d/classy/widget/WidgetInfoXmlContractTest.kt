@@ -271,10 +271,25 @@ class WidgetInfoXmlContractTest {
         }
     }
 
-    /** 全部 13 个 info XML 都在; 防止新变体漏建 xml */
+    /**
+     * 注册在案的 info XML 数量必须等于 [ALL_WIDGET_VARIANTS]；磁盘上多出来的那些
+     * （尺寸档 / WeekList / WeekView 的 XML）是**回滚资产**：文件保留、但绝不能
+     * 再被 manifest 引用 —— 一旦引用就等于把"已摘掉的变体"重新暴露给用户。
+     */
     @Test
-    fun `info xml count matches ALL_WIDGET_VARIANTS`() {
-        assertEquals(ALL_WIDGET_VARIANTS.size, infoXmls.size)
+    fun `registered info xml count matches ALL_WIDGET_VARIANTS`() {
+        assertEquals(ALL_WIDGET_VARIANTS.size, manifestReceivers.size)
+        val registered = manifestReceivers.values.toSet()
+        assertEquals(
+            "注册的 info xml 必须与变体一一对应",
+            ALL_WIDGET_VARIANTS.map { it.receiverClass.simpleName }.size,
+            registered.size
+        )
+        val unused = infoXmls.keys - registered
+        assertTrue(
+            "磁盘上多出来的 info xml 只能是回滚资产（当前 ${unused.size} 个：${unused.sorted()}）",
+            unused.isNotEmpty()
+        )
     }
 
     // ---- 设计 §7/§13.3: 三档放置值精确 + minResize 全 40×40 + resizeMode ----
@@ -284,27 +299,19 @@ class WidgetInfoXmlContractTest {
         manifestReceivers.mapKeys { it.key.substringAfterLast('.') }
     }
 
+    /**
+     * 三档放置值表 —— UI-4c 收敛后只剩 3 个家族（尺寸档 S/M 整体退场：
+     * 真实行布局自适应任意尺寸，不再需要按尺寸各来一套）。历史档位值见 git 记录。
+     */
     private val tierByReceiver = mapOf(
-        // S 档 110×110 targetCell 2×2
-        "TodaySmallWidgetReceiver" to Triple("110dp", "110dp", "2x2"),
-        "TwoDaySmallWidgetReceiver" to Triple("110dp", "110dp", "2x2"),
-        "WeekListSmallWidgetReceiver" to Triple("110dp", "110dp", "2x2"),
-        "WeekViewSmallWidgetReceiver" to Triple("110dp", "110dp", "2x2"),
-        "WeekGridSmallWidgetProvider" to Triple("110dp", "110dp", "2x2"),
-        // M 档 300×160 targetCell 4×2
-        "TodayWideWidgetReceiver" to Triple("300dp", "160dp", "4x2"),
-        "TwoDayWideWidgetReceiver" to Triple("300dp", "160dp", "4x2"),
-        "WeekListWideWidgetReceiver" to Triple("300dp", "160dp", "4x2"),
-        // L 档 300×250 targetCell 4×4
+        // L 档 300×250 targetCell 4×4（三个家族的默认尺寸）
         "TodayWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
         "TwoDayWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
-        "WeekListWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
-        "WeekViewWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
         "WeekGridWidgetProvider" to Triple("300dp", "250dp", "4x4")
     )
 
     @Test
-    fun `every receiver has a tier entry and vice versa`() {
+    fun `every registered receiver has a tier entry and vice versa`() {
         assertEquals(tierByReceiver.keys, keyByReceiver.keys)
     }
 
@@ -322,12 +329,15 @@ class WidgetInfoXmlContractTest {
     }
 
     @Test
-    fun `all 13 variants unlock resize both ends with minResize 40x40`() {
-        // 用户 2026-09-14 硬要求: 拖拽两端全开放 — minResize 统一 40×40, 不锁纵向
-        infoXmls.forEach { (name, root) ->
-            assertEquals("$name minResizeWidth", "40dp", root.getAttribute("android:minResizeWidth"))
-            assertEquals("$name minResizeHeight", "40dp", root.getAttribute("android:minResizeHeight"))
-            assertEquals("$name resizeMode", "horizontal|vertical", root.getAttribute("android:resizeMode"))
+    fun `every registered variant unlocks resize both ends with minResize 40x40`() {
+        // 用户 2026-09-14 硬要求: 拖拽两端全开放 — minResize 统一 40×40, 不锁纵向。
+        // 只查**注册在案**的 info xml：未注册的那 12 个是历史回滚资产，值本来就旧
+        // （它们既不进桌面列表，也就没有"拖拽"这回事）。
+        manifestReceivers.values.forEach { key ->
+            val root = infoXmls.getValue(key)
+            assertEquals("$key minResizeWidth", "40dp", root.getAttribute("android:minResizeWidth"))
+            assertEquals("$key minResizeHeight", "40dp", root.getAttribute("android:minResizeHeight"))
+            assertEquals("$key resizeMode", "horizontal|vertical", root.getAttribute("android:resizeMode"))
         }
     }
 

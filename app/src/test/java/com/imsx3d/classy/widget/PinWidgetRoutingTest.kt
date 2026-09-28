@@ -24,7 +24,7 @@ class PinWidgetRoutingTest {
     /** simpleName 全小写 key 与历史短 key 两类入口全部可解析且指向正确类。 */
     @Test
     fun `every widget variant is routable by simple name and short key`() {
-        assertEquals(13, shortNames().size) // ALL_WIDGET_VARIANTS 数量闸
+        assertEquals(3, shortNames().size) // ALL_WIDGET_VARIANTS 数量闸（UI-4c 起收敛到 3 个家族）
         for (variant in ALL_WIDGET_VARIANTS) {
             val cls = variant.receiverClass
             // 入口 1: simpleName 全小写
@@ -57,19 +57,34 @@ class PinWidgetRoutingTest {
         assertEquals(TodayWidgetReceiver::class.java, PinWidgetRouting.resolveClass("  TODAY "))
     }
 
-    /** 历史 4 个 adb 手写 key（weekgrid/today/twoday/weeklist）必须继续可解析。 */
+    /**
+     * 历史 adb 手写 key 必须继续可解析。
+     *
+     * UI-4c 把组件家族收敛到 3 个之后，"weeklist / weekview" 这类指向**已摘掉变体**的
+     * 旧 key 会落到"未知 key → 回落 WeekGrid"这条既有规则上（不抛、不 null）——
+     * 旧脚本不会炸，只是 pin 出来的是默认的网格组件。这正是不变量要保证的。
+     */
     @Test
     fun `legacy handwritten keys keep resolving`() {
         assertEquals(WeekGridWidgetProvider::class.java, PinWidgetRouting.resolveClass("weekgrid"))
         assertEquals(TodayWidgetReceiver::class.java, PinWidgetRouting.resolveClass("today"))
         assertEquals(TwoDayWidgetReceiver::class.java, PinWidgetRouting.resolveClass("twoday"))
-        assertEquals(WeekListWidgetReceiver::class.java, PinWidgetRouting.resolveClass("weeklist"))
+        // 已摘掉的变体的旧 key：回落默认（而不是抛异常），与"未知 key"同一条规则
+        assertEquals(WeekGridWidgetProvider::class.java, PinWidgetRouting.resolveClass("weeklist"))
+        assertEquals(WeekGridWidgetProvider::class.java, PinWidgetRouting.resolveClass("weekview"))
     }
 
     /** 路由表非空且覆盖 ≥10 个 key（防御 ALL_WIDGET_VARIANTS 被清空的回归）。 */
     @Test
     fun `routing table holds both key families`() {
+        // 3 个已登记家族 × 2 类 key（simpleName 全小写 + 历史短 key）= 6
         assertTrue("routing table unexpectedly small: ${PinWidgetRouting.routableTypes().size}",
-            PinWidgetRouting.routableTypes().size >= 10)
+            PinWidgetRouting.routableTypes().size >= 6)
+        ALL_WIDGET_VARIANTS.forEach { variant ->
+            assertTrue(
+                "${variant.receiverClass.simpleName} 的 simpleName key 不在路由表里",
+                variant.receiverClass.simpleName.lowercase() in PinWidgetRouting.routableTypes()
+            )
+        }
     }
 }

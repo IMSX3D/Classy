@@ -263,9 +263,21 @@ class TodayDateNavWiringTest {
             helper.substringAfter("fun pushScrollable").contains("WidgetResizeCore.isStale"))
         assertTrue("renderAndPush commit 前也须校验 (WeekGrid 最小档 overflow 同样受益)",
             helper.substringAfter("fun renderAndPush").contains("WidgetResizeCore.isStale"))
+        // UI-4c：Today 自己不再直接 bump —— 三个触发点统一走 push() → CourseRowPusher.push，
+        // 世代闸随之搬进 CourseRowPusher（渲染前 bump + commit 前 isStale，成对保留）。
         val today = widgetSource("TodayWidget.kt").readText()
-        assertTrue("Today receiver 三个触发点 (onUpdate/optionsChanged/nav) 须先 bump 世代",
-            today.contains("WidgetResizeCore.bump"))
+        val pusher = widgetSource("CourseRowWidget.kt").readText()
+        listOf("onUpdate", "onAppWidgetOptionsChanged", "handleNav").forEach { trigger ->
+            val body = today.substringAfter("fun $trigger").take(1400)
+            assertTrue("Today 的 $trigger 必须走 push()", body.contains("push(context"))
+        }
+        assertTrue("Today 的 push 必须委托 CourseRowPusher(SCOPE_TODAY)",
+            today.contains("CourseRowPusher.push(") &&
+                today.contains("CourseRowWidgetService.CourseRowFactory.SCOPE_TODAY"))
+        assertTrue("世代闸必须在 CourseRowPusher 里：渲染前 bump",
+            pusher.contains("WidgetResizeCore.bump(id)"))
+        assertTrue("世代闸必须在 CourseRowPusher 里：commit 前 isStale",
+            pusher.contains("WidgetResizeCore.isStale"))
         val svc = widgetSource("ScrollStripService.kt").readText()
         assertTrue("条带工厂 onDataSetChanged 也须按世代丢弃过期重算",
             svc.contains("WidgetResizeCore"))
@@ -288,9 +300,12 @@ class TodayDateNavWiringTest {
             grid.contains("widget_scroll_today_nav"))
         assertFalse("WeekGrid 不得引用 configureTodayNav (旧顶栏已退场)",
             grid.contains("configureTodayNav"))
-        // 它的 5 参调用 (receiverClass 缺省 null → 导航关) 保持原样
-        assertTrue("WeekGrid 调用点保持 5 参缺省形态",
-            grid.contains("pushTodayData(context, awm, widgetId, WidgetVariant.SMALL, todayData)"))
+        // UI-4k 起 WeekGrid 也走真实布局（不再复用 pushTodayData 位图管线），
+        // 所以正向断言改成"必须走真实布局卡片 + 集合适配器"，三条负向（导航零沾染）保持不变。
+        assertTrue("WeekGrid 必须走真实布局卡片 (widget_weekgrid_card)",
+            grid.contains("R.layout.widget_weekgrid_card"))
+        assertTrue("WeekGrid 行由集合适配器提供 (setRemoteAdapter + wg_rows)",
+            grid.contains("setRemoteAdapter(R.id.wg_rows"))
     }
 
     private fun findUpward(rel: String): File {

@@ -119,17 +119,27 @@ class ThemeFollowSystemContractTest {
                 .containsMatchIn(mainSource)
         )
         // d) 初始值必须在 onCreate 内赋值: 属性初始化器读 resources = 构造函数阶段
-        //    访问 = attachBaseContext 未调 = NPE 秒崩。断言 onCreate 体内有
-        //    uiNightModeState.value = resources.configuration.uiMode 赋值,
-        //    且字段声明体不含 resources 读取。
+        //    访问 = attachBaseContext 未调 = NPE 秒崩。
+        //    UI-4u 之后种的不再是 resources.configuration，而是 attachBaseContext 抓到的
+        //    **realSystemDark** —— 因为 attachBaseContext 已把 resources 的 uiMode 覆写成
+        //    "应用内模式"（跟随系统时两者同值，手动切深浅后语义就错了）。意图逐条保留：
+        //    种真实系统深浅 + 必须在 onCreate 内种 + 属性初始化器不许读 resources。
         val onCreateBody = Regex("""override\s+fun\s+onCreate\(savedInstanceState:\s*Bundle\?\)[\s\S]{0,2000}""")
             .find(mainSource)?.value ?: ""
         assertTrue(
-            "onCreate must seed uiNightModeState from resources.configuration (after " +
-                "attachBaseContext) — property initializers run in the constructor where " +
-                "resources is not yet attached (v1.0.55 launch crash)",
-            Regex("""uiNightModeState\.value\s*=\s*\n?\s*resources\.configuration\.uiMode\s+and\s+Configuration\.UI_MODE_NIGHT_MASK""")
+            "onCreate must seed uiNightModeState from realSystemDark (captured in attachBaseContext) — " +
+                "property initializers run in the constructor where resources is not yet attached (v1.0.55 launch crash)",
+            Regex("""uiNightModeState\.value\s*=\s*if\s*\(realSystemDark\)\s*Configuration\.UI_MODE_NIGHT_YES""")
                 .containsMatchIn(onCreateBody)
+        )
+        assertTrue(
+            "attachBaseContext 必须先把系统深浅抓进 realSystemDark（读 newBase.resources.configuration.uiMode）",
+            Regex("""realSystemDark\s*=\s*sysDark""").containsMatchIn(mainSource) &&
+                Regex("""newBase\.resources\.configuration\.uiMode""").containsMatchIn(mainSource)
+        )
+        assertTrue(
+            "属性初始化器不得读 resources（构造期 NPE 秒崩），必须种 UNDEFINED 占位",
+            Regex("""mutableStateOf\(Configuration\.UI_MODE_NIGHT_UNDEFINED\)""").containsMatchIn(mainSource)
         )
     }
 

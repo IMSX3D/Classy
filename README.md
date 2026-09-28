@@ -21,7 +21,8 @@
 <p align="center">
   <a href="#中文">简体中文</a> · <a href="#english">English</a> ·
   <a href="https://github.com/IMSX3D/Classy/releases">下载 APK</a> ·
-  <a href="https://github.com/IMSX3D/Classy/issues">问题反馈</a>
+  <a href="https://github.com/IMSX3D/Classy/issues">问题反馈</a> ·
+  <a href="#联系作者">QQ 547991704</a>
 </p>
 
 <p align="center">
@@ -200,7 +201,29 @@ Windows 原生环境请用 `gradlew.bat`，并把 `JAVA_HOME` 指到 JDK 根目�
 
 ## 已知问题
 
-- **契约测试有历史遗留失败。** `./gradlew testDebugUnitTest` 全量 2260 个用例里还有 37 个失败，基本都是「组件从 15 项收敛到 3 项」「撤销胶囊移除」等改动之后没有同步更新的过期断言；另有部分用例写死了上游开发机的绝对路径，非 macOS 环境需要走 `sleepy.test.root` 兜底（已修一批）。它们不影响 App 运行，但会让 `test` 任务整体变红，正在清理。
+**测试**：`./gradlew testDebugUnitTest` 全量 **2255 个用例全部通过**（2026-09-28 起）。
+此前长期挂着 37 条历史遗留失败 —— 都是分叉后设计有意变更（组件从 15 项收敛到 3 项、撤销胶囊移除、
+导出字样改名、动效收进统一门面…）而契约测试的锚点没跟着走；已逐条重写为新契约，其中一条还挖出**真回退**
+（许可页贡献者条目在页面重做时退化成纯文字，外链没了）并修回。
+
+**已知取舍**（不是缺陷，是设计边界）：
+
+- 桌面组件在窄卡片里（宽度 ≲300dp）课名会被省略号截断 —— 7 天 + 时间栏挤进窄卡片是几何事实，不做字号牺牲换取全称；
+- 「组件编辑」页里的**滚动开关**对已收敛的三个组件不再生效（今日/近日改了真实行布局、网格也是真实布局，一律由桌面原生滚动），
+  该开关只对仍在画位图的 WeekList / WeekView 有意义 —— 待清理；
+- 使用 iPhone 的同学暂时只能用「导出 ICS → 导入系统日历」这条路。原生 iOS 版评估过：**技术上可行**
+  （纯 Kotlin 的核心约 29%，教务解析族基本能整套复用），但要有 Mac 才能构建、Apple 开发者账号（$99/年）
+  与真机才能验收，暂时不做。
+
+## 联系作者
+
+有问题、有建议、想加学校适配，或者只是想催更，都可以直接找我：
+
+| 方式 | 地址 |
+|---|---|
+| **QQ** | **547991704**（App 内 `我的 → 关于 → 联系开发者` 点一下即可复制） |
+| GitHub | [提 Issue](https://github.com/IMSX3D/Classy/issues/new)（适合贴日志、截图这类能留档的问题） |
+| GitHub | [@IMSX3D](https://github.com/IMSX3D) |
 
 ## 开源许可与致谢
 
@@ -241,6 +264,8 @@ Windows 原生环境请用 `gradlew.bat`，并把 `JAVA_HOME` 指到 JDK 根目�
 **Install.** Grab `app-arm64-v8a-release.apk` from [Releases](https://github.com/IMSX3D/Classy/releases/latest) (pick another ABI only if you know you need one), allow unknown sources, install. Since **v0.0.2** the release builds are signed with the project's own key, so later versions upgrade in place — no uninstall, no data loss.
 
 **Build from source.** JDK 17+ and Android SDK 37: `./gradlew assembleRelease` (falls back to the debug key when the project keystore isn't present).
+
+**Contact.** QQ **547991704** (tap `Mine → About → Contact the developer` in the app to copy it), or [open an issue](https://github.com/IMSX3D/Classy/issues/new).
 
 **License.** [GPL-3.0](LICENSE). Free and open source — if anyone sells it to you, please refuse.
 

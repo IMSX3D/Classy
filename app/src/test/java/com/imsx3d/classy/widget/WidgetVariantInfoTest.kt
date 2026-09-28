@@ -7,15 +7,19 @@ import org.junit.Test
 
 /**
  * Pure-JVM tests for [WidgetVariantInfo] — shared metadata describing the
- * 10 widget variants. The list is the single source of truth for both the
+ * **3 live widget variants**（UI-4c 起：今日课程 / 最近两天 / 本周课表（网格）；
+ * 尺寸档整体退场，被摘掉的类与 info xml 都还在，但要恢复必须先在 [ALL_WIDGET_VARIANTS] 登记）。 The list is the single source of truth for both the
  * refresh broadcast in [WidgetUpdater] and the management screen UI; this
  * test pins that contract.
  */
 class WidgetVariantInfoTest {
 
     @Test
-    fun `ALL_WIDGET_VARIANTS has exactly 10 entries`() {
-        assertEquals(13, ALL_WIDGET_VARIANTS.size)
+    fun `ALL_WIDGET_VARIANTS has exactly 3 entries`() {
+        assertEquals(
+            "组件家族收敛到 3 个（UI-4c）；加回尺寸档要先改这条闸",
+            3, ALL_WIDGET_VARIANTS.size
+        )
     }
 
     @Test
@@ -41,12 +45,10 @@ class WidgetVariantInfoTest {
     }
 
     @Test
-    fun `metadata includes both base and small variant for each kind`() {
-        // Five widget "kinds": Today / WeekList / WeekView / TwoDay / WeekGrid.
-        // Each must have a base + a small variant. WeekGrid uses its own
-        // provider class hierarchy (open class + subclass) so we accept either
-        // WeekGridWidgetProvider or WeekGridSmallWidgetProvider as the "small"
-        // form — both must be present.
+    fun `metadata holds exactly one entry per live family`() {
+        // UI-4c 收敛后只剩三个家族：Today / TwoDay / WeekGrid（各自一条，不再分尺寸档）。
+        // WeekList / WeekView 的实现仍在（内部调试页与回滚用），但**不注册** —— 它们出现在这里
+        // 就说明有人把它们加回了用户可见列表，必须先想清楚尺寸档策略。
         val byKind = ALL_WIDGET_VARIANTS.map { v ->
             v.receiverClass.simpleName.removeSuffix("SmallWidgetProvider")
                 .removeSuffix("SmallWidgetReceiver")
@@ -55,21 +57,13 @@ class WidgetVariantInfoTest {
                 .removeSuffix("WidgetReceiver")
         }
         val counts = byKind.groupingBy { it }.eachCount()
-        // 设计 §7: Today/TwoDay/WeekList 三族有 M 变体 (base+small+wide=3),
-        // WeekView/WeekGrid 不设 M (2)。
-        val expected = mapOf(
-            "Today" to 3, "TwoDay" to 3, "WeekList" to 3,
-            "WeekView" to 2, "WeekGrid" to 2
-        )
-        assertEquals(expected.keys, counts.keys)
+        val expected = mapOf("Today" to 1, "TwoDay" to 1, "WeekGrid" to 1)
+        assertEquals("家族集合必须恰好是这三家", expected.keys, counts.keys)
         counts.forEach { (kind, count) ->
-            assertEquals("kind=$kind count", expected.getValue(kind), count)
+            assertEquals("kind=$kind 只能有一条登记", expected.getValue(kind), count)
         }
-        // And specifically: the 5 base + 5 small must be present.
-        assertNotEquals(0, byKind.count { it == "Today" })
-        assertNotEquals(0, byKind.count { it == "WeekList" })
-        assertNotEquals(0, byKind.count { it == "WeekView" })
-        assertNotEquals(0, byKind.count { it == "TwoDay" })
-        assertNotEquals(0, byKind.count { it == "WeekGrid" })
+        listOf("WeekList", "WeekView").forEach { gone ->
+            assertTrue("$gone 是已摘掉的家族，不该再出现在登记表里", counts[gone] == null)
+        }
     }
 }

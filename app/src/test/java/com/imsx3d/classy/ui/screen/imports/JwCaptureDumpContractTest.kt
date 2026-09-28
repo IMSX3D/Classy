@@ -189,13 +189,15 @@ class JwCaptureDumpContractTest {
     @Test
     fun invoke_on_cancellation_dispatches_webview_calls_to_main() {
         val activity = activitySource()
-        // 至少有一段 invokeOnCancellation 体里把 removeJavascriptInterface 用 main.post 包住
-        val cancel = Regex("invokeOnCancellation\\s*\\{([\\s\\S]*?)\\}\\s*\\n[\\s]*\\}\\)")
-        val matches = cancel.findAll(activity).toList()
-        assertTrue("must have at least one invokeOnCancellation block", matches.isNotEmpty())
-        val anySafe = matches.any { m ->
-            val body = m.groupValues[1]
-            body.contains("main.post") && body.contains("removeJavascriptInterface")
+        // 至少有一段 invokeOnCancellation 向后 12 行内把 removeJavascriptInterface 投到主线程。
+        // 不再用跨行正则抓整块（`main.post` 换成了 `Handler(Looper.getMainLooper()).post`，
+        // 块尾形状一变就假红）；意图不变 —— chromium 的 removeJavascriptInterface 只能跑在 UI 线程。
+        val lines = activity.lines()
+        val cancelIdx = lines.indices.filter { lines[it].contains("invokeOnCancellation") }
+        assertTrue("must have at least one invokeOnCancellation block", cancelIdx.isNotEmpty())
+        val anySafe = cancelIdx.any { i ->
+            val window = lines.subList(i, minOf(i + 12, lines.size)).joinToString("\n")
+            window.contains("Looper.getMainLooper()") && window.contains("removeJavascriptInterface")
         }
         assertTrue("invokeOnCancellation must post WebView calls to main thread", anySafe)
     }

@@ -298,6 +298,8 @@ class AboutLicenseAttributionTest {
 
     private val CONTRIBUTOR_ATTRIBUTIONS = listOf(
         Attribution("jim139129", "github.com/jim139129"),
+        Attribution("YYiChen", "github.com/YYiChen"),
+        Attribution("LzBsA", "github.com/LzBsA"),
     )
 
     /** 贡献者区块标题, 6 语各有一条 string。 */
@@ -390,9 +392,20 @@ class AboutLicenseAttributionTest {
     fun `license expansion uses the shared enter and exit animations`() {
         val src = File(basePath.parentFile, "java/com/imsx3d/classy/ui/screen/mine/LicenseScreen.kt")
             .readText()
-        val animationCount = Regex("enter = expandVertically\\(\\) \\+ fadeIn\\(\\)").findAll(src).count()
-        assertTrue("致谢导语和学校卡都必须使用统一展开动画", animationCount >= 2)
-        assertTrue("致谢收起必须使用 shrinkVertically + fadeOut", src.contains("exit = shrinkVertically() + fadeOut()"))
+        // UI-30a 起动效统一走门面（ui/component/SleepyMotion.kt）：页面里直接写
+        // expandVertically()+fadeIn() 反而成了违规 —— 锚点跟着体系走：
+        // 锁"页面必须用门面" + "门面里仍是那对动画"，意图（统一展开/收起）不变。
+        val enterUses = Regex("enter = sleepyExpandEnter\\(\\)").findAll(src).count()
+        val exitUses = Regex("exit = sleepyExpandExit\\(\\)").findAll(src).count()
+        assertTrue("致谢导语和学校卡都必须使用统一展开动画（门面 sleepyExpandEnter），实际 $enterUses", enterUses >= 2)
+        assertTrue("致谢收起必须使用统一收起动画（门面 sleepyExpandExit），实际 $exitUses", exitUses >= 2)
+        val motion = File(basePath.parentFile, "java/com/imsx3d/classy/ui/component/SleepyMotion.kt").readText()
+        val enterBody = Regex("fun sleepyExpandEnter\\(\\): EnterTransition =[\\s\\S]{0,200}?\\n\\n").find(motion)?.value ?: ""
+        assertTrue("门面 sleepyExpandEnter 必须仍是 expandVertically + fadeIn，实际: $enterBody",
+            enterBody.contains("expandVertically(") && enterBody.contains("fadeIn("))
+        val exitBody = Regex("fun sleepyExpandExit\\(\\): ExitTransition =[\\s\\S]{0,200}?\\n\\n").find(motion)?.value ?: ""
+        assertTrue("门面 sleepyExpandExit 必须仍是 shrinkVertically + fadeOut，实际: $exitBody",
+            exitBody.contains("shrinkVertically(") && exitBody.contains("fadeOut("))
         assertTrue("可展开内容必须始终由 AnimatedVisibility 管理,不能用 if 直接移除", src.contains("visible = expanded && expandedContent != null"))
     }
 

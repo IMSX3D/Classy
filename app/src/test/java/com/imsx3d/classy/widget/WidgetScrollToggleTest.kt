@@ -18,16 +18,20 @@ class WidgetScrollToggleTest {
         File("src/main/java/com/imsx3d/classy/$path").readText()
 
     @Test
-    fun `app prefs ships scroll disabled by default`() {
+    fun `app prefs ships scroll enabled by default since UI-4`() {
+        // UI-4 起默认 true（内容溢出时走可滑动长图；false = 固定窗口截断/压扁）。
+        // 这条闸只防"默认值被无意改回去"，不表示每个组件都还看得懂它 —— 见下面那条。
         val s = src("util/AppPrefs.kt")
         assertTrue("缺 key", s.contains("KEY_WIDGET_SCROLL_ENABLED = \"widget_scroll_enabled\""))
-        assertTrue("默认必须 false = FIXED",
-            s.contains("getBoolean(KEY_WIDGET_SCROLL_ENABLED, false)"))
+        assertTrue("默认必须 true = 滚动（UI-4 定版）",
+            s.contains("getBoolean(KEY_WIDGET_SCROLL_ENABLED, true)"))
     }
 
     @Test
-    fun `all four push sites read the per-widget toggle`() {
-        for (f in listOf("TodayWidget.kt", "TwoDayWidget.kt", "WeekListWidget.kt", "WeekViewWidget.kt")) {
+    fun `bitmap-family push sites read the per-widget toggle`() {
+        // UI-4c 之后今日/近日/网格都不再画位图（真实行布局 + launcher 原生滚动），
+        // "本实例是否可滚动"这个开关对它们已无意义；仍在画位图的只有 WeekList / WeekView。
+        for (f in listOf("WeekListWidget.kt", "WeekViewWidget.kt")) {
             val s = src("widget/$f")
             assertTrue("$f 未读本实例滚动开关", s.contains("WidgetScrollStore.isScrollEnabled(context, id)"))
             assertFalse("$f 残留全局读", s.contains("AppPrefs.isWidgetScrollEnabled(context)"))

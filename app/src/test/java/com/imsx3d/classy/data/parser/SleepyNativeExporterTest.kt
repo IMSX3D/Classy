@@ -204,9 +204,10 @@ class SleepyNativeExporterTest {
 
     @Test fun shareText_wrappedNoChk() {
         val out = SleepyNativeExporter.exportShareText("t", "2026-03-02", 20, 12, "", listOf(course("高数")))
-        assertTrue(out.startsWith("【来自Sleepy】"))
-        assertTrue(out.contains("<<<SLEEPY-BEGIN>>>"))
-        assertTrue(out.contains("<<<SLEEPY-END>>>"))
+        assertTrue(out.startsWith("【来自 Classy 课表】"))
+        // UI-27a 起分享抬头与包裹标记都是 Classy 字样（读取端兼容 sleepy 旧字样）
+        assertTrue(out.contains("<<<CLASSY-BEGIN>>>"))
+        assertTrue(out.contains("<<<CLASSY-END>>>"))
         assertFalse(out.contains("z|chk="))
     }
 

@@ -15,7 +15,15 @@ class WidgetPreviewRegistrarTest {
 
     @Test
     fun `provider matrix remains complete for generated previews`() {
-        assertTrue(ALL_WIDGET_VARIANTS.size >= 13)
-        ALL_WIDGET_VARIANTS.forEach { assertTrue(it.receiverClass.name.isNotBlank()) }
+        assertTrue(ALL_WIDGET_VARIANTS.size >= 3)
+        ALL_WIDGET_VARIANTS.forEach { variant ->
+            assertTrue(variant.receiverClass.name.isNotBlank())
+            // UI-7：API 35+ 的生成式预览取这个布局。为空 = 选择器里一张空白卡
+            //（正是用户 2026-09-28 报的「组件视图太简陋」两个根因之一）。
+            assertTrue(
+                "${variant.receiverClass.simpleName} 没配 previewLayoutRes",
+                variant.previewLayoutRes != 0
+            )
+        }
     }
 }

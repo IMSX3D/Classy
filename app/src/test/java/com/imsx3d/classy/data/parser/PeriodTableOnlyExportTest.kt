@@ -31,8 +31,9 @@ class PeriodTableOnlyExportTest {
     @Test
     fun shareText_contains_magic_and_period_rows() {
         val text = SleepyNativeExporter.exportPeriodTableShareText(entity())
-        assertTrue(text.contains("<<<SLEEPY-BEGIN>>>"))
-        assertTrue(text.contains("#sleepy-v1"))
+        // UI-27a 起对外字样是 Classy（读取端仍兼容 sleep-v1 旧字样，见下方兼容用例）
+        assertTrue(text.contains("<<<CLASSY-BEGIN>>>"))
+        assertTrue(text.contains("#classy-v1"))
         assertTrue(text.contains("P春季作息|7|3"))
         assertTrue(text.contains("Pn1|08:20|09:05"))
         assertTrue(text.contains("Pn3|10:20|11:05"))

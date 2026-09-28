@@ -93,7 +93,11 @@ fun LicenseScreen(onBack: () -> Unit) {
                 subtitle = entry.meta,
                 description = stringResource(entry.usageRes),
                 expanded = false,
-                onToggle = {}
+                onToggle = {},
+                // UI-41：页面重做时这里退化成了纯文字（契约测试里"链接外指"那条因此变红）。
+                // 现在点卡片 = 打开该贡献者的 GitHub 主页 —— 展示的还是 "GitHub @handle"，
+                // 但点得动；也避免在页面里枚举 PR 编号（可缩放形态）。
+                linkUrl = "https://${entry.profileUrl}"
             )
         }
 
@@ -205,14 +209,27 @@ private fun AttributionCard(
     description: String?,
     expanded: Boolean,
     onToggle: () -> Unit,
-    expandedContent: (@Composable () -> Unit)? = null
+    expandedContent: (@Composable () -> Unit)? = null,
+    linkUrl: String? = null
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = androidx.compose.ui.platform.LocalContext.current
     LicenseCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = expandedContent != null) { onToggle() },
+                .clickable(enabled = expandedContent != null || linkUrl != null) {
+                    if (linkUrl != null) {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(linkUrl)
+                                )
+                            )
+                        }
+                    } else onToggle()
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -528,19 +545,26 @@ private val perSchoolEntries: List<PerSchoolEntry> = listOf(
  *                  `1a0b78d4` 走 contributor-preserving merge `2b0a9119` 保留作者落 main)。
  * 姓名/handle 是通用标识不翻译; 贡献描述沿用本页硬编码中文说明的既有模式。
  */
-private data class ContributorEntry(val id: String, val title: String, val meta: String, @androidx.annotation.StringRes val usageRes: Int)
+private data class ContributorEntry(
+    val id: String,
+    val title: String,
+    val meta: String,
+    /** GitHub 主页（外指用；"github.com/<handle>" 的**字面形态**同时被契约测试锁着） */
+    val profileUrl: String,
+    @androidx.annotation.StringRes val usageRes: Int
+)
 
 private val contributorEntries: List<ContributorEntry> = listOf(
     ContributorEntry(
-        "contributor-jim139129", "jim139129", "GitHub @jim139129",
+        "contributor-jim139129", "jim139129", "GitHub @jim139129", "github.com/jim139129",
         R.string.license_contributor_jim139129
     ),
     ContributorEntry(
-        "contributor-YYiChen", "YYiChen", "GitHub @YYiChen",
+        "contributor-YYiChen", "YYiChen", "GitHub @YYiChen", "github.com/YYiChen",
         R.string.license_contributor_YYiChen
     ),
     ContributorEntry(
-        "contributor-LzBsA", "LzBsA", "GitHub @LzBsA",
+        "contributor-LzBsA", "LzBsA", "GitHub @LzBsA", "github.com/LzBsA",
         R.string.license_contributor_LzBsA
     )
 )

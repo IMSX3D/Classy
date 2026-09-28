@@ -27,27 +27,51 @@ class WidgetSection9FixesTest {
 
     @Test
     fun `generation gate wired in twoday weeklist weekview`() {
-        for (name in listOf("TwoDayWidget.kt", "WeekListWidget.kt", "WeekViewWidget.kt")) {
+        // UI-4c：TwoDay 已改走真实行布局，世代闸搬进 CourseRowPusher（CourseRowWidget.kt）；
+        // WeekList / WeekView 仍走位图管线，原样保留。
+        for (name in listOf("CourseRowWidget.kt", "WeekListWidget.kt", "WeekViewWidget.kt")) {
             val s = src(name)
-            val push = s.substringAfter("private fun push(").substringBefore("override fun onUpdate")
+            // CourseRowPusher.push 是 `internal object` 里的 suspend fun（不是 private fun push），
+            // 所以按"对象体"取块；位图系仍按 private fun push 取。
+            val push = if (name == "CourseRowWidget.kt") {
+                s.substringAfter("internal object CourseRowPusher").substringBefore("private companion object")
+            } else {
+                s.substringAfter("private fun push(").substringBefore("override fun onUpdate")
+            }
             assertTrue("$name push 必须 bump 世代号 (§9.4)", push.contains("WidgetResizeCore.bump(id)"))
-            assertTrue("$name 静态分支必须带 pushGen (§9.4)", push.contains("pushGen = gen"))
-            // bump 之后恰好两处 push 出口 (renderAndPush + pushScrollable) 都受闸
-            assertTrue(
-                "$name 两个推送出口都要带 pushGen (§9.4)",
-                Regex("pushGen = gen").findAll(push).count() == 2
-            )
+            if (name == "CourseRowWidget.kt") {
+                // 新管线只有一个出口：updateAppWidget 前的 isStale 闸
+                assertTrue("新管线 commit 前必须校验 isStale (§9.4)",
+                    push.contains("WidgetResizeCore.isStale"))
+            } else {
+                assertTrue("$name 静态分支必须带 pushGen (§9.4)", push.contains("pushGen = gen"))
+                // bump 之后恰好两处 push 出口 (renderAndPush + pushScrollable) 都受闸
+                assertTrue(
+                    "$name 两个推送出口都要带 pushGen (§9.4)",
+                    Regex("pushGen = gen").findAll(push).count() == 2
+                )
+            }
         }
     }
 
     @Test
-    fun `weekgrid size parsing delegates to computeSizeDp`() {
-        val s = src("WeekGridWidgetProvider.kt")
-        assertTrue("§9.3: 必须走 computeSizeDp", s.contains("RemoteViewsWidgetHelper.computeSizeDp(opts)"))
-        assertFalse(
-            "§9.3: 禁内联镜像 max-area SIZES 解析",
-            s.contains("getParcelableArrayList")
-        )
+    fun `bitmap-family widgets parse size through the single computeSizeDp entry`() {
+        // UI-4k 起 WeekGrid 也走真实布局，自己不再解析尺寸（由 launcher 量测）。
+        // §9.3「尺寸解析必须走统一入口」这条口径现在落在**仍在画位图的**那些组件上。
+        for (name in listOf(
+            "TodayWidget.kt", "WeekListWidget.kt", "WeekViewWidget.kt",
+            "ScrollStripService.kt", "CourseRowWidgetService.kt"
+        )) {
+            val s = src(name)
+            assertTrue(
+                "§9.3: $name 必须走 RemoteViewsWidgetHelper.computeSizeDp",
+                s.contains("RemoteViewsWidgetHelper.computeSizeDp(")
+            )
+            assertFalse(
+                "§9.3: $name 禁内联镜像 max-area SIZES 解析",
+                s.contains("getParcelableArrayList")
+            )
+        }
     }
 
     @Test

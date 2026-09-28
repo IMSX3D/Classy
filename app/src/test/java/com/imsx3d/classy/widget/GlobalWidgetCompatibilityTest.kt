@@ -50,7 +50,8 @@ class GlobalWidgetCompatibilityTest {
     @Test
     fun `every listed standard vendor has the concrete provider matrix`() {
         assertTrue(standardWidgetVendors().isNotEmpty())
-        assertTrue(ALL_WIDGET_VARIANTS.size >= 13)
+        // 组件家族收敛到 3 个（UI-4c）；厂商矩阵本身与变体数量无关，闸只防"登记表被清空"
+        assertTrue(ALL_WIDGET_VARIANTS.size >= 3)
         standardWidgetVendors().forEach { vendor ->
             assertTrue("${vendor.displayName} has no AppWidget variants", ALL_WIDGET_VARIANTS.isNotEmpty())
         }

@@ -180,14 +180,19 @@ class FixedWindowWiringTest {
     }
 
     @Test
-    fun `twoday push wiring carries per-column windows and footer`() {
+    fun `twoday push wiring goes through the real-row layout pipeline`() {
+        // UI-4c：TwoDay 的 Canvas 位图 + FIXED 窗口 + 页脚 push 管线整块退场，
+        // 改成"真实行布局 + 原生滚动"（CourseRowPusher / CourseRowWidgetService）。
+        // 这条契约从"锁旧管线的源码形态"改成"锁它必须走新管线"。
         val s = src("TwoDayWidget.kt")
-        assertTrue("窗口计算未接 push", s.contains("computeTwoDayWindows(data, hDp.toFloat()"))
-        assertTrue("静态分支未放行窗口", s.contains("contentH <= hDp || wins != null"))
-        assertTrue("渲染未按列传窗口", s.contains("visibleByCol = visibleByCol"))
-        assertTrue("页脚布局未接", s.contains("R.layout.widget_bitmap_footer"))
-        assertTrue("页脚点击 PI 未挂", s.contains("footerConfigureViews"))
-        assertTrue("页脚须每列独立「+N」(禁合并求和)",
-            s.contains("widget_footer_more_short") && !s.contains("widget_footer_more,"))
+        assertTrue("TwoDay 必须走 CourseRowPusher", s.contains("CourseRowPusher.push("))
+        assertTrue("scope 必须是近日档（SCOPE_TWODAY）",
+            s.contains("CourseRowWidgetService.CourseRowFactory.SCOPE_TWODAY"))
+        val pusher = src("CourseRowWidget.kt")
+        assertTrue("新管线同样要有世代闸：渲染前 bump", pusher.contains("WidgetResizeCore.bump(id)"))
+        assertTrue("新管线同样要在 commit 前校验 isStale", pusher.contains("WidgetResizeCore.isStale"))
+        val svc = src("CourseRowWidgetService.kt")
+        assertTrue("每行是真实布局（widget_course_row）", svc.contains("R.layout.widget_course_row"))
+        assertTrue("行内容由适配器按真实数据填充", svc.contains("setTextViewText") || svc.contains("RemoteViews("))
     }
 }

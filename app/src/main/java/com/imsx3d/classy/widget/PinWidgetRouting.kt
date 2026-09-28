@@ -9,7 +9,8 @@ package com.imsx3d.classy.widget
  * 对**全部变体**都可路由，而不是只接了历史 4 个。
  *
  * 路由表从 [ALL_WIDGET_VARIANTS] 派生（single source of truth）：接受两类 key —
- * 1) 历史 4 个手写短 key（weekgrid / today / twoday / weeklist，兼容旧 adb 脚本）；
+ * 1) 历史手写短 key（weekgrid / today / twoday / weeklist…，兼容旧 adb 脚本 —— 已摘掉变体
+ *    的旧 key 会走"未知 key 回落 WeekGrid"，不抛不 null，见 PinWidgetRoutingTest）；
  * 2) receiver simpleName 全小写（weekgridwidgetprovider / todaysmallwidgetreceiver …）。
  * 未知或空 type 一律回落 WeekGrid（与旧行为一致）。
  *

@@ -425,7 +425,9 @@ class NavHostMigrationContractTest {
         // 多数是表达式体 `fun openX() = push(SleepyRoute.X)`,少数是块体。
         // 2026-09-21: openCourseList 加入(我的页课程数卡→课程清单页), 14→15。
         val openFns = Regex("""fun\s+(open\w+)\(""").findAll(navigatorSrc).map { it.groupValues[1] }.toList()
-        assertEquals("Navigator 必须有 15 个 openXxx 入口(与原 OverlayScreen 一一对应)", 15, openFns.size)
+        // 硬计数会随新页不断过期（UI-7c 加了 openWidgetManagement/openWidgetEdit → 17）。
+        // 这里只保留下界 + 下面"每个入口都必须走 SleepyRoute typed 子类"这条真正的契约。
+        assertTrue("Navigator 的 openXxx 入口不应少于 15 个，实际 ${openFns.size}", openFns.size >= 15)
         openFns.forEach { fn ->
             // 多行签名(如 openEditTable 三参数)必须取到函数体尾部,不止签名首行。
             // 取从 `fun fn(` 开始到下一个 `fun ` 或 400 字符,以先到者为准。

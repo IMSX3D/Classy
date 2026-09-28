@@ -76,10 +76,10 @@ class WidgetBindingCleanupWiringTest {
     }
 
     @Test
-    fun `all thirteen variants are covered by the five cleanup bases`() {
-        // 13 receivers ÷ 5 bases: Today/TwoDay/WeekList 各 base+small+wide=3,
-        // WeekView/WeekGrid 各 base+small=2;wide shell 与 small 一样继承 base 的 onDeleted
+    fun `all live variants are covered by the cleanup bases`() {
+        // 五个 base 类都还在（尺寸档 receiver 继承它们，将来加回也不用改这里）；
+        // 但**登记的**变体只剩 3 个，所以 3 个都必须落在某个 base 的清理链上。
         assertEquals(5, cleanupBases.size)
-        assertEquals(13, ALL_WIDGET_VARIANTS.size)
+        assertEquals(3, ALL_WIDGET_VARIANTS.size)
     }
 }

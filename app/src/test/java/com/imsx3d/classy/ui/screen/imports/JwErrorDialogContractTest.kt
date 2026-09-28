@@ -118,8 +118,9 @@ class JwErrorDialogContractTest {
             )
         }
         assertTrue(
-            "必须有 LinearProgressIndicator 渲染百分比进度",
-            source.contains("LinearProgressIndicator(") &&
+            // UI-19a 起统一进度条是自研 GlasenseProgressBar（取代 M3 LinearProgressIndicator 的表达式外观）
+            "必须有进度条渲染百分比进度（GlasenseProgressBar）",
+            source.contains("GlasenseProgressBar(") &&
                 source.contains("R.string.jw_diag_progress_percent")
         )
         assertTrue(

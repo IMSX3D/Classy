@@ -83,21 +83,26 @@ class MineNavRedoCourseListContractTest {
     // ---- B. 我的页: StatsCard 课表数/课程数可点,周数格静态 ----
 
     @Test
-    fun `mine screen StatsCard wires tables and courses callbacks, week is static`() {
-        // 调 StatsCard 必须传 onOpenTables + onOpenCourses
-        val callCount = Regex(
-            """StatsCard\(\s*[\s\S]*?onOpenTables\s*=\s*onOpenAllTables[\s\S]*?onOpenCourses\s*=\s*onOpenCourseList"""
-        ).findAll(mineScreen).toList().size
+    fun `mine screen stats row wires tables and courses callbacks, week is static`() {
+        // UI-13a 之后统计行不再是 StatsCard 组件，而是"扁平三栏 StatItem 直挂"（无卡片底）。
+        // 口径不变：课表数 → 所有课表、课程数 → 课程清单、当前周**静态**（onClick = null）。
+        // 每个 StatItem( 之后取 320 字符作为"这一格"的上下文（首个 ')' 会被内层
+        // stringResource(...) 提前截断，所以按定长窗口取，不按括号配对）。
+        val statsRow = mineScreen.split("StatItem(").drop(1).map { it.take(700) }
+        assertTrue("MineScreen 统计行应有 3 个 StatItem，实际 ${statsRow.size}", statsRow.size >= 3)
+
         assertTrue(
-            "MineScreen 调用 StatsCard 必须同时传 onOpenTables=onOpenAllTables 和 onOpenCourses=onOpenCourseList,实际 $callCount",
-            callCount >= 1
+            "课表数 StatItem 必须传 onClick = onOpenAllTables",
+            statsRow.any { it.contains("mine_stat_tables") && it.contains("onClick = onOpenAllTables") }
         )
-        // 周数格 StatItem 必须只 3 参数,无 onClick(静态)
-        // 允许第三参数为 null
-        val weekStatic = Regex(
-            """StatItem\(\s*value\s*=\s*week\.toString\(\)\s*,\s*label\s*=\s*stringResource\(R\.string\.mine_stat_week\)\s*\)"""
-        ).containsMatchIn(mineScreen)
-        assertTrue("周数格 StatItem 必须无 onClick 形参(静态),实际:$weekStatic", weekStatic)
+        assertTrue(
+            "课程数 StatItem 必须传 onClick = onOpenCourseList",
+            statsRow.any { it.contains("mine_stat_courses") && it.contains("onClick = onOpenCourseList") }
+        )
+        assertTrue(
+            "当前周 StatItem 必须静态（onClick = null）",
+            statsRow.any { it.contains("mine_stat_week") && it.contains("onClick = null") }
+        )
     }
 
     @Test
@@ -117,53 +122,9 @@ class MineNavRedoCourseListContractTest {
         )
     }
 
-    // ---- C. 课表页 TopBar 撤回/取消撤回一体胶囊 ----
+    // ---- C. 课表页撤回胶囊：UI-4w 已整块摘掉（含数据层的 capture/undo/redo 也只剩无 UI 入口的代码）----
+    // 原先锁"胶囊两半/中缝/配对显隐/onRedo 形参"的 4 条契约随之作废 —— 功能没了，契约留着只会误导。
 
-    @Test
-    fun `schedule screen undo redo capsule is paired via single component`() {
-        // 必须有一个 private/composable 函数 UndoRedoCapsule(showUndo, showRedo, onUndo, onRedo)
-        assertTrue(
-            "ScheduleScreen 必须声明 private UndoRedoCapsule(showUndo, showRedo, onUndo, onRedo)",
-            Regex("""fun\s+UndoRedoCapsule\(\s*showUndo:\s*Boolean\s*,\s*showRedo:\s*Boolean\s*,\s*onUndo:\s*\(\)\s*->\s*Unit\s*,\s*onRedo:\s*\(\)\s*->\s*Unit\s*\)""")
-                .containsMatchIn(scheduleScreen)
-        )
-    }
-
-    @Test
-    fun `schedule screen TopBar mounts capsule only when undo or redo exists`() {
-        // 挂载条件:hasUndo = UndoManager.hasSnapshot;hasRedo = UndoManager.hasRedoSnapshot
-        // 单一 if 块内挂胶囊(同一显隐)
-        val pattern = Regex(
-            """val\s+hasUndo\s*=\s*[\w.]*UndoManager\.hasSnapshot\s*[\s\S]{0,200}?val\s+hasRedo\s*=\s*[\w.]*UndoManager\.hasRedoSnapshot\s*[\s\S]{0,200}?if\s*\(hasUndo\s*\|\|\s*hasRedo\)"""
-        )
-        assertTrue(
-            "ScheduleScreen TopBar 必须先取 hasUndo/hasRedo 再 if(hasUndo||hasRedo) 挂胶囊(配对显隐)",
-            pattern.containsMatchIn(scheduleScreen)
-        )
-    }
-
-    @Test
-    fun `schedule screen TopBar signature includes onRedo`() {
-        assertTrue(
-            "TopBar 函数签名必须新增 onRedo: () -> Unit 形参",
-            Regex("""onRedo:\s*\(\)\s*->\s*Unit""").containsMatchIn(scheduleScreen)
-        )
-    }
-
-    @Test
-    fun `UndoRedoCapsule uses stadium shape CircleShape with two 32dp halves and 1dp divider`() {
-        // 体育场形状 = Row 整体 clip(CircleShape)
-        // 中缝 Box 宽 1dp
-        // 左半/右半各自 32dp 宽
-        val capsuleBlock = Regex(
-            """fun\s+UndoRedoCapsule\([\s\S]*?\n\}"""
-        ).find(scheduleScreen)?.value ?: error("UndoRedoCapsule 找不到")
-        assertTrue("胶囊外 Row 必须 clip(CircleShape)", capsuleBlock.contains(".clip(CircleShape)"))
-        assertTrue("中缝 Box 宽必须是 1.dp", capsuleBlock.contains(".size(width = 1.dp"))
-        val halves = Regex("""\.size\(width\s*=\s*32\.dp,\s*height\s*=\s*32\.dp\)""")
-            .findAll(capsuleBlock).count()
-        assertEquals("胶囊必须有两半(各 32dp×32dp)Box", 2, halves)
-    }
 
     @Test
     fun `noRippleClickable supports enabled overload for capsule disabled halves`() {

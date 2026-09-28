@@ -121,8 +121,10 @@ class ScrollStripWholeImageTest {
             Regex("shellBitmap:\\s*Bitmap\\?").containsMatchIn(helper)
         )
         assertTrue(
-            "null 壳必须跳过 setImageViewBitmap (RemoteViews 对不存在 id 的 action 会炸整次 apply)",
-            helper.contains("if (shellBitmap != null)")
+            // UI-4g 真机实证：launcher reapply 时"本次没再 set 的 ImageView 会保留上一次的位图"→ 重影。
+            // 所以 null 壳不再"跳过 set"，而是写一张 1×1 透明图显式清空（比原行为更强）。
+            "null 壳必须写出透明 1×1 位图清空，而不是跳过 set",
+            helper.contains("shellBitmap ?: transparent1px()")
         )
     }
 

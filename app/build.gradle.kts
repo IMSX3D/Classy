@@ -18,9 +18,10 @@ android {
         targetSdk = 37
         // 0.0.1 = 仓库初版（换包名后归零，debug 签名）；
         // 0.0.2 = 第一版**自有签名**的包（2026-09-28，用户定"发包给同学之前切"）；
-        // 0.0.3 = 关于页加「联系开发者（QQ）」
-        versionCode = 3
-        versionName = "0.0.3"
+        // 0.0.3 = 关于页加「联系开发者（QQ）」；
+        // 0.0.4 = 契约测试全绿（37 → 0）＋修回许可页贡献者外链
+        versionCode = 4
+        versionName = "0.0.4"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
             localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")
