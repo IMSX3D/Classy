@@ -887,15 +887,15 @@ Agradecimientos por universidad (una tarjeta por universidad, expandir para ver 
 
     <!-- 关于页长文案（UI-32a：从 Kotlin 字面量搬入，跟随系统/应用语言） -->
     <string-array name="about_heart_paragraphs">
-        <item>El motivo por el que hice esta app es sencillo: demasiadas aplicaciones de horario han acabado cediendo a la comercializacion excesiva.</item>
-        <item>O te recibe un anuncio a pantalla completa que te retiene 3-5 segundos, con lo de agitar para abrir o un toque accidental que te lanza a otra app...</item>
-        <item>...o te llena la app de anuncios basura hasta que un horario claro se convierte en un caos, y ya no sabes si al abrirla debes mirar los anuncios o tus clases.</item>
-        <item>Pero lo unico que se pide a una app de horarios es ver de forma clara las clases de hoy, o de cualquier dia. Nadie quiere tragarse contenido que no pidio y que no le interesa. Se pierde tiempo, se dispersa la atencion y se traiciona el motivo por el que se instalo. La experiencia, sinceramente, no es buena.</item>
-        <item>Yo tambien fui ese usuario, atrapado en apps sobrecomercializadas, asi que se perfectamente lo irritante que resulta.</item>
-        <item>Siempre he pensado que una herramienta debe comportarse como tal: pura, simple, bonita, pegada a lo que la gente hace y necesita de verdad. Esas ideas me llevaron a crear esta app. Lleva mi intencion original, y ojala quien la use sienta esa misma claridad. Resistamos juntos el software que destroza la experiencia.</item>
+        <item>El motivo original por el que hice esta app es sencillo: demasiadas aplicaciones de horario han acabado cediendo a la comercializacion excesiva.</item>
+        <item>O te recibe un anuncio a pantalla completa que te hace esperar 3-5 segundos, con lo de agitar para abrir o un toque accidental que te lleva a otra app...</item>
+        <item>...o te llena la app de anuncios hasta que un horario claro se convierte en un caos: lo primero que ves ya no son tus clases.</item>
+        <item>Pero lo unico que se pide a una app de horarios es ver con calma las clases de hoy, o de cualquier dia. Nadie quiere que le ocupen la vista con contenido que no pidio. Se pierde tiempo, se dispersa la atencion y, sencillamente, no es una buena experiencia.</item>
+        <item>Yo tambien fui ese usuario, atrapado en apps sobrecomercializadas, asi que se perfectamente lo frustrante que resulta esa experiencia.</item>
+        <item>Siempre he pensado que una herramienta debe comportarse como tal: pura, simple, bonita, pegada a lo que la gente hace y necesita de verdad. Esas ideas me llevaron a crear esta app. Lleva esa intencion original, y ojala quien la use sienta esa misma claridad.</item>
         <item>Que la disfrutes!</item>
     </string-array>
-    <string name="about_update_notice">Esta app nacio de una necesidad personal, asi que no puedo prometer frecuencia ni fechas de actualizacion. Si tiene buena acogida, considerare dedicarle mucho mas.</string>
+    <string name="about_update_notice">Hice esta app para mi propio uso, asi que las actualizaciones llegan cuando llegan; si a la gente le resulta util, le dedicare mas tiempo.</string>
     <string name="about_sleepy_subtitle">Proyecto original · autor original lingion</string>
     <string name="about_sleepy_footnote">sleepy es una app de horarios minimalista y local-first que sigue muy activa. Muchas funciones de este proyecto se apoyan en su solida base. Apoya al autor original!</string>
     <string name="about_nevoit_subtitle">Sistema de diseno Glasense</string>

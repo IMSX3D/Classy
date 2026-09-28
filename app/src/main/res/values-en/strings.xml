@@ -928,15 +928,15 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
 
     <!-- 关于页长文案（UI-32a：从 Kotlin 字面量搬入，跟随系统/应用语言） -->
     <string-array name="about_heart_paragraphs">
-        <item>My reason for building this app is simple: too many timetable apps have drifted into over-commercialisation.</item>
-        <item>Either you get a splash ad the moment you open it, holding you hostage for 3-5 seconds - with shake-to-open and mis-tap traps that fling you into some other app...</item>
-        <item>...or it stuffs the app with junk ads until a clear timetable turns into a mess, and you can\’t tell at a glance whether you\’re meant to look at the ads or at your classes.</item>
-        <item>But all anyone wants from a timetable app is a plain look at today\’s classes, or any given day\’s. Nobody wants to sit through content they didn\’t ask for and don\’t care about. It wastes their time, scatters their attention, and betrays why they installed a timetable app in the first place. That is simply a bad experience.</item>
-        <item>I used to be that user, stuck with those over-commercialised apps, so I know exactly how infuriating it is.</item>
-        <item>I have always believed a tool should behave like a tool: pure, simple, good-looking, shaped around what people actually do and what they actually need. Those thoughts are what pushed me to build this app. It carries my original intent, and I hope everyone who uses it can feel that same clarity. Let\’s push back on software that wrecks the experience - together.</item>
+        <item>The reason I first built this app is simple: too many timetable apps have drifted into over-commercialisation.</item>
+        <item>Either you get a splash ad the moment you open it, keeping you waiting 3-5 seconds - with shake-to-open and accidental taps that send you off to some other app...</item>
+        <item>...or it fills the app with ads until a clear timetable turns into a mess, and the first thing you see is rarely your classes.</item>
+        <item>But all anyone wants from a timetable app is a quiet look at the classes for today, or for any given day. Nobody wants their attention taken by content they never asked for. It wastes time, scatters attention, and simply is not a good experience.</item>
+        <item>I used to be that user, stuck with those over-commercialised apps, so I know exactly how frustrating that experience is.</item>
+        <item>I have always believed a tool should behave like a tool: pure, simple, good-looking, shaped around what people actually do and what they actually need. Those thoughts are what led me to build this app. It carries that original intent, and I hope everyone who uses it can feel the same clarity.</item>
         <item>Enjoy it!</item>
     </string-array>
-    <string name="about_update_notice">This app started as a personal need, so I cannot promise a schedule for updates. If it turns out people like it, I will consider investing much more.</string>
+    <string name="about_update_notice">I first built this app for my own use, so updates come when they come; if people find it useful, I will put more time into it.</string>
     <string name="about_sleepy_subtitle">Upstream project · original author lingion</string>
     <string name="about_sleepy_footnote">sleepy is a minimal, local-first timetable app that is still actively maintained - many features here rest on its solid foundation. Please give the original author your support!</string>
     <string name="about_nevoit_subtitle">Glasense design system</string>
