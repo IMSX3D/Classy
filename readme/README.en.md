@@ -12,14 +12,17 @@ From the shape of your week, to today's classes, to a glance at your home screen
 
 ## See Classy in motion.
 
-Two cuts. One idea: make time yours. Select a cover to download the MP4 and play it locally.
+Two cuts. One idea: make time yours. Press play. Sound on.
 
-| Brand film · 52 seconds | Short film · 30.2 seconds |
-|:---:|:---:|
-| [![Download the 52-second film](films/cover-52s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [![Download the 30.2-second film](films/cover-30s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
-| [Download MP4 · 4.7 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [Download MP4 · 2.3 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
+### Brand film · 52 seconds
 
-3:4 format, Chinese and English captions. Sound on recommended. Films include conceptual motion graphics; actual app screens appear below.
+https://github.com/user-attachments/assets/9a90d1ed-8ecb-4a7f-b33d-9435bee4dce9
+
+### Short film · 30.2 seconds
+
+https://github.com/user-attachments/assets/ac7be139-0f8a-4b4d-9d15-6163afba1d20
+
+3:4 format, Chinese and English captions. Films include conceptual motion graphics; actual app screens appear below.
 
 ## See the week. Focus on today.
 
