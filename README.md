@@ -27,12 +27,12 @@ Classy，让课表回归日常，让时间回到你手里。
 
 ## 先用一段影片，感受 Classy。
 
-同一个「时间，由你接管」，两种观看节奏。点击封面打开 MP4。
+同一个「时间，由你接管」，两种观看节奏。点击封面下载 MP4，保存后即可播放。
 
 | 完整品牌片 · 52 秒 | 精华短片 · 30.2 秒 |
 |:---:|:---:|
-| [![播放 52 秒品牌片](readme/films/cover-52s.jpg)](readme/films/Classy-52s.mp4?raw=true) | [![播放 30.2 秒短片](readme/films/cover-30s.jpg)](readme/films/Classy-30s.mp4?raw=true) |
-| [观看 / 下载 · 4.7 MB](readme/films/Classy-52s.mp4?raw=true) | [观看 / 下载 · 2.3 MB](readme/films/Classy-30s.mp4?raw=true) |
+| [![下载 52 秒品牌片](readme/films/cover-52s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [![下载 30.2 秒短片](readme/films/cover-30s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
+| [下载观看 · 4.7 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [下载观看 · 2.3 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
 
 <sub>3:4 画幅 · 中英双语字幕 · 建议开启声音。影片含概念化动效，以展示品牌与产品理念；实际界面见下方截图。</sub>
 

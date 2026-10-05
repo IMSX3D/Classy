@@ -12,12 +12,12 @@ From the shape of your week, to today's classes, to a glance at your home screen
 
 ## See Classy in motion.
 
-Two cuts. One idea: make time yours. Select a cover to open the MP4.
+Two cuts. One idea: make time yours. Select a cover to download the MP4 and play it locally.
 
 | Brand film · 52 seconds | Short film · 30.2 seconds |
 |:---:|:---:|
-| [![Open the 52-second film](films/cover-52s.jpg)](films/Classy-52s.mp4?raw=true) | [![Open the 30.2-second film](films/cover-30s.jpg)](films/Classy-30s.mp4?raw=true) |
-| [Watch / download · 4.7 MB](films/Classy-52s.mp4?raw=true) | [Watch / download · 2.3 MB](films/Classy-30s.mp4?raw=true) |
+| [![Download the 52-second film](films/cover-52s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [![Download the 30.2-second film](films/cover-30s.jpg)](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
+| [Download MP4 · 4.7 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-52s.mp4) | [Download MP4 · 2.3 MB](https://raw.githubusercontent.com/IMSX3D/Classy/refs/heads/main/readme/films/Classy-30s.mp4) |
 
 3:4 format, Chinese and English captions. Sound on recommended. Films include conceptual motion graphics; actual app screens appear below.
 
