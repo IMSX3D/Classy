@@ -24,15 +24,15 @@ class HolidayTransferScheduleContractTest {
     private val scheduleScreen = src("src/main/java/com/imsx3d/classy/ui/screen/schedule/ScheduleScreen.kt")
 
     @Test
-    fun today_uses_transferDayFor() {
+    fun today_uses_shared_course_date_resolver() {
         // 间接走 state.transferDayFor(today) — 锁定"不用 todayDayOfWeek"即可
-        assertTrue(todayScreen.contains("transferDayFor"))
+        assertTrue(todayScreen.contains("CourseDateResolver.coursesOn"))
         assertTrue(!todayScreen.contains("DateUtils.todayDayOfWeek(today)"))
     }
 
     @Test
-    fun schedule_vm_uses_effectiveDayOfWeek() {
-        assertTrue(scheduleVm.contains("HolidayTransferOps.effectiveDayOfWeek"))
+    fun schedule_vm_uses_shared_week_resolver() {
+        assertTrue(scheduleVm.contains("CourseDateResolver.displayWeek"))
     }
 
     @Test
@@ -49,7 +49,7 @@ class HolidayTransferScheduleContractTest {
         val sunday = LocalDate.of(2026, 10, 11)   // 2026-10-11 是周日
         val thursday = LocalDate.of(2026, 10, 8)  // 周四
         val transfers = listOf(
-            com.imsx3d.classy.util.HolidayTransferEntry(sunday, thursday, "seg")
+            com.imsx3d.classy.util.HolidayTransferEntry(thursday, sunday, "seg")
         )
         assertEquals(4, com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.effectiveDayOfWeek(sunday, transfers))
         // 未映射的下一个周日按自然星期
@@ -59,8 +59,8 @@ class HolidayTransferScheduleContractTest {
     @Test
     fun schedule_screen_rewrites_render_day_from_mapping() {
         // 网格渲染层必须存在"调休改写 day"逻辑(渲染期替身, 不写库)
-        assertTrue(scheduleScreen.contains("issue#44 调休改写"))
+        assertTrue(scheduleScreen.contains("CourseDateResolver.displayWeek"))
         assertTrue(scheduleScreen.contains("renderCourses"))
-        assertTrue(scheduleScreen.contains("daySwap"))
+        assertTrue(!scheduleScreen.contains("daySwap"))
     }
 }

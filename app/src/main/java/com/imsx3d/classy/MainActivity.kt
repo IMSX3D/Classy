@@ -138,6 +138,10 @@ class MainActivity : ComponentActivity() {
         }
         val pendingImportTextState: androidx.compose.runtime.MutableState<String?> =
             androidx.compose.runtime.mutableStateOf(null)
+        val pendingImportTokenState = androidx.compose.runtime.mutableStateOf<String?>(null)
+        var pendingImportToken: String?
+            get() = pendingImportTokenState.value
+            set(value) { pendingImportTokenState.value = value }
         @Volatile var incomingImportText: String? = null
         var pendingImportText: String?
             get() = pendingImportTextState.value
@@ -268,7 +272,7 @@ class MainActivity : ComponentActivity() {
                         },
                         deepLinkCourse = deepLinkCourse,
                         onDeepLinkConsumed = { editingCourseFromIntent.value = null },
-                        pendingImportText = pendingImportText,
+                        pendingImportText = pendingImportText ?: pendingImportToken,
                         consumePendingImportText = { MainActivity.pendingImportText = null }
                     )
             }
@@ -282,6 +286,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleDeepLinkIntent(intent: Intent?) {
+        // The active draft is durable; stale launch Intents cannot resurrect consumed imports.
+        pendingImportToken = com.imsx3d.classy.util.PendingImportStore.active(this)
+
         // 组件点击: 显式要求落到课表 tab —— 单看 intent 里带了什么, 不猜。
         if (intent?.getStringExtra(EXTRA_OPEN_TAB) == TAB_SCHEDULE) {
             openScheduleOnceState.value = true
@@ -353,7 +360,7 @@ private fun AppRoot(
     // 外部导入文本 → 切管理页(与旧实现等价,语义不变)。
     var autoImportTriggered by remember { mutableStateOf(false) }
     LaunchedEffect(pendingImportText) {
-        if (!autoImportTriggered && pendingImportText != null) {
+        if (pendingImportText != null) {
             autoImportTriggered = true
             currentTab = Tab.Manage
         }
@@ -455,7 +462,7 @@ internal fun MainTabs(
                     details = "${snapshot.courses.size} $importCoursesLabel",
                 )
             }
-            ManagementPage(autoShowImportSheet = autoOnce || MainActivity.pendingImportText != null, onJwImportRequested = { ctx.startActivity(Intent(ctx, com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)) }, onCreateNewTableRequested = onCreateNewTable,
+            ManagementPage(autoShowImportSheet = autoOnce || MainActivity.pendingImportText != null || MainActivity.pendingImportToken != null, onJwImportRequested = { ctx.startActivity(Intent(ctx, com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)) }, onCreateNewTableRequested = onCreateNewTable,
                 // v1.0.56 T7: 新建作息表卡 — ManagementPage 内部建表(自动唯一命名)后回调带新 id,
                 // 与 PeriodTablesScreen 新建按钮同一套 pendingNew discard 残留语义
                 onCreateNewPeriodTableRequested = { newId -> navigator.createPeriodTableAndEdit(newId) },

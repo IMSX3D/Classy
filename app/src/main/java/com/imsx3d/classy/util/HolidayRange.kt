@@ -138,14 +138,18 @@ object HolidayRangeOps {
         fun transferFor(date: LocalDate, transfers: List<HolidayTransferEntry>): HolidayTransferEntry? =
             transfers.lastOrNull { it.sourceDate == date }
 
-        /**
-         * 某天应"按星期几取课": 命中映射 → targetDate 的自然星期; 未命中 → 当天自然星期。
-         * 补班日(如 1/4 周日)上的是被调走那天的课, 网格该列排 sourceDate 星期几的课。
+        /** Calendar day -> original teaching date. Target replaces native classes;
+         * a source moved elsewhere has no classes. Do not follow chains recursively.
          */
-        fun effectiveDayOfWeek(date: LocalDate, transfers: List<HolidayTransferEntry>): Int {
-            val hit = transferFor(date, transfers) ?: return date.dayOfWeek.value
-            return hit.targetDate.dayOfWeek.value
+        fun sourceDateFor(date: LocalDate, transfers: List<HolidayTransferEntry>): LocalDate? {
+            transfers.lastOrNull { it.targetDate == date }?.let { return it.sourceDate }
+            if (transfers.any { it.sourceDate == date && it.targetDate != date }) return null
+            return date
         }
+
+        /** 0 means the source day has been moved away. Editing still uses transferFor. */
+        fun effectiveDayOfWeek(date: LocalDate, transfers: List<HolidayTransferEntry>): Int =
+            sourceDateFor(date, transfers)?.dayOfWeek?.value ?: 0
 
         /**
          * 互斥写(核心不变量): 一个 targetDate 一天只能上一次课 —

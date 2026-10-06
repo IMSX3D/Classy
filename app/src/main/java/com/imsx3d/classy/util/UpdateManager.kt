@@ -41,25 +41,36 @@ object UpdateManager {
         check(AppIdentity.hasRepo) { "开源仓库未配置，更新检查已停用" }
         val abi = currentAbi()
         val abiAsset = currentAbiAsset()
-        runCatching {
-            val json = readText(GITHUB_API)
-            return@withContext parseReleaseJson(json, BuildConfig.VERSION_NAME, abi)
+        val json = try {
+            readText(GITHUB_API)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Preserve the existing mirror release page fallback, but never fabricate an APK URL.
+            val page = readText(MIRROR_RELEASE)
+            val tag = Regex("/${AppIdentity.REPO_SLUG}/releases/tag/(v[0-9A-Za-z.+_-]+)")
+                .find(page)?.groupValues?.get(1)
+                ?: throw IllegalStateException(context.getString(com.imsx3d.classy.R.string.error_no_version_found))
+            val assetPath = "/${AppIdentity.REPO_SLUG}/releases/download/$tag/$abiAsset"
+            val link = Regex("href=\"([^\"]+)\"").findAll(page).map { it.groupValues[1] }
+                .firstOrNull { it.endsWith(assetPath) }
+            val url = when {
+                link == null -> ""
+                link.startsWith("/") -> "https://github.com$link"
+                isValidDownloadUrl(link) -> link
+                else -> ""
+            }
+            return@withContext UpdateInfo(tag.removePrefix("v"), parseMirrorPage(page, tag), url,
+                VersionUtils.compare(tag.removePrefix("v"), BuildConfig.VERSION_NAME) > 0)
         }
-        // 镜像回退:正则取 tag,changelog 从页面 markdown-body 块提取
-        val page = readText(MIRROR_RELEASE)
-        val tag = Regex("/${AppIdentity.REPO_SLUG}/releases/tag/(v[0-9A-Za-z.+_-]+)").find(page)
-            ?.groupValues?.get(1)
-            ?: throw IllegalStateException(context.getString(com.imsx3d.classy.R.string.error_no_version_found))
-        val version = tag.removePrefix("v")
-        val url = "$MIRROR_PREFIX$tag/$abiAsset"
-        val isUpdate = VersionUtils.compare(version, BuildConfig.VERSION_NAME) > 0
-        UpdateInfo(version, parseMirrorPage(page, tag), url, isUpdate)
+        parseReleaseJson(json, BuildConfig.VERSION_NAME, abi)
     }
 
     /** 下载 APK 到 cacheDir,带进度回调(0-100)。协程 cancel 时删半截文件。 */
     suspend fun downloadApk(
         context: Context, info: UpdateInfo, onProgress: (Int) -> Unit
     ): File = withContext(Dispatchers.IO) {
+        require(info.canDownload) { "当前版本尚无适用于此设备的安装包，请稍后重试或查看发布页" }
         val target = File(context.cacheDir, "sleepy-update-${currentAbiAsset()}")
         try {
             downloadOnce(info.downloadUrl, target, onProgress)

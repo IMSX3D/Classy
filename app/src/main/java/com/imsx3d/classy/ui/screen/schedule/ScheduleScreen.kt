@@ -261,37 +261,11 @@ fun ScheduleScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                // page 是 0-based 周索引，独立于 state.currentWeek 过滤课程
-                val weekCourses = state.courses.filter { it.inWeek(page + 1) }
-                    .let { list ->
-                        val tj = state.effectiveCurrentTable?.timeJson
-                        if (tj == null) list else list.map { c -> c.normalizeNode(tj) }
-                    }
-                // issue#44 调休改写: 本页各天日期若命中调休映射, 该天在网格里改按映射目标星期渲染 —
-                // 周日(补周四)列显示周四的课。渲染期替身, 不写库; 未映射日期原样。
-                val renderCourses = run {
-                    val start = state.currentTable?.startDate
-                    val transfers = state.transfers
-                    if (start.isNullOrBlank() || transfers.isEmpty()) weekCourses
-                    else {
-                        fun displayDayOf(date: java.time.LocalDate): Int =
-                            com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.effectiveDayOfWeek(date, transfers)
-                        val daySwap: Map<Int, Int> = (1..7).mapNotNull { d ->
-                            val natural = try {
-                                com.imsx3d.classy.util.DateUtils.dateOfWeek(start, page + 1, d).dayOfWeek.value
-                            } catch (_: Exception) { null } ?: return@mapNotNull null
-                            val display = displayDayOf(
-                                com.imsx3d.classy.util.DateUtils.dateOfWeek(start, page + 1, d)
-                            )
-                            if (display != natural) natural to display else null
-                        }.toMap()
-                        if (daySwap.isEmpty()) weekCourses
-                        else weekCourses.map { c ->
-                            val mapped = daySwap[c.day]
-                            if (mapped == null || mapped == c.day) c else c.copy(day = mapped)
-                        }
-                    }
-                }
+                val renderCourses = state.effectiveCurrentTable?.let { table ->
+                    com.imsx3d.classy.util.CourseDateResolver.displayWeek(
+                        page + 1, table.startDate, table.maxWeek, state.courses, state.transfers
+                    ).map { it.normalizeNode(table.timeJson) }
+                }.orEmpty()
                 // 本周哪些天该"整列变淡" —— 受用户三个灰显开关控制（可关）。
                 // 传入表 ID 使命中调休映射的放假日不灰。
                 val greyDays by produceState<Set<Int>>(
@@ -378,7 +352,7 @@ fun ScheduleScreen(
         CourseDetailSheet(
             course = selectedCourse,
             timeString = selectedCourse?.let { it.nodeString(LocalContext.current) },
-            allCourses = state.courses.filter { it.inWeek(state.selectedWeek) },
+            allCourses = state.currentWeekCourses,
             // 用户报障 2026-09-10: 详情页聚簇与网格同一时间域 — ownTime 课
             // 按真实分钟判重叠, 节点占位值不再制造假冲突。
             timeJson = state.effectiveCurrentTable?.timeJson,

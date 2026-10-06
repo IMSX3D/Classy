@@ -19,13 +19,17 @@ import java.time.LocalDateTime
 internal data class WidgetWeekSource(
     val table: TimeTableEntity,
     val courses: List<CourseEntity>,
-    val display: WeekDisplayContext
+    val display: WeekDisplayContext,
+    val transfers: List<com.imsx3d.classy.util.HolidayTransferEntry> = emptyList()
 ) {
     fun coursesFor(dayOfWeek: Int, week: Int = display.targetWeek): List<CourseEntity> =
         courses.asSequence()
             .filter { it.day == dayOfWeek && it.inWeek(week) }
             .sortedBy { it.startNode }
             .toList()
+
+    fun coursesOn(date: java.time.LocalDate): List<CourseEntity> =
+        com.imsx3d.classy.util.CourseDateResolver.coursesOn(date, table.startDate, table.maxWeek, courses, transfers)
 
     fun dateFor(dayOfWeek: Int): java.time.LocalDate =
         DateUtils.dateOfWeek(table.startDate, display.targetWeek, dayOfWeek)
@@ -55,8 +59,9 @@ internal object WidgetWeekDataLoader {
             now = now,
             courses = courses,
             timeJson = table.timeJson,
-            enabled = AppPrefs.isNearestBusyDay(app)
+            enabled = AppPrefs.isNearestBusyDay(app),
+            transfers = AppPrefs.getHolidayTransfers(app, table.id)
         )
-        return WidgetWeekSource(table, courses, display)
+        return WidgetWeekSource(table, courses, display, AppPrefs.getHolidayTransfers(app, table.id))
     }
 }

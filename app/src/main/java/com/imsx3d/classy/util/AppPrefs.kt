@@ -754,6 +754,7 @@ object AppPrefs {
             transferKey(tableId),
             com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.encodeTransfers(transfers)
         ).apply()
+        _changeBus.tryEmit(transferKey(tableId))
     }
 
     /**
@@ -780,6 +781,7 @@ object AppPrefs {
     /** 删表时清掉该表映射 */
     fun clearHolidayTransfers(ctx: Context, tableId: Long) {
         sp(ctx).edit().remove(transferKey(tableId)).apply()
+        _changeBus.tryEmit(transferKey(tableId))
     }
 
     // ===== 启动检查更新开关 =====

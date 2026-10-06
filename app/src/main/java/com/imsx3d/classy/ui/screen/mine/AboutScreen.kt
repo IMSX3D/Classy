@@ -136,6 +136,10 @@ fun AboutScreen(
     }
 
     fun startDownload(version: String, changelog: String, url: String) {
+        if (!com.imsx3d.classy.util.isValidDownloadUrl(url)) {
+            uiState = UpdateUiState.UpdateAvailable(version, changelog, "")
+            return
+        }
         val info = UpdateInfo(version, changelog, url, true)
         uiState = UpdateUiState.Downloading(0)
         downloadJob = scope.launch {

@@ -301,7 +301,9 @@ fun AddCourseScreen(
         }
     }
 
-    val canSave = courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf<String?>(null) }
+    val canSave = !saving && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -309,6 +311,7 @@ fun AddCourseScreen(
 
     // 保存主流程: 校验 → 草稿 → 冲突明细 → 落库。forceAfterConflict = 冲突弹窗「仍然保存」回调
     fun performSave(forceAfterConflict: Boolean) {
+        if (saving) return
         val issues = validateCourseDraft(
             courseName = courseName,
             blocks = meetingBlocks,
@@ -336,67 +339,61 @@ fun AddCourseScreen(
                 )
             }
         }
+        saving = true
         scope.launch {
-            val repo = SleepyApp.get().repository
-            // 没表就自动建一张，保证 selectedTableId 非空
-            val tableId = state.selectedTableId
-                ?: viewModel.createEmptyTable()
-            // 编辑模式: 草稿继承原 groupId;新建模式: 仍共享一个新生成的 groupId
-            val fixedDrafts = if (editingCourse != null) {
-                drafts.map { it.copy(groupId = editingCourse.groupId) }
-            } else {
-                drafts
-            }
-            // v7.10.16t: 三层拦截撤除 — 网格 v7.10.16r(issue#10)已支持任意
-            // 层数(轮换显示), 手动加课与整表导入(本就放行三层)对齐, 不再拦。
-            // 旧逻辑 bug(用户 2026-09-04 报): badDays 取的是全表超层天,
-            // 存量违规天会被列进本次添加的拒绝提示里。
-            // v7.10.16u: 不拦但讲清楚 — 编辑模式排除同组旧记录(自己撞自己),
-            // 有冲突先弹明细, 「仍然保存」才落库。
-            if (!forceAfterConflict) {
-                val existing = repo.getCourses(tableId)
-                    .filter { it.groupId != editingCourse?.groupId }
-                val details = ConflictDetailReporter.draftConflictDetails(
-                    fixedDrafts, existing, dayNames, effectiveTimeJson
-                ).map { ConflictDetailReporter.formatDetail(it, conflictTemplate) }
-                if (details.isNotEmpty()) {
-                    pendingConflictDetails = details
-                    return@launch
-                }
-            }
-            if (editingCourse != null) {
-                // v7.10.16+: 行级 diff/patch 替换整组覆盖 — issue#22 同名多地点
-                // 只动该 groupId 内的行, 不波及同表其他课程
-                val existing = repo.getCourses(tableId)
-                    .filter { it.groupId == editingCourse.groupId }
-                val diff = com.imsx3d.classy.data.diff.RowKeyDiffer.diff(fixedDrafts, existing)
-                repo.applyDiff(tableId, diff)
-            } else {
-                // 新建：所有草稿共享同一个 groupId
-                val gid = java.util.UUID.randomUUID().toString()
-                repo.insertCourses(fixedDrafts.map { it.copy(groupId = gid) })
-            }
-            // issue#23: 新建槽位 / 槽位时间编辑先在编辑页暂存, 课程落库成功后再写回课表 timeJson。
-            // 顺序串接保证一次添加多个槽位时编号连续且方向元数据不丢失。
-            // v7.10.16v 撤回: 课程行 + timeJson 写回是一个动作 — beginBatch 让快照
-            // 固定在动作前, 撤回一次整步回退(否则第二写覆盖快照, 只回退一半)。
-            val table = currentTable ?: repo.getTable(tableId)
-            if (table != null && (pendingEdgeInserts.isNotEmpty() || pendingEdgeEdits.isNotEmpty())) {
-                com.imsx3d.classy.data.undo.UndoManager.beginBatch()
-                try {
-                    val withInserts = pendingEdgeInserts.fold(table.timeJson) { json, insert ->
-                        TimeTableUtils.insertEdgeNode(json, insert.edgeClass, insert.start, insert.end)
+            try {
+                val repo = SleepyApp.get().repository
+                if (!forceAfterConflict && draftTableId != null) {
+                    val existing = repo.getCourses(draftTableId)
+                        .filter { it.groupId != editingCourse?.groupId }
+                    val details = ConflictDetailReporter.draftConflictDetails(
+                        drafts, existing, dayNames, effectiveTimeJson
+                    ).map { ConflictDetailReporter.formatDetail(it, conflictTemplate) }
+                    if (details.isNotEmpty()) {
+                        pendingConflictDetails = details
+                        return@launch
                     }
-                    val updated = pendingEdgeEdits.fold(withInserts) { json, edit ->
-                        TimeTableUtils.updateEdgeNodeTimes(json, edit.node, edit.start, edit.end)
-                    }
-                    if (updated != table.timeJson) viewModel.updateTable(table.copy(timeJson = updated))
-                } finally {
-                    com.imsx3d.classy.data.undo.UndoManager.endBatch()
                 }
+                val names = repo.getAllTables().map { it.name }.toSet()
+                var index = names.size + 1
+                var name = context.getString(R.string.default_table_with_num, index)
+                while (name in names) { index++; name = context.getString(R.string.default_table_with_num, index) }
+                repo.saveCourseDrafts(
+                    selectedTableId = draftTableId,
+                    drafts = drafts,
+                    editingGroupId = editingCourse?.groupId,
+                    newTable = com.imsx3d.classy.data.entity.TimeTableEntity(
+                        name = name,
+                        startDate = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).minusWeeks(1).toString(),
+                        isDefault = true
+                    ),
+                    updateTimeJson = { json ->
+                        val inserted = pendingEdgeInserts.fold(json) { value, insert ->
+                            TimeTableUtils.insertEdgeNode(value, insert.edgeClass, insert.start, insert.end)
+                        }
+                        pendingEdgeEdits.fold(inserted) { value, edit ->
+                            TimeTableUtils.updateEdgeNodeTimes(value, edit.node, edit.start, edit.end)
+                        }
+                    }
+                )
+                onSaved()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                saveError = e.message ?: "保存失败，请重试"
+            } finally {
+                saving = false
             }
-            onSaved()
         }
+    }
+
+    saveError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { saveError = null },
+            title = { Text("保存失败") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { saveError = null }) { Text("确定") } }
+        )
     }
 
     // v7.10.16u 冲突明细弹窗(非阻塞): 列出 星期几/第几节/哪几周/撞哪门课 全部细节,

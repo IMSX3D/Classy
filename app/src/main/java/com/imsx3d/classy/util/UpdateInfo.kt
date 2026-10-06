@@ -11,7 +11,14 @@ data class UpdateInfo(
     val changelog: String,
     val downloadUrl: String,
     val isUpdateAvailable: Boolean
-)
+) {
+    val canDownload: Boolean get() = isUpdateAvailable && isValidDownloadUrl(downloadUrl)
+}
+
+fun isValidDownloadUrl(url: String): Boolean = runCatching {
+    val uri = java.net.URI(url)
+    uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null
+}.getOrDefault(false)
 
 private const val FORCE_FLAG = "SLEEPY_FORCE_UPDATE=true"
 
@@ -27,7 +34,7 @@ private const val DOWNLOAD_PATH = "releases/download/"
  * 解析 GitHub releases/latest 的 JSON 为 [UpdateInfo](纯函数,无 IO)。
  *
  * [abi] 形如 "arm64-v8a" / "armeabi-v7a" / "x86_64",用于挑对应 asset。
- * 找不到对应 asset 时 downloadUrl 返回空串(调用方走镜像回退)。
+ * 找不到对应 asset 时 downloadUrl 返回空串，canDownload=false，界面只提供发布页。
  *
  * 镜像改写(2026-09-05 用户报障): api.github.com 可达 ≠ github.com 资产可达 —
  * 信息拉到了、下载 15s 超时。browser_download_url 指向 github.com 的,
@@ -41,7 +48,7 @@ fun parseReleaseJson(json: String, currentVersion: String, abi: String): UpdateI
     val downloadUrl = release.optJSONArray("assets")?.let { assets ->
         (0 until assets.length()).map { assets.getJSONObject(it) }
             .firstOrNull { it.optString("name") == assetName }
-            ?.optString("browser_download_url")
+            ?.optString("browser_download_url")?.takeIf(::isValidDownloadUrl)
             ?.toMirrorDownloadUrl()
     } ?: ""
     val force = body.contains(FORCE_FLAG)

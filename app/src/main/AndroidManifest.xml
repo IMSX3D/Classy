@@ -195,7 +195,7 @@
         <!-- Individual before-class notification -->
         <receiver
             android:name=".widget.notification.BeforeClassNotifyReceiver"
-            android:exported="true" />
+            android:exported="false" />
 
         <!-- 教务直连导入 Activity (v1.0.8 新增) -->
         <activity
@@ -206,11 +206,7 @@
             android:theme="@style/Theme.Sleepy" />
 
         <!-- WeekGridWidget 预览 Activity (debug only, 用于在 emulator 截图验证) -->
-        <activity
-            android:name=".widget.WeekGridPreviewActivity"
-            android:exported="true"
-            android:label="Widget 预览"
-            android:theme="@style/Theme.Sleepy" />
+
 
         <!-- Native launcher entry for editing an existing widget.
              taskAffinity="" (2026-09-10): launcher 经 ProxyActivityStarter 启动 configure,
@@ -243,11 +239,7 @@
             android:theme="@style/Theme.Sleepy" />
 
         <!-- 真实 widget bitmap 渲染验证 (debug only, 渲染 RemoteViews Canvas bitmap 用于截图) -->
-        <activity
-            android:name=".widget.WidgetRenderActivity"
-            android:exported="true"
-            android:label="Widget Render"
-            android:theme="@style/Theme.Sleepy" />
+
 
         <!-- debug 组件（DebugImportReceiver / DebugScheduleReceiver）已移至 src/debug 源集，
              仅 debug 构建包含，release APK 完全不含这些测试入口。 -->

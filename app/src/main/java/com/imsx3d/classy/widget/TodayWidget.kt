@@ -195,12 +195,9 @@ open class TodayWidgetReceiver : AppWidgetProvider() {
                         val effectiveTarget = if (autoNearestBusyDay &&
                             source.display.status == com.imsx3d.classy.util.WeekDisplayStatus.NEAREST_BUSY_DAY
                         ) source.display.targetDate else target
-                        val effectiveDayOfWeek = HolidayTransferHelper.effectiveDayOfWeek(context, table.id, effectiveTarget)
+                        val status = HolidayTransferHelper.semesterStatus(context, table, effectiveTarget)
                         val week = DateUtils.currentWeek(table.startDate, effectiveTarget)
-                        val status = DateUtils.semesterStatus(table.startDate, table.maxWeek, effectiveTarget)
-                        // 学期外(前/后)不展示课程 — App 今日页同语义, 避免学期前显示"第1周"的课
-                        val visible = if (status != DateUtils.SemesterStatus.IN_RANGE) emptyList() else
-                            source.coursesFor(effectiveDayOfWeek, week)
+                        val visible = source.coursesOn(effectiveTarget)
                         WidgetData(
                             date = effectiveTarget,
                             courses = visible,

@@ -96,10 +96,11 @@ class HolidayTransferOpsTest {
     }
 
     @Test
-    fun effectiveDayOfWeek_uses_targetDate_dayOfWeek() {
-        // 1/1 是周四 → 映射到 1/4 周日 → 应取周日的星期 7
+    fun effectiveDayOfWeek_uses_sourceDate_on_target_and_empties_source() {
+        // 周日补周四；被移走的周四没有课程。
         val transfers = listOf(HolidayTransferEntry(d(1, 1), d(1, 4), "a"))
-        assertEquals(7, Ops.effectiveDayOfWeek(d(1, 1), transfers))
+        assertEquals(4, Ops.effectiveDayOfWeek(d(1, 4), transfers))
+        assertEquals(0, Ops.effectiveDayOfWeek(d(1, 1), transfers))
     }
 
     @Test

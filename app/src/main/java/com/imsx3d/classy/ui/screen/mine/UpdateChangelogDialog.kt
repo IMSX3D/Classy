@@ -47,6 +47,7 @@ fun UpdateChangelogDialog(
     onCancelDownload: () -> Unit,
     onRetry: (String, String, String) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val colors = MaterialTheme.colorScheme
     when (state) {
         is UpdateUiState.UpdateAvailable, is UpdateUiState.Downloading,
@@ -112,6 +113,9 @@ fun UpdateChangelogDialog(
                             )
                             Spacer(Modifier.height(8.dp))
                         }
+                        if (state is UpdateUiState.UpdateAvailable && !com.imsx3d.classy.util.isValidDownloadUrl(url)) {
+                            Text("发现新版本，但适用于此设备的安装包尚未就绪。请稍后重试或查看发布页。", color = colors.onSurfaceVariant)
+                        }
                         if (changelog.isNotBlank()) {
                             // 确定性 Markdown 渲染: MarkdownBlocks 解析出块结构,
                             // 这里显式排版 — 标题层级/列表缩进/粗体/链接都有确定的视觉结果。
@@ -145,11 +149,17 @@ fun UpdateChangelogDialog(
                                 }
                                 Button(
                 colors = primaryFilledButtonColors(),
-                                    onClick = { onDownload(version, changelog, url) },
+                                    onClick = {
+                                        if (com.imsx3d.classy.util.isValidDownloadUrl(url)) onDownload(version, changelog, url)
+                                        else {
+                                            val release = "${com.imsx3d.classy.util.AppIdentity.REPO_URL}/releases"
+                                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(release)))
+                                        }
+                                    },
                                     modifier = Modifier.weight(1f),
                                     shape = SleepyTheme.Buttons.shape
                                 ) {
-                                    Text(stringResource(R.string.update_download), maxLines = 1)
+                                    Text(if (com.imsx3d.classy.util.isValidDownloadUrl(url)) stringResource(R.string.update_download) else "查看发布页", maxLines = 1)
                                 }
                             }
                         }

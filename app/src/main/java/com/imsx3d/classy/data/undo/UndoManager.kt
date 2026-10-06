@@ -11,7 +11,8 @@ data class UndoSnapshot(
     val periodTables: List<PeriodTableEntity> = emptyList(),
     val tables: List<TimeTableEntity>,
     val courses: List<CourseEntity>,
-    val defaultTableId: Long?
+    val defaultTableId: Long?,
+    val holidayTransfers: Map<Long, List<com.imsx3d.classy.util.HolidayTransferEntry>> = emptyMap()
 )
 
 /**
@@ -60,7 +61,8 @@ object UndoManager {
         tables: List<TimeTableEntity>,
         courses: List<CourseEntity>,
         defaultTableId: Long?,
-        periodTables: List<PeriodTableEntity> = emptyList()
+        periodTables: List<PeriodTableEntity> = emptyList(),
+        holidayTransfers: Map<Long, List<com.imsx3d.classy.util.HolidayTransferEntry>> = emptyMap()
     ) {
         if (restoring) return
         // 新用户动作 = 历史从 redo 分叉 — redo 立即作废(标准 undo/redo 语义)。
@@ -70,8 +72,11 @@ object UndoManager {
             if (batchCaptured) return   // 批内已有本动作快照 — 保动作链起点
             batchCaptured = true
         }
-        slot = UndoSnapshot(periodTables, tables, courses, defaultTableId)
+        slot = UndoSnapshot(periodTables, tables, courses, defaultTableId, holidayTransfers)
     }
+
+    fun peek(): UndoSnapshot? = slot
+    fun peekRedo(): UndoSnapshot? = redoSlot
 
     fun poll(): UndoSnapshot? {
         val s = slot

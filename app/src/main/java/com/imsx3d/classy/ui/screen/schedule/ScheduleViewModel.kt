@@ -46,7 +46,9 @@ data class ScheduleState(
     val transfers: List<HolidayTransferEntry> = emptyList()
 ) {
     val currentWeekCourses: List<CourseEntity>
-        get() = courses.filter { it.inWeek(selectedWeek) }
+        get() = effectiveCurrentTable?.let { table ->
+            com.imsx3d.classy.util.CourseDateResolver.displayWeek(selectedWeek, table.startDate, table.maxWeek, courses, transfers)
+        }.orEmpty()
             .let { list ->
                 val tj = effectiveCurrentTable?.timeJson
                 if (tj == null) list else list.map { c -> c.normalizeNode(tj) }
@@ -60,7 +62,7 @@ data class ScheduleState(
     val effectiveCurrentTable: TimeTableEntity?
         get() = currentTable?.hydratedWith(effectivePeriodTable)
 
-    /** issue#44: 给定日期实际应"按星期几取课"; 命中映射=targetDate 星期, 未命中=自然星期 */
+    /** 兼容星期查询；完整取课使用 CourseDateResolver，以保留来源周次。0 表示源日已调走。 */
     fun transferDayFor(date: LocalDate): Int =
         com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.effectiveDayOfWeek(date, transfers)
 }
@@ -92,6 +94,11 @@ class ScheduleViewModel : ViewModel() {
 
     init {
         loadTables()
+        viewModelScope.launch {
+            AppPrefs.changeBus.collect { key ->
+                if (key.startsWith("holiday_transfer_")) refreshTransfer()
+            }
+        }
     }
 
     private fun loadTables() {
@@ -155,7 +162,8 @@ class ScheduleViewModel : ViewModel() {
                                 // 不够简洁美观"。设置项（通用→小组件）保留，只喂组件。
                                 // 传 false 时 resolve 的 targetDate=today / targetWeek=actualWeek / status=NORMAL，
                                 // 于是首屏稳定落在真实周，顶栏也不再出现那行状态副文案。
-                                enabled = false
+                                enabled = false,
+                transfers = com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(com.imsx3d.classy.SleepyApp.get(), it.id)
                             )
                         }
                         val week = displayContext?.actualWeek ?: 1
@@ -212,7 +220,7 @@ class ScheduleViewModel : ViewModel() {
     /**
      * v7.10.15 创建课表副本 — 全量复制表配置+课程, 新副本不接管默认表也不切选中,
      * 命名沿用导入路径的去重规则(原名+"2"/"3"...)。
-     * v7.10.16w: 建表+插课是一个撤回动作 — beginBatch 保首快照, 撤回一次整步回退
+     * 建表+插课由 atomicEdit 在同一事务完成，撤回一次整步回退。
      * (此前两步写两次覆盖快照, 撤回只删掉课程行留下空表壳)。
      */
     fun duplicateTable(id: Long) {
@@ -223,8 +231,7 @@ class ScheduleViewModel : ViewModel() {
             var index = 2
             var name = "${source.name}2"
             while (name in existingNames) { index++; name = "${source.name}$index" }
-            com.imsx3d.classy.data.undo.UndoManager.beginBatch()
-            try {
+            repo.atomicEdit {
                 val newId = repo.insertTable(
                     source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis())
                 )
@@ -233,8 +240,6 @@ class ScheduleViewModel : ViewModel() {
                     val groupMap = courses.associate { it.groupId to java.util.UUID.randomUUID().toString() }
                     repo.insertCourses(courses.map { it.copy(id = 0, groupId = groupMap[it.groupId] ?: it.groupId, tableId = newId) })
                 }
-            } finally {
-                com.imsx3d.classy.data.undo.UndoManager.endBatch()
             }
             com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(com.imsx3d.classy.SleepyApp.get())
         }
@@ -430,7 +435,8 @@ class ScheduleViewModel : ViewModel() {
             courses = current.courses,
             timeJson = table.timeJson,
             // 同 recalculateWeekDisplay 上方的说明：App 内不做「最近有课日」自动跳转，只喂小组件。
-            enabled = false
+            enabled = false,
+                transfers = com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(com.imsx3d.classy.SleepyApp.get(), table.id)
         )
         _state.update {
             val selected = if (it.weekSelectionManual) it.selectedWeek else context.targetWeek

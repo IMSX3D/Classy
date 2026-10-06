@@ -66,17 +66,15 @@ fun TodayScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val today = LocalDate.now()
-    // issue#44: 调休日按映射目标星期取课, 未映射走自然星期
-    val dayOfWeek = state.transferDayFor(today)
     val actualWeek = state.currentTable?.let { DateUtils.currentWeek(it.startDate, today) } ?: state.currentWeek
     // 学期外感知: BEFORE_START/AFTER_END 时今日课不按周过滤展示
     val semesterStatus = state.currentTable?.let {
-        DateUtils.semesterStatus(it.startDate, it.maxWeek, today)
+        val source = com.imsx3d.classy.util.CourseDateResolver.teachingDate(today, state.transfers) ?: today
+        DateUtils.semesterStatus(it.startDate, it.maxWeek, source)
     } ?: DateUtils.SemesterStatus.IN_RANGE
-    val isOutOfSemester = semesterStatus != DateUtils.SemesterStatus.IN_RANGE
-    val todayCourses = if (isOutOfSemester) emptyList() else state.courses.filter {
-        it.day == dayOfWeek && it.inWeek(actualWeek)
-    }.let { list ->
+    val todayCourses = state.effectiveCurrentTable?.let { table ->
+        com.imsx3d.classy.util.CourseDateResolver.coursesOn(today, table.startDate, table.maxWeek, state.courses, state.transfers)
+    }.orEmpty().let { list ->
         // 用户报障 2026-09-10: ownTime 课渲染前按真实时间归一化节点(与网格同一预处理),
         // 落库的表单占位节点不再影响今日页分组与显示。
         val tj = state.effectiveCurrentTable?.timeJson

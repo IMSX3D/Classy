@@ -16,6 +16,7 @@ android {
         applicationId = "com.imsx3d.classy"
         minSdk = 26
         targetSdk = 37
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 0.0.1 = 仓库初版（换包名后归零，debug 签名）；
         // 0.0.2 = 第一版**自有签名**的包（2026-09-28，用户定"发包给同学之前切"）；
         // 0.0.3 = 关于页加「联系开发者（QQ）」；
@@ -32,26 +33,21 @@ android {
         }
     }
 
-    // ── 签名（v0.0.2 起：自有密钥库，取代原来的"release 复用 debug 证书"）──
-    // 为什么写成"存在才用"：密钥库与口令**都在仓库之外**
-    //   · 密钥库 E:/T1/classy-release.keystore（工程目录是 E:/T1/vendor/sleepy → 退两级）
-    //   · 口令   local.properties（不进发布树）
-    // 于是公开仓库里既没有密钥也没有口令：别人 clone 下来本块不生效 → 自动回退 debug 签名，
-    // `./gradlew assembleRelease` 照样能构建；我方机器上有密钥库 → 走自有签名。
-    // 指纹（SHA-256）：95:9D:7F:1B:95:6F:52:03:C0:19:BE:FD:FE:13:BF:40:82:CF:D6:00:47:47:7A:9F:10:75:9D:F2:B9:5D:68:56
-    val classyKeystoreFile = rootProject.file("../../classy-release.keystore")
-    val classySigning = if (classyKeystoreFile.exists()) {
-        val localProps = Properties().apply {
-            val f = rootProject.file("local.properties")
-            if (f.exists()) f.inputStream().use { load(it) }
-        }
+    // Official release packages require the configured identity. Debug builds remain usable
+    // in public clones. Paths/passwords come from Gradle properties or local.properties.
+    val localProps = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    fun signingValue(name: String): String? = providers.gradleProperty(name).orNull ?: localProps.getProperty(name)
+    val classyKeystoreFile = rootProject.file(signingValue("classy.storeFile") ?: "../../classy-release.keystore")
+    val classySigning = if (classyKeystoreFile.exists() &&
+        !signingValue("classy.storePassword").isNullOrBlank() &&
+        !signingValue("classy.keyPassword").isNullOrBlank()) {
         signingConfigs.create("classy") {
             storeFile = classyKeystoreFile
-            storePassword = localProps.getProperty("classy.storePassword")
-                ?: error("classy-release.keystore 在，但 local.properties 里没有 classy.storePassword")
-            keyAlias = localProps.getProperty("classy.keyAlias") ?: "classy"
-            keyPassword = localProps.getProperty("classy.keyPassword")
-                ?: error("classy-release.keystore 在，但 local.properties 里没有 classy.keyPassword")
+            storePassword = signingValue("classy.storePassword")
+            keyAlias = signingValue("classy.keyAlias") ?: "classy"
+            keyPassword = signingValue("classy.keyPassword")
         }
     } else null
 
@@ -68,8 +64,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // 有自有密钥库就用它；没有（公开仓库里的 clone）回退 debug 签名，保证能构建
-            signingConfig = classySigning ?: signingConfigs.getByName("debug")
+            // Never distribute a release signed with the debug key.
+            signingConfig = classySigning
         }
     }
 
@@ -125,6 +121,19 @@ android {
         }
     }
 }
+
+val verifyReleaseSigning by tasks.registering {
+    doLast {
+        check(android.signingConfigs.findByName("classy")?.storeFile?.isFile == true) {
+            "Release signing is missing. Configure classy.storeFile, classy.storePassword, classy.keyAlias and classy.keyPassword; use assembleDebug for local testing."
+        }
+    }
+}
+tasks.matching {
+    it.name in setOf("packageRelease", "assembleRelease", "bundleRelease")
+}.configureEach { dependsOn(verifyReleaseSigning) }
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 kotlin {
     compilerOptions {

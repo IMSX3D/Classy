@@ -399,7 +399,8 @@ class AboutLicenseAttributionTest {
         val exitUses = Regex("exit = sleepyExpandExit\\(\\)").findAll(src).count()
         assertTrue("致谢导语和学校卡都必须使用统一展开动画（门面 sleepyExpandEnter），实际 $enterUses", enterUses >= 2)
         assertTrue("致谢收起必须使用统一收起动画（门面 sleepyExpandExit），实际 $exitUses", exitUses >= 2)
-        val motion = File(basePath.parentFile, "java/com/imsx3d/classy/ui/component/SleepyMotion.kt").readText()
+        val motion = File(basePath.parentFile, "java/com/imsx3d/classy/ui/component/SleepyMotion.kt")
+            .readText().replace("\r\n", "\n")
         val enterBody = Regex("fun sleepyExpandEnter\\(\\): EnterTransition =[\\s\\S]{0,200}?\\n\\n").find(motion)?.value ?: ""
         assertTrue("门面 sleepyExpandEnter 必须仍是 expandVertically + fadeIn，实际: $enterBody",
             enterBody.contains("expandVertically(") && enterBody.contains("fadeIn("))

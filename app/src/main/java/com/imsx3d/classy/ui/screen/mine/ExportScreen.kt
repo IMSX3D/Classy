@@ -283,7 +283,7 @@ fun ExportScreen(
                                 ctx = ctx,
                                 fileName = "classy_${table.name}_${stamp()}.ics",
                                 mime = "text/calendar",
-                                content = ScheduleExporter.exportIcs(table, courses),
+                                content = ScheduleExporter.exportIcs(table, courses, com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(ctx, table.id)),
                                 displayName = table.name,
                                 onResult = { msg -> snackbarHostState.showSnackbar(msg) }
                             )

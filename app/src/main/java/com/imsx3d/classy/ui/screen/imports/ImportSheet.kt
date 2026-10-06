@@ -142,24 +142,38 @@ fun ImportSheet(
     var showDrafts by remember { mutableStateOf(false) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
 
-    // 外部 app (文件管理器 / 其他课表 app) 通过 Intent 打开 json 时,
-    // MainActivity 已把课表文本挂到 companion.pendingImportText;
-    // 这里读到则自动触发 paste 路径 buildImportPreview, 弹预览对话框。
-    // 一次性消费: 读完即清空 companion 字段。
-    // 用 pendingImportText 引用做 key, 这样 ImportReceiverActivity 后续塞 text 进来会重新触发
-    androidx.compose.runtime.LaunchedEffect(com.imsx3d.classy.MainActivity.pendingImportText) {
-        val text = com.imsx3d.classy.MainActivity.pendingImportText
-        if (!text.isNullOrBlank()) {
-            com.imsx3d.classy.MainActivity.pendingImportText = null
+    fun clearExternalImport() {
+        val token = com.imsx3d.classy.MainActivity.pendingImportToken
+        com.imsx3d.classy.MainActivity.pendingImportToken = null
+        com.imsx3d.classy.MainActivity.pendingImportText = null
+        // Application scope survives dismissing the sheet immediately after confirmation.
+        if (token != null) kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try { com.imsx3d.classy.util.PendingImportStore.discard(context.applicationContext, token) }
+            catch (e: Exception) { android.util.Log.w("Classy", "Unable to remove completed import draft", e) }
+        }
+    }
+    val importCompleted: () -> Unit = {
+        clearExternalImport()
+        preview = null
+        pendingMode = null
+        importJustApplied = true
+        onImported()
+    }
+    androidx.compose.runtime.LaunchedEffect(com.imsx3d.classy.MainActivity.pendingImportToken, com.imsx3d.classy.MainActivity.pendingImportText) {
+        val token = com.imsx3d.classy.MainActivity.pendingImportToken
+        val legacyText = com.imsx3d.classy.MainActivity.pendingImportText
+        if (token != null || !legacyText.isNullOrBlank()) {
             isLoading = true
             try {
-                val p = buildImportPreview(text, state, context) { msg -> errorMsg = msg }
-                if (p != null) preview = p
-            } catch (e: Throwable) {
-                android.util.Log.e("Classy", "pending import preview failed", e)
-            } finally {
-                isLoading = false
-            }
+                val text = if (token != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.imsx3d.classy.util.PendingImportStore.read(context, token)
+                } else legacyText.orEmpty()
+                preview = buildImportPreview(text, state, context) { errorMsg = it }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                errorMsg = e.message ?: "无法读取导入文件，请重新选择"
+            } finally { isLoading = false }
         }
     }
 
@@ -192,11 +206,16 @@ fun ImportSheet(
             scope.launch {
                 isLoading = true
                 try {
-                    val text = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
-                        ?: throw Exception(cannotReadFileMessage)
+                    val text = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        context.contentResolver.openInputStream(it)?.use { input ->
+                            com.imsx3d.classy.util.BoundedImportReader.read(input)
+                        } ?: throw Exception(cannotReadFileMessage)
+                    }
                     preview = buildImportPreview(text, state, context) { msg -> errorMsg = msg }
                     // 注意: 不要在这里 onDismiss() —— sheet 关掉后 preview state 会随之销毁, dialog 永远不弹。
                     // preview != null 时 ImportPreviewDialog 会在 sheet 之上显示; 用户点确认/取消后再清 state。
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     errorMsg = readFailedFormat.format(e.message)
                 } finally {
@@ -234,7 +253,7 @@ fun ImportSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isLoading) { clearExternalImport(); onDismiss() } },
         sheetState = sheetState,
     ) {
         Column(
@@ -471,7 +490,7 @@ fun ImportSheet(
                 allPeriodTables.map { it.name }
             )
             AlertDialog(
-                onDismissRequest = { preview = null },
+                onDismissRequest = { if (!isLoading) { preview = null; clearExternalImport() } },
                 title = { Text(stringResource(R.string.period_table_import_title), color = colors.onSurface) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -498,25 +517,25 @@ fun ImportSheet(
                         com.imsx3d.classy.ui.component.DialogActionButtons(
                             confirmText = stringResource(R.string.period_table_import_confirm),
                             onConfirm = {
+                                if (isLoading) return@DialogActionButtons
+                                isLoading = true
                                 scope.launch {
                                     isLoading = true
                                     try {
                                         applyPurePeriodImport(
                                             name = candidate,
                                             parsed = pt,
-                                            onImported = onImported,
-                                            onError = { msg -> errorMsg = msg }
+                                            onImported = importCompleted,
+                                            onError = { msg -> errorMsg = msg; pendingMode = null }
                                         )
-                                        preview = null
-                                        importJustApplied = true
                                     } finally {
                                         isLoading = false
                                     }
                                 }
                             },
                             dismissText = stringResource(R.string.cancel),
-                            onDismiss = { preview = null },
-                            confirmEnabled = candidate.isNotBlank() && !nameTaken
+                            onDismiss = { if (!isLoading) { preview = null; clearExternalImport() } },
+                            confirmEnabled = !isLoading && candidate.isNotBlank() && !nameTaken
                         )
                     }
                 },
@@ -527,8 +546,9 @@ fun ImportSheet(
         }
         ImportPreviewDialog(
             preview = currentPreview,
-            onDismiss = { preview = null },
+            onDismiss = { if (!isLoading) { preview = null; clearExternalImport() } },
             onApply = { mode ->
+                if (isLoading) return@ImportPreviewDialog
                 val existingTable = state.currentTable
                 confirmedStartDate = currentPreview.parseResult.startDate.ifBlank {
                     existingTable?.startDate ?: java.time.LocalDate.now().toString()
@@ -572,12 +592,9 @@ fun ImportSheet(
                                 requiredNodeCount = preview!!.parseResult.nodesPerDay
                             ),
                             context = context,
-                            onImported = onImported,
-                            onError = { msg -> errorMsg = msg }
+                            onImported = importCompleted,
+                            onError = { msg -> errorMsg = msg; pendingMode = null }
                         )
-                        preview = null
-                        pendingMode = null
-                        importJustApplied = true
                     } finally {
                         isLoading = false
                     }
@@ -602,8 +619,10 @@ fun ImportSheet(
                 onSelectPeriodTable = { confirmedBindPeriodTableId = it },
                 periodTableTimeJsonById = allPeriodTables.associate { it.id to it.timeJson },
                 onConfirm = {
+                    if (isLoading) return@ImportConfirmDialog
                     val mode = pendingMode ?: return@ImportConfirmDialog
                     val currentPreview = preview ?: return@ImportConfirmDialog
+                    isLoading = true
                     scope.launch {
                         isLoading = true
                         try {
@@ -617,13 +636,10 @@ fun ImportSheet(
                                 confirmedTableName = confirmedTableName,
                                 confirmedTimeJson = confirmedTimeJson,
                                 context = context,
-                                onImported = onImported,
-                                onError = { msg -> errorMsg = msg },
+                                onImported = importCompleted,
+                                onError = { msg -> errorMsg = msg; pendingMode = null },
                                 bindPeriodTableId = confirmedBindPeriodTableId
                             )
-                            preview = null
-                            pendingMode = null
-                            importJustApplied = true
                         } finally {
                             isLoading = false
                         }
@@ -1436,7 +1452,13 @@ private suspend fun buildImportPreview(
     }
     // selectedTableId 缺失时也能导入 — 没有 tableId 就用 0L，apply 时按 ImportAsNew 自动建表。
     val tableId = state.selectedTableId ?: 0L
-    val result = ScheduleParser.parse(text, tableId)
+    if (text.toByteArray(Charsets.UTF_8).size > com.imsx3d.classy.util.BoundedImportReader.MAX_BYTES) {
+        onError("导入内容过大，请选择不超过 2 MB 的课表文件")
+        return null
+    }
+    val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        ScheduleParser.parse(text, tableId)
+    }
     return result.fold(
         onSuccess = { parseResult ->
             val repo = SleepyApp.get().repository
@@ -1487,8 +1509,8 @@ private suspend fun applyPurePeriodImport(
     onError: (String) -> Unit
 ) {
     val repo = SleepyApp.get().repository
-    com.imsx3d.classy.data.undo.UndoManager.beginBatch()
     try {
+        repo.atomicEdit {
         val courseNames = repo.getAllTables().map { it.name }
         val periodNames = repo.getAllPeriodTables().map { it.name }
         val unique = TimeTableUtils.suggestUniqueName(name, courseNames, periodNames)
@@ -1499,11 +1521,13 @@ private suspend fun applyPurePeriodImport(
                 timeJson = parsed.timeJson
             )
         )
+        }
         onImported()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         onError(e.message ?: "import failed")
-    } finally {
-        com.imsx3d.classy.data.undo.UndoManager.endBatch()
+
     }
 }
 
@@ -1520,10 +1544,11 @@ private suspend fun applyImportPreview(
     bindPeriodTableId: Long? = null
 ) {
     val repo = SleepyApp.get().repository
-    // v7.10.16 撤回: 整个导入是一个动作 — 批内只保首快照, 撤回一次回退到导入前。
-    // try/finally 收口: 分支里的 early return 也要退出批边界。
-    com.imsx3d.classy.data.undo.UndoManager.beginBatch()
+    var imported = false
+    val warnings = mutableListOf<String>()
+    val reportWarning: (String) -> Unit = { warnings.add(it) }
     try {
+        repo.atomicEdit {
     // 应用约定 startDate=周一；用户在确认框可能手填非周一日期，落库前归一（issue #5）
     val confirmedStartDate = DateUtils.normalizeStartDate(confirmedStartDateRaw)
     when (mode) {
@@ -1549,9 +1574,9 @@ private suspend fun applyImportPreview(
             val badDays = com.imsx3d.classy.util.ConflictLayoutEngine
                 .daysExceedingTwoLanes(preview.parseResult.courses)
             if (badDays.isNotEmpty()) {
-                onError(context.getString(R.string.import_three_layers_kept, dayNames(badDays, context)))
+                reportWarning(context.getString(R.string.import_three_layers_kept, dayNames(badDays, context)))
             }
-            onImported()
+            imported = true
         }
         ImportApplyMode.ImportAsNew -> {
             val base = repo.getTable(preview.targetTableId)
@@ -1592,17 +1617,17 @@ private suspend fun applyImportPreview(
             val badDaysNew = com.imsx3d.classy.util.ConflictLayoutEngine
                 .daysExceedingTwoLanes(preview.parseResult.courses)
             if (badDaysNew.isNotEmpty()) {
-                onError(context.getString(R.string.import_three_layers_kept, dayNames(badDaysNew, context)))
+                reportWarning(context.getString(R.string.import_three_layers_kept, dayNames(badDaysNew, context)))
             }
-            onImported()
+            imported = true
         }
         ImportApplyMode.AppendNonConflict -> {
             val cleanCourses = preview.parseResult.courses.filterNot { incoming ->
                 preview.existingCourses.any { existing -> coursesConflict(incoming, existing) }
             }
             if (cleanCourses.isEmpty()) {
-                onError(context.getString(R.string.import_all_conflict))
-                return
+                reportWarning(context.getString(R.string.import_all_conflict))
+                return@atomicEdit
             }
             // v7.10.16x 三层闸门改相对判定(用户 2026-09-10 报"预览 8 门全不冲突,
             // 仅追加不冲突却 toast 全部冲突"): 旧 dropThreeLayerCourses 用
@@ -1615,12 +1640,12 @@ private suspend fun applyImportPreview(
                     com.imsx3d.classy.util.ConflictLayoutEngine.daysExceedingTwoLanes(preview.existingCourses)
             }
             if (survivors.isEmpty()) {
-                onError(context.getString(R.string.import_all_conflict))
-                return
+                reportWarning(context.getString(R.string.import_all_conflict))
+                return@atomicEdit
             }
             if (survivors.size < cleanCourses.size) {
                 val droppedDays = conflictDaysBetween(cleanCourses, survivors)
-                onError(context.getString(R.string.import_three_layers_dropped, dayNames(droppedDays, context)))
+                reportWarning(context.getString(R.string.import_three_layers_dropped, dayNames(droppedDays, context)))
             }
             if (preview.parseResult.groupIdsAuthoritative) {
                 repo.insertCoursesKeepingGroups(survivors.map { it.copy(id = 0, tableId = preview.targetTableId) })
@@ -1641,7 +1666,7 @@ private suspend fun applyImportPreview(
                     repo.updateTable(existingTable.copy(timeJson = extended, nodesPerDay = newMaxNode))
                 }
             }
-            onImported()
+            imported = true
         }
         ImportApplyMode.AppendAsNew -> {
             // 当前课表 + 导入数据合并 → 新课表(用户命名)
@@ -1684,7 +1709,7 @@ private suspend fun applyImportPreview(
                 .daysExceedingTwoLanes(oldCourses + cleanIncoming)
             if (afterDays != beforeDays) {
                 val droppedDays = afterDays - beforeDays
-                onError(context.getString(R.string.import_three_layers_kept, dayNames(droppedDays, context)))
+                reportWarning(context.getString(R.string.import_three_layers_kept, dayNames(droppedDays, context)))
             }
             // 全量合并入库: 老课 + 全部非重复导入课(仅提示, 不再剔除 — 闸门只拦编辑恶化,
             // 合并是新建课表, 用户明确要的就是并集)
@@ -1697,20 +1722,20 @@ private suspend fun applyImportPreview(
                 repo.insertCourses((oldCourses + cleanIncoming).map { it.copy(id = 0, tableId = newTableId) })
             }
             repo.setDefault(newTableId)
-            onImported()
+            imported = true
         }
         ImportApplyMode.AppendAll -> {
             // 连冲突课一起追加进当前课表 — 冲突/闸门全部放行, 仅提示(与整表新建同策略)。
             // 用户 2026-09-03: 该按钮的存在意义就是"冲突也要进来", 剔除即违背语义。
             val cleanCourses = preview.parseResult.courses
             if (cleanCourses.isEmpty()) {
-                onError(context.getString(R.string.import_content_empty))
-                return
+                reportWarning(context.getString(R.string.import_content_empty))
+                return@atomicEdit
             }
             val badDays = com.imsx3d.classy.util.ConflictLayoutEngine
                 .daysExceedingTwoLanes(preview.existingCourses + cleanCourses)
             if (badDays.isNotEmpty()) {
-                onError(context.getString(R.string.import_three_layers_kept, dayNames(badDays, context)))
+                reportWarning(context.getString(R.string.import_three_layers_kept, dayNames(badDays, context)))
             }
             if (preview.parseResult.groupIdsAuthoritative) {
                 repo.insertCoursesKeepingGroups(cleanCourses.map { it.copy(id = 0, tableId = preview.targetTableId) })
@@ -1730,12 +1755,16 @@ private suspend fun applyImportPreview(
                     repo.updateTable(existingTable.copy(timeJson = extended, nodesPerDay = newMaxNode))
                 }
             }
-            onImported()
+            imported = true
         }
     }
-    } finally {
-        // 批边界收口 — 无论哪个分支 return, 撤回批都到此结束
-        com.imsx3d.classy.data.undo.UndoManager.endBatch()
+        }
+        warnings.forEach(onError)
+        if (imported) onImported()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        onError(context.getString(R.string.import_failed, e.message))
     }
 }
 

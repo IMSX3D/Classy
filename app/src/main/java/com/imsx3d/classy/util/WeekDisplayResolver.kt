@@ -46,7 +46,8 @@ object WeekDisplayResolver {
         now: LocalDateTime,
         courses: List<CourseEntity>,
         timeJson: String,
-        enabled: Boolean
+        enabled: Boolean,
+        transfers: List<HolidayTransferEntry> = emptyList()
     ): WeekDisplayContext {
         val safeMaxWeek = maxWeek.coerceAtLeast(1)
         val today = now.toLocalDate()
@@ -54,7 +55,9 @@ object WeekDisplayResolver {
         val actualWeek = DateUtils.currentWeek(startDate, today).coerceIn(1, safeMaxWeek)
 
         val todayHasRemaining = semesterStatus == DateUtils.SemesterStatus.IN_RANGE &&
-            hasRemainingCourse(actualWeek, today, now.toLocalTime(), courses, timeJson)
+            hasRemainingCourse(actualWeek, today, now.toLocalTime(),
+                CourseDateResolver.coursesOn(today, startDate, maxWeek, courses, transfers)
+                    .map { it.copy(day = today.dayOfWeek.value, startWeek = actualWeek, endWeek = actualWeek, type = 0) }, timeJson)
 
         val targetDate = when {
             !enabled -> today
@@ -65,7 +68,7 @@ object WeekDisplayResolver {
                 actualWeek = actualWeek,
                 maxWeek = safeMaxWeek,
                 today = today,
-                courses = courses
+                courses = courses, transfers = transfers
             )
         }
         val targetWeek = if (targetDate == today) actualWeek
@@ -115,7 +118,8 @@ object WeekDisplayResolver {
         actualWeek: Int,
         maxWeek: Int,
         today: LocalDate,
-        courses: List<CourseEntity>
+        courses: List<CourseEntity>,
+        transfers: List<HolidayTransferEntry>
     ): LocalDate {
         val endDate = DateUtils.dateOfWeek(startDate, maxWeek, 7) // 最后一周周日
         var cursor = today.plusDays(1)
@@ -127,7 +131,7 @@ object WeekDisplayResolver {
             }
             val dow = cursor.dayOfWeek.value
             // cursor 恒 > today（起点 today+1），日历上有课 = 该课的课还没上，直接命中
-            val hasAny = courses.any { it.inWeek(cursorWeek) && it.day == dow }
+            val hasAny = CourseDateResolver.coursesOn(cursor, startDate, maxWeek, courses, transfers).isNotEmpty()
             if (hasAny) return cursor
             cursor = cursor.plusDays(1)
         }

@@ -12,6 +12,13 @@ import com.imsx3d.classy.util.AppPrefs
 import com.imsx3d.classy.util.ConflictLayoutEngine
 import com.imsx3d.classy.widget.WidgetUpdater
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.flow.flatMapLatest
 
 /**
@@ -30,17 +37,42 @@ class ScheduleRepository(private val db: AppDatabase) {
     val canUndo: Boolean get() = UndoManager.hasSnapshot
     val canRedo: Boolean get() = UndoManager.hasRedoSnapshot
 
-    /**
-     * 公开写方法执行前调用 — 拍下改动前的全库状态。
-     * 复合动作(如导入)入口先 [UndoManager.beginBatch], 批内只保首个快照=动作前时点。
+    suspend fun <T> readConsistently(block: suspend () -> T): T = db.withTransaction { block() }
+
+    private val writeMutex = Mutex()
+    private class EditContext(val repository: ScheduleRepository) :
+        AbstractCoroutineContextElement(Key) {
+        companion object Key : CoroutineContext.Key<EditContext>
+    }
+
+    /** One user action: serialize, snapshot, commit all writes, then refresh once.
+     * Nested repository writes join this coroutine's transaction, never another action's.
+     * A failed/cancelled transaction leaves both the database and undo slot untouched.
      */
-    private suspend fun captureForUndo() {
-        UndoManager.capture(
-            tables = tableDao.getAll(),
-            courses = courseDao.getAll(),
-            defaultTableId = tableDao.getDefault()?.id,
-            periodTables = periodTableDao.getAll()
-        )
+    suspend fun <T> atomicEdit(recordUndo: Boolean = true, block: suspend () -> T): T {
+        if (coroutineContext[EditContext]?.repository === this) return block()
+        return writeMutex.withLock {
+            val before = snapshotCurrent()
+            val result = db.withTransaction {
+                withContext(EditContext(this@ScheduleRepository)) { block() }
+            }
+            // The database has committed: finish bookkeeping even if the caller leaves the screen.
+            withContext(NonCancellable) {
+                val after = snapshotCurrent()
+                if (before != after) {
+                    if (recordUndo) UndoManager.capture(
+                        tables = before.tables, courses = before.courses,
+                        defaultTableId = before.defaultTableId, periodTables = before.periodTables,
+                        holidayTransfers = before.holidayTransfers
+                    )
+                    (before.tables.map { it.id } - after.tables.map { it.id }.toSet()).forEach {
+                        AppPrefs.clearHolidayTransfers(SleepyApp.get(), it)
+                    }
+                    onDataChanged()
+                }
+            }
+            result
+        }
     }
 
     /** 取一份当前库态 — 内部用: 给 undo / redo 的反向槽用。 */
@@ -48,7 +80,8 @@ class ScheduleRepository(private val db: AppDatabase) {
         periodTables = periodTableDao.getAll(),
         tables = tableDao.getAll(),
         courses = courseDao.getAll(),
-        defaultTableId = tableDao.getDefault()?.id
+        defaultTableId = tableDao.getDefault()?.id,
+        holidayTransfers = tableDao.getAll().associate { it.id to AppPrefs.getHolidayTransfers(SleepyApp.get(), it.id) }
     )
 
     private suspend fun applySnapshot(snap: UndoSnapshot) {
@@ -67,38 +100,40 @@ class ScheduleRepository(private val db: AppDatabase) {
     }
 
     /** 撤回最近一次改动: 事务内清三表→按外键顺序重插快照→恢复 default → 刷 widget/通知。false = 无可撤回 */
-    suspend fun restoreLastSnapshot(): Boolean {
-        val undoSnap = UndoManager.poll() ?: return false
-        // 把"撤回前"库态(=当前库态)落入 redo 槽, 用户点 redo 时再恢复回去。
+    suspend fun restoreLastSnapshot(): Boolean = writeMutex.withLock {
+        val undoSnap = UndoManager.peek() ?: return@withLock false
         val redoSnap = snapshotCurrent()
-        UndoManager.restoring = true
-        try {
-            applySnapshot(undoSnap)
-        } finally {
-            UndoManager.restoring = false
+        applySnapshot(undoSnap)
+        withContext(NonCancellable) {
+            restoreTransfers(undoSnap, redoSnap)
+            UndoManager.poll()
+            UndoManager.recordRedo(redoSnap)
+            onDataChanged()
         }
-        UndoManager.recordRedo(redoSnap)
-        onDataChanged()
-        pruneDefaultTopPrefs()
-        return true
+        true
     }
 
-    /** 取消最近一次撤回: redo 槽快照恢复回库, undo 槽收回当前库态。false = 无可取消。 */
-    suspend fun redoLastUndo(): Boolean {
-        val redoSnap = UndoManager.pollRedo() ?: return false
+    suspend fun redoLastUndo(): Boolean = writeMutex.withLock {
+        val redoSnap = UndoManager.peekRedo() ?: return@withLock false
         val undoSnap = snapshotCurrent()
-        UndoManager.restoring = true
-        try {
-            applySnapshot(redoSnap)
-        } finally {
-            UndoManager.restoring = false
+        applySnapshot(redoSnap)
+        withContext(NonCancellable) {
+            restoreTransfers(redoSnap, undoSnap)
+            UndoManager.pollRedo()
+            UndoManager.reinsertForRedoSymmetry(undoSnap)
+            onDataChanged()
         }
-        // 把"刚恢复到的 redo 起点之前那一刻"重新填回 undo 槽,
-        // 用户再次点撤回应能回到"被我们撤回来的那次修改之前的库态"。
-        UndoManager.reinsertForRedoSymmetry(undoSnap)
-        onDataChanged()
-        pruneDefaultTopPrefs()
-        return true
+        true
+    }
+
+    private fun restoreTransfers(target: UndoSnapshot, previous: UndoSnapshot) {
+        val ctx = SleepyApp.get()
+        (previous.tables.map { it.id } - target.tables.map { it.id }.toSet()).forEach {
+            AppPrefs.clearHolidayTransfers(ctx, it)
+        }
+        target.tables.forEach { table ->
+            AppPrefs.setHolidayTransfers(ctx, table.id, target.holidayTransfers[table.id].orEmpty())
+        }
     }
 
     // ========== TimeTable ==========
@@ -113,17 +148,15 @@ class ScheduleRepository(private val db: AppDatabase) {
 
     suspend fun getDefaultTable(): TimeTableEntity? = tableDao.getDefault()
 
-    suspend fun insertTable(table: TimeTableEntity): Long {
-        captureForUndo()
+    suspend fun insertTable(table: TimeTableEntity): Long = atomicEdit() {
         val id = tableDao.insert(table)
         if (table.isDefault || tableDao.count() == 1) {
             tableDao.setDefault(id)
         }
-        return id
+        return@atomicEdit id
     }
 
-    suspend fun updateTable(table: TimeTableEntity) {
-        captureForUndo()
+    suspend fun updateTable(table: TimeTableEntity): Unit = atomicEdit() {
         tableDao.update(table)
         onDataChanged()
     }
@@ -136,8 +169,7 @@ class ScheduleRepository(private val db: AppDatabase) {
      * remapCourseNodes 重排; 无法映射的课保持原节次。与 updateTable 同为单动作
      * 撤回单元(首快照 = 改表前)。
      */
-    suspend fun updateTableRemappingCourses(table: TimeTableEntity) {
-        captureForUndo()
+    suspend fun updateTableRemappingCourses(table: TimeTableEntity): Unit = atomicEdit() {
         val oldJson = tableDao.getById(table.id)?.timeJson.orEmpty()
         tableDao.update(table)
         if (table.timeJson != oldJson) {
@@ -161,23 +193,12 @@ class ScheduleRepository(private val db: AppDatabase) {
         onDataChanged()
     }
 
-    suspend fun deleteTable(id: Long) {
-        captureForUndo()
-        // 删除前先取该表全部课程 id：tableDao.deleteById 靠外键 CASCADE 级联删课程，
-        //   删完后这些 id 已不在库里，scheduleAll → cancelAll 按"现存课程"枚举 cancel 不到它们，
-        //   当天已排的课程级课前闹钟（RC_BEFORE_CLASS_BASE+cid）会残留到点继续响。
-        //   因此必须在删除前捕获 id 列表，删除后对这些"孤儿 id"显式取消闹钟。
-        val orphanCourseIds = courseDao.getByTable(id).map { it.id }
+    suspend fun deleteTable(id: Long): Unit = atomicEdit() {
         tableDao.deleteById(id)
-        // issue#44: 同步清该表调休映射(SharedPreferences 孤儿 key 防残留)
-        try { AppPrefs.clearHolidayTransfers(SleepyApp.get(), id) } catch (_: Exception) {}
-        if (orphanCourseIds.isNotEmpty()) {
-            SleepyApp.get().notificationScheduler.cancelCourseAlarms(orphanCourseIds)
-        }
         onDataChanged()
     }
 
-    suspend fun setDefault(id: Long) {
+    suspend fun setDefault(id: Long): Unit = atomicEdit(recordUndo = false) {
         // v7.10.16i 不捕获快照: 切表(选择哪个表是当前表)是导航动作,不是课表数据改动 —
         // 捕获会让撤回键亮起、点了把用户切回原表(用户 2026-09-03「撤回键不是返回键」)。
         // 导入建新表路径的快照由同批内的 insertTable/insertCourses 捕获, 不受影响。
@@ -225,42 +246,39 @@ class ScheduleRepository(private val db: AppDatabase) {
             }
 
     /** 新建时间节次表, 返回新 id。独立写动作 = 独立撤回单元。 */
-    suspend fun insertPeriodTable(table: com.imsx3d.classy.data.entity.PeriodTableEntity): Long {
-        captureForUndo()
+    suspend fun insertPeriodTable(table: com.imsx3d.classy.data.entity.PeriodTableEntity): Long = atomicEdit() {
         val now = System.currentTimeMillis()
         val withStamp = if (table.createdAt == 0L) table.copy(createdAt = now, updatedAt = now) else table
-        return periodTableDao.insert(withStamp)
+        return@atomicEdit periodTableDao.insert(withStamp)
     }
 
     /**
      * 复制时间节次表(设计 §4.2): 生成新实体, 原表与原绑定关系零改动。返回新副本 id。
      */
-    suspend fun copyPeriodTable(sourceId: Long): Long {
-        val src = periodTableDao.getById(sourceId) ?: return -1L
-        captureForUndo()
+    suspend fun copyPeriodTable(sourceId: Long): Long = atomicEdit() {
+        val src = periodTableDao.getById(sourceId) ?: return@atomicEdit -1L
         val copy = src.copy(
             id = 0,
             name = src.name,   // 名称原样保留, UI 层决定是否加"副本"后缀
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
-        return periodTableDao.insert(copy)
+        return@atomicEdit periodTableDao.insert(copy)
     }
 
     /**
      * v1.0.56 T8: 按指定名建副本 — 复制弹窗确认后调用, 名字已由 UI 层查重。
      * 返回新副本 id, 源不存在返回 -1。
      */
-    suspend fun copyPeriodTableAs(sourceId: Long, newName: String): Long {
-        val src = periodTableDao.getById(sourceId) ?: return -1L
-        captureForUndo()
+    suspend fun copyPeriodTableAs(sourceId: Long, newName: String): Long = atomicEdit() {
+        val src = periodTableDao.getById(sourceId) ?: return@atomicEdit -1L
         val copy = src.copy(
             id = 0,
             name = newName,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
-        return periodTableDao.insert(copy)
+        return@atomicEdit periodTableDao.insert(copy)
     }
 
     /**
@@ -271,11 +289,10 @@ class ScheduleRepository(private val db: AppDatabase) {
      * 这样绑定期间实时读取目标表, 解绑后仍回到用户自己的原始作息, 不发生数据覆盖。
      * 悬空目标拒绝, 无效动作不拍撤回快照。
      */
-    suspend fun bindPeriodTable(timeTableId: Long, periodTableId: Long?) {
-        val table = tableDao.getById(timeTableId) ?: return
-        if (periodTableId != null && periodTableDao.getById(periodTableId) == null) return
-        if (table.periodTableId == periodTableId) return
-        captureForUndo()
+    suspend fun bindPeriodTable(timeTableId: Long, periodTableId: Long?): Unit = atomicEdit() {
+        val table = tableDao.getById(timeTableId) ?: return@atomicEdit
+        if (periodTableId != null && periodTableDao.getById(periodTableId) == null) return@atomicEdit
+        if (table.periodTableId == periodTableId) return@atomicEdit
         db.withTransaction {
             val next = when {
                 table.periodTableId == null && periodTableId != null ->
@@ -293,8 +310,7 @@ class ScheduleRepository(private val db: AppDatabase) {
      * 修改时间节次表内容(设计 §5.2): 更新实体+updatedAt。
      * 所有绑定课表经 effectivePeriodTable 立即读到新作息, 课程行不重算。
      */
-    suspend fun updatePeriodTable(table: com.imsx3d.classy.data.entity.PeriodTableEntity) {
-        captureForUndo()
+    suspend fun updatePeriodTable(table: com.imsx3d.classy.data.entity.PeriodTableEntity): Unit = atomicEdit() {
         periodTableDao.update(table.copy(updatedAt = System.currentTimeMillis()))
         onDataChanged()
     }
@@ -306,29 +322,50 @@ class ScheduleRepository(private val db: AppDatabase) {
      */
     suspend fun savePeriodTable(
         table: com.imsx3d.classy.data.entity.PeriodTableEntity
-    ): Int {
-        if (periodTableDao.getById(table.id) == null) return 0
-        captureForUndo()
+    ): Int = atomicEdit() {
+        if (periodTableDao.getById(table.id) == null) return@atomicEdit 0
         val boundCount = periodTableDao.boundTableCount(table.id)
         periodTableDao.update(table.copy(updatedAt = System.currentTimeMillis()))
         onDataChanged()
-        return boundCount
+        return@atomicEdit boundCount
     }
 
     /**
      * 删除守卫(设计 §7): 被引用的时间节次表禁止删除(返回 false), 无绑定才真删。
      * 禁止产生悬空引用。
      */
-    suspend fun deletePeriodTable(id: Long): Boolean {
+    suspend fun deletePeriodTable(id: Long): Boolean = atomicEdit() {
         // 删除守卫先行 — 被引用时不动库也不拍快照, 禁止产生悬空引用
-        if (periodTableDao.boundTableCount(id) > 0) return false
-        captureForUndo()
+        if (periodTableDao.boundTableCount(id) > 0) return@atomicEdit false
         periodTableDao.deleteById(id)
         onDataChanged()
-        return true
+        return@atomicEdit true
     }
 
     suspend fun tableCount(): Int = tableDao.count()
+
+    suspend fun saveCourseDrafts(
+        selectedTableId: Long?,
+        drafts: List<CourseEntity>,
+        editingGroupId: String?,
+        newTable: TimeTableEntity,
+        updateTimeJson: (String) -> String
+    ): Long = atomicEdit {
+        val tableId = selectedTableId ?: insertTable(newTable)
+        val table = requireNotNull(getTable(tableId)) { "课表已不存在，请返回重新选择" }
+        val groupId = editingGroupId ?: java.util.UUID.randomUUID().toString()
+        val fixed = drafts.map { it.copy(tableId = tableId, groupId = groupId) }
+        // Build slot changes from the pre-edit table; diff may reclaim unused nodes.
+        val updatedJson = updateTimeJson(table.timeJson)
+        if (editingGroupId != null) {
+            val existing = getCourses(tableId).filter { it.groupId == editingGroupId }
+            applyDiff(tableId, com.imsx3d.classy.data.diff.RowKeyDiffer.diff(fixed, existing))
+        } else {
+            insertCourses(fixed)
+        }
+        if (updatedJson != table.timeJson) updateTable(table.copy(timeJson = updatedJson))
+        tableId
+    }
 
     // ========== Course ==========
 
@@ -348,43 +385,38 @@ class ScheduleRepository(private val db: AppDatabase) {
 
     suspend fun getCourse(id: Long): CourseEntity? = courseDao.getById(id)
 
-    suspend fun insertCourse(course: CourseEntity): Long {
-        captureForUndo()
+    suspend fun insertCourse(course: CourseEntity): Long = atomicEdit() {
         val id = courseDao.insert(course)
         onDataChanged()
-        return id
+        return@atomicEdit id
     }
 
-    suspend fun insertCourses(courses: List<CourseEntity>): List<Long> {
-        captureForUndo()
+    suspend fun insertCourses(courses: List<CourseEntity>): List<Long> = atomicEdit() {
         // 导入时以规范化课程名为身份；时间、教师、教室只属于课程的一个时段。
         val withGroupIds = assignGroupIds(courses)
         val ids = courseDao.insertAll(withGroupIds)
         onDataChanged()
-        return ids
+        return@atomicEdit ids
     }
 
     /**
      * sleepy-v1 (§3.4 契约一): groupId 已由解析端权威生成(按文档内 token 分区),
      * 落库绕过 assignGroupIds — 否则同名不同 token 的分区会被静默合并, 分区往返被破坏。
      */
-    suspend fun insertCoursesKeepingGroups(courses: List<CourseEntity>): List<Long> {
-        captureForUndo()
+    suspend fun insertCoursesKeepingGroups(courses: List<CourseEntity>): List<Long> = atomicEdit() {
         val ids = courseDao.insertAll(courses)
         onDataChanged()
-        return ids
+        return@atomicEdit ids
     }
 
     /** 覆盖式导入(保留解析端 groupId), 配合 insertCoursesKeepingGroups 的 sleepy-v1 路径 */
-    suspend fun replaceCoursesKeepingGroups(tableId: Long, courses: List<CourseEntity>) {
-        captureForUndo()
+    suspend fun replaceCoursesKeepingGroups(tableId: Long, courses: List<CourseEntity>): Unit = atomicEdit() {
         courseDao.replaceAll(tableId, courses)
         onDataChanged()
         pruneDefaultTopPrefs()
     }
 
-    suspend fun updateCourse(course: CourseEntity) {
-        captureForUndo()
+    suspend fun updateCourse(course: CourseEntity): Unit = atomicEdit() {
         courseDao.update(course)
         onDataChanged()
     }
@@ -396,20 +428,18 @@ class ScheduleRepository(private val db: AppDatabase) {
     /** 编辑课程组：原子地删除同 groupId 全部记录并插入新草稿（DAO 层 @Transaction）。
      *  防呆: groupId 空串(早期版本导入的存量数据)禁止走组替换 — 否则 DELETE WHERE groupId=''
      *  会把该表全部空组课程一起删掉。空组时退化为逐条插入。 */
-    suspend fun updateCourseGroup(tableId: Long, groupId: String, newCourses: List<CourseEntity>) {
-        captureForUndo()
+    suspend fun updateCourseGroup(tableId: Long, groupId: String, newCourses: List<CourseEntity>): Unit = atomicEdit() {
         if (groupId.isBlank()) {
             courseDao.insertAll(newCourses)
             onDataChanged()
-            return
+            return@atomicEdit
         }
         courseDao.replaceGroup(tableId, groupId, newCourses)
         onDataChanged()
     }
 
-    suspend fun deleteCourse(id: Long) {
-        captureForUndo()
-        val course = courseDao.getById(id) ?: return
+    suspend fun deleteCourse(id: Long): Unit = atomicEdit() {
+        val course = courseDao.getById(id) ?: return@atomicEdit
         courseDao.deleteById(id)
         reclaimUnusedEdgeNodes(course.tableId)
         onDataChanged()
@@ -417,9 +447,8 @@ class ScheduleRepository(private val db: AppDatabase) {
     }
 
     /** 删除同 groupId 全部记录。防呆: 空 groupId 拒删(否则整表空组课程全没了) */
-    suspend fun deleteCourseGroup(tableId: Long, groupId: String) {
-        captureForUndo()
-        if (groupId.isBlank()) return
+    suspend fun deleteCourseGroup(tableId: Long, groupId: String): Unit = atomicEdit() {
+        if (groupId.isBlank()) return@atomicEdit
         courseDao.deleteByGroupId(tableId, groupId)
         reclaimUnusedEdgeNodes(tableId)
         onDataChanged()
@@ -467,8 +496,7 @@ class ScheduleRepository(private val db: AppDatabase) {
      * [captureForUndo] — issue#22 接手时原契约"调用前必须已 capture"无任何调用方
      * 履行, 编辑课程从此不产生快照。
      */
-    suspend fun applyDiff(tableId: Long, diff: DiffResult) {
-        captureForUndo()
+    suspend fun applyDiff(tableId: Long, diff: DiffResult): Unit = atomicEdit() {
         if (diff.toDelete.isNotEmpty()) courseDao.deleteByIds(diff.toDelete)
         if (diff.toUpdate.isNotEmpty()) courseDao.updateAll(diff.toUpdate)
         if (diff.toInsert.isNotEmpty()) courseDao.insertAll(diff.toInsert)
@@ -487,12 +515,11 @@ class ScheduleRepository(private val db: AppDatabase) {
      * 最小 id 行的 color,任一 GROUP 行带上色即成立;全组写一致值还能避免
      * RowKeyDiffer 把"只改了最小 id 行"之外的 GROUP 行 diff 出假更新。
      */
-    suspend fun setGroupSourceColor(tableId: Long, groupId: String, hex: String) {
-        captureForUndo()
-        if (groupId.isBlank()) return
+    suspend fun setGroupSourceColor(tableId: Long, groupId: String, hex: String): Unit = atomicEdit() {
+        if (groupId.isBlank()) return@atomicEdit
         val group = courseDao.getByGroupId(tableId, groupId)
             .filter { it.colorMode == com.imsx3d.classy.data.entity.CourseColorMode.GROUP }
-        if (group.isEmpty()) return
+        if (group.isEmpty()) return@atomicEdit
         courseDao.updateAll(group.map { it.copy(color = hex) })
         onDataChanged()
     }
@@ -502,8 +529,7 @@ class ScheduleRepository(private val db: AppDatabase) {
     suspend fun totalCourseCount(): Int = courseDao.totalCount()
 
     /** 覆盖式导入（先删后插） */
-    suspend fun replaceCourses(tableId: Long, courses: List<CourseEntity>) {
-        captureForUndo()
+    suspend fun replaceCourses(tableId: Long, courses: List<CourseEntity>): Unit = atomicEdit() {
         val withGroupIds = assignGroupIds(courses)
         courseDao.replaceAll(tableId, withGroupIds)
         onDataChanged()
@@ -516,6 +542,7 @@ class ScheduleRepository(private val db: AppDatabase) {
      * 这里按现存课全量校验删除。删课/删组/覆盖导入/撤销四条写路径都会走到。
      */
     private suspend fun pruneDefaultTopPrefs() {
+        if (coroutineContext[EditContext]?.repository === this) return
         val ctx = SleepyApp.get()
         val stored = AppPrefs.getConflictDefaultTop(ctx)
         if (stored.isEmpty()) return
@@ -533,13 +560,13 @@ class ScheduleRepository(private val db: AppDatabase) {
      * 修复：之前只刷 widget 不重排通知，导致编辑课表后课前提醒/流体云仍按旧时间。
      */
     private suspend fun onDataChanged() {
+        if (coroutineContext[EditContext]?.repository === this) return
         val app = SleepyApp.get()
-        WidgetUpdater.notifyDataChanged(app)
-        try {
-            app.notificationScheduler.scheduleAll()
-        } catch (_: Throwable) {
-            // 提醒未开启或调度失败不应影响写操作本身
-        }
+        try { pruneDefaultTopPrefs() }
+        catch (e: Exception) { android.util.Log.w("ScheduleRepository", "Preference cleanup failed", e) }
+        try { WidgetUpdater.notifyDataChanged(app) }
+        catch (e: Exception) { android.util.Log.w("ScheduleRepository", "Widget refresh failed", e) }
+        app.notificationScheduler.scheduleAll()
     }
 
     private fun assignGroupIds(courses: List<CourseEntity>): List<CourseEntity> {

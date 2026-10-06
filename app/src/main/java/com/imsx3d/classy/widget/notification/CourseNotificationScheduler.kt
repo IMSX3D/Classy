@@ -27,6 +27,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.CancellationException
+import com.imsx3d.classy.BuildConfig
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -40,6 +45,9 @@ import java.time.ZoneId
 class CourseNotificationScheduler(private val context: Context) {
 
     companion object {
+        internal val schedulingMutex = Mutex()
+        private val schedulingScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        internal fun alarmPrefs(context: Context) = context.getSharedPreferences("course_alarm_registry", Context.MODE_PRIVATE)
         const val CHANNEL_DAILY = "sleepy_daily"
         const val CHANNEL_BEFORE_CLASS = "sleepy_before_class"
         const val CHANNEL_FLUID = "sleepy_fluid_v2"
@@ -56,34 +64,34 @@ class CourseNotificationScheduler(private val context: Context) {
         const val NOTIFY_BEFORE_CLASS_BASE = 2000 // + courseId offset
     }
 
-    fun scheduleAll() {
-        createChannels()
-        // 整段放入 IO 协程：cancelAll 现为 suspend，需在协程内先取消再重排，
-        //   保证「先取消后重排」的顺序不被打散（避免取消与重排的竞态），
-        //   同时把查库挪出主线程，消除 runBlocking 导致的 ANR 风险。
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            cancelAll()
+    fun scheduleAll() = schedulingScope.launch {
+        try { reschedule() }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { android.util.Log.e("CourseScheduler", "Reschedule failed", e) }
+    }
 
+    /** All callers share one lock, including the midnight receiver and toggle-off path. */
+    suspend fun reschedule() = schedulingMutex.withLock {
+        SleepyApp.get().repository.readConsistently {
+            createChannels()
+            cancelAllLocked()
             val prefs = context.applicationContext
-            if (!AppPrefs.isReminderEnabled(prefs)) return@launch
-
-            if (AppPrefs.isDailyReminderEnabled(prefs)) {
-                if (AppPrefs.isTodayReminderEnabled(prefs)) {
-                    scheduleDaily()
+            if (AppPrefs.isReminderEnabled(prefs)) {
+                if (AppPrefs.isDailyReminderEnabled(prefs)) {
+                    if (AppPrefs.isTodayReminderEnabled(prefs)) scheduleDaily()
+                    if (AppPrefs.isTomorrowReminderEnabled(prefs)) scheduleTomorrowReminder()
                 }
-                if (AppPrefs.isTomorrowReminderEnabled(prefs)) {
-                    scheduleTomorrowReminder()
+                if (AppPrefs.isBeforeClassEnabled(prefs)) {
+                    scheduleBeforeClassDaily()
+                    ensureActiveFluidCloudLocked()
                 }
-            }
-            if (AppPrefs.isBeforeClassEnabled(prefs)) {
-                scheduleBeforeClassDaily()
-                // 状态兜底：排 alarm 的同时立即检测是否已在某节课窗口内（补起流体云）
-                ensureActiveFluidCloud()
             }
         }
     }
 
-    suspend fun cancelAll() {
+    suspend fun cancelAll() = schedulingMutex.withLock { cancelAllLocked() }
+
+    private suspend fun cancelAllLocked() {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         // Cancel daily
@@ -93,17 +101,15 @@ class CourseNotificationScheduler(private val context: Context) {
         // Cancel before-class scheduler
         alarmManager.cancel(buildPendingIntent(RC_BEFORE_CLASS_SCHEDULER, BeforeClassScheduleReceiver::class.java))
 
-        // 课前提醒的 request code 用 RC_BEFORE_CLASS_BASE + course.id（稳定唯一）。
-        // 取消时遍历数据库里所有课程 id，逐个 cancel，不再依赖写死的 50 上限。
-        // 改为 suspend + withContext(IO) 查库，不再在主线程 runBlocking 阻塞导致 ANR。
-        val courseIds = withContext(Dispatchers.IO) {
-            runCatching {
-                SleepyApp.get().repository.let { repo ->
-                    repo.getAllTables().flatMap { repo.getCourses(it.id) }
-                }.map { it.id.toInt() }
-            }.getOrDefault(emptyList())
-        }
-        cancelCourseAlarmIds(alarmManager, courseIds)
+        val prefs = alarmPrefs(context)
+        val recorded = prefs.getStringSet("ids", emptySet()).orEmpty().mapNotNull { it.toIntOrNull() }
+        // Existing rows also cancel alarms from versions predating the registry.
+        val current = SleepyApp.get().repository.getAllCourses().map { it.id.toInt() }
+        cancelCourseAlarmIds(alarmManager, (recorded + current).distinct())
+        check(prefs.edit().putStringSet("ids", emptySet())
+            .putString("generation", java.util.UUID.randomUUID().toString()).commit())
+        NotificationManagerCompat.from(context).cancel(NOTIFY_BEFORE_CLASS_BASE)
+        context.stopService(Intent(context, FluidCloudService::class.java))
     }
 
     /**
@@ -168,7 +174,7 @@ class CourseNotificationScheduler(private val context: Context) {
 
     // ==================== Before-class scheduler ====================
 
-    private fun scheduleBeforeClassDaily() {
+    private suspend fun scheduleBeforeClassDaily() {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pending = buildPendingIntent(RC_BEFORE_CLASS_SCHEDULER, BeforeClassScheduleReceiver::class.java)
 
@@ -181,33 +187,25 @@ class CourseNotificationScheduler(private val context: Context) {
         setRepeatingAlarm(alarmManager, epoch, AlarmManager.INTERVAL_DAY, pending)
 
         // Also immediately schedule for today (in case app was opened after midnight)
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            scheduleTodayBeforeClassAlarms()
-        }
+        scheduleTodayBeforeClassAlarmsLocked()
     }
 
     /**
      * Queries today's courses and schedules individual before-class alarms.
      * Called by [BeforeClassScheduleReceiver] at midnight and by [scheduleBeforeClassDaily].
      */
-    suspend fun scheduleTodayBeforeClassAlarms() {
+    suspend fun scheduleTodayBeforeClassAlarms() = reschedule()
+
+    private suspend fun scheduleTodayBeforeClassAlarmsLocked() {
         val app = context.applicationContext
         android.util.Log.d("CourseScheduler", "scheduleToday start enabled=${AppPrefs.isBeforeClassEnabled(app)} minutes=${AppPrefs.getBeforeClassMinutes(app)}")
         if (!AppPrefs.isBeforeClassEnabled(app)) return
         val minutes = AppPrefs.getBeforeClassMinutes(app)
         val today = LocalDate.now()
-        val table = resolveCurrentTable()
-        val dow = com.imsx3d.classy.widget.HolidayTransferHelper.effectiveDayOfWeek(app, table?.id, today)
-
-
-        android.util.Log.d("CourseScheduler", "table=${table?.id}:${table?.name} start=${table?.startDate} today=$today dow=$dow")
-        if (table == null) return
-        val week = DateUtils.currentWeek(table.startDate, today)
-        val allCourses = SleepyApp.get().repository.getCoursesByDayOnce(table.id, dow)
-        // 防呆: 学期范围外不上课前闹钟(钳制周数会误匹配第 1 周的课)
-        if (DateUtils.semesterStatus(table.startDate, table.maxWeek, today) != DateUtils.SemesterStatus.IN_RANGE) return
-        val courses = allCourses.filter { it.inWeek(week) }
-        android.util.Log.d("CourseScheduler", "week=$week coursesAll=${allCourses.size} coursesInWeek=${courses.size}")
+        val table = resolveCurrentTable() ?: return
+        val courses = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
+            app, table, today, SleepyApp.get().repository.getCourses(table.id)
+        )
 
         // Parse time nodes
         val nodes = TimeTableUtils.parseNodes(table.timeJson)
@@ -245,7 +243,13 @@ class CourseNotificationScheduler(private val context: Context) {
                 return@forEachIndexed
             }
 
+            val registry = alarmPrefs(context)
+            val ids = registry.getStringSet("ids", emptySet()).orEmpty() + course.id.toInt().toString()
+            // Persist before AlarmManager: a process death can at worst leave an extra cancel ID.
+            check(registry.edit().putStringSet("ids", ids).commit())
             val intent = Intent(context, BeforeClassNotifyReceiver::class.java).apply {
+                putExtra("courseId", course.id)
+                putExtra("generation", registry.getString("generation", ""))
                 putExtra("courseName", course.courseName)
                 putExtra("room", course.room)
                 putExtra("teacher", course.teacher)
@@ -275,23 +279,23 @@ class CourseNotificationScheduler(private val context: Context) {
      * 调用时机：app 回前台、app 启动、课程数据变更、WorkManager 周期兜底。
      * 解决"alarm 错过那一秒 / 用户在窗口内才打开 app → 流体云永远不起"的问题。
      */
-    suspend fun ensureActiveFluidCloud() {
+    suspend fun ensureActiveFluidCloud() = schedulingMutex.withLock {
+        SleepyApp.get().repository.readConsistently { ensureActiveFluidCloudLocked() }
+    }
+
+    private suspend fun ensureActiveFluidCloudLocked() {
         val app = context.applicationContext
         if (!AppPrefs.isReminderEnabled(app) || !AppPrefs.isBeforeClassEnabled(app)) return
         if (!AppPrefs.isBeforeClassFluidEnabled(app)) return
         val minutes = AppPrefs.getBeforeClassMinutes(app)
         val today = LocalDate.now()
         val table = resolveCurrentTable() ?: return
-        val dow = com.imsx3d.classy.widget.HolidayTransferHelper.effectiveDayOfWeek(app, table.id, today)
-        val week = DateUtils.currentWeek(table.startDate, today)
-        // 防呆: 学期范围外不触发流体云(钳制周数会误匹配第 1 周的课)
-        if (DateUtils.semesterStatus(table.startDate, table.maxWeek, today) != DateUtils.SemesterStatus.IN_RANGE) return
         val nodes = TimeTableUtils.parseNodes(table.timeJson)
         val now = System.currentTimeMillis()
 
         // 找出现在处于课前窗口内的第一节课
-        val hit = SleepyApp.get().repository.getCoursesByDayOnce(table.id, dow)
-            .filter { it.inWeek(week) }
+        val hit = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
+            app, table, today, SleepyApp.get().repository.getCourses(table.id))
             .firstOrNull { c ->
                 val st = if (c.ownTime && c.startTime.isNotBlank()) c.startTime
                     else nodes.find { it.node == c.startNode }?.let { String.format("%02d:%02d", it.start.hour, it.start.minute) }
@@ -379,7 +383,7 @@ class DailyNotifyReceiver : BroadcastReceiver() {
             !AppPrefs.isTodayReminderEnabled(context)
         ) return
 
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        runAsync {
             sendScheduleSummary(
                 context = context,
                 targetDate = LocalDate.now(),
@@ -398,7 +402,7 @@ class TomorrowNotifyReceiver : BroadcastReceiver() {
             !AppPrefs.isTomorrowReminderEnabled(context)
         ) return
 
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        runAsync {
             sendScheduleSummary(
                 context = context,
                 targetDate = LocalDate.now().plusDays(1),
@@ -412,28 +416,13 @@ private suspend fun sendScheduleSummary(
     context: Context,
     targetDate: LocalDate,
     isTomorrowPreview: Boolean
-) {
+) = SleepyApp.get().repository.readConsistently {
     val table = com.imsx3d.classy.widget.WidgetTableResolver.resolveCurrentTable()
-    val dow = com.imsx3d.classy.widget.HolidayTransferHelper.effectiveDayOfWeek(
-        context.applicationContext, table?.id, targetDate
-    )
     val dayOfMonth = targetDate.dayOfMonth
-
-    val courses = if (table == null) {
-        emptyList()
-    } else {
-        val week = DateUtils.currentWeek(table.startDate, targetDate)
-        val inSemester = DateUtils.semesterStatus(table.startDate, table.maxWeek, targetDate) ==
-            DateUtils.SemesterStatus.IN_RANGE
-        if (!inSemester) {
-            emptyList()
-        } else {
-            SleepyApp.get().repository
-                .getCoursesByDayOnce(table.id, dow)
-                .filter { it.inWeek(week) }
-                .sortedBy { it.startNode }
-        }
-    }
+    val courses = if (table == null) emptyList() else
+        com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
+            context.applicationContext, table, targetDate, SleepyApp.get().repository.getCourses(table.id)
+        )
 
     val title: String
     val text: String
@@ -468,9 +457,7 @@ private suspend fun sendScheduleSummary(
         .setAutoCancel(true)
         .build()
 
-    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-        == PackageManager.PERMISSION_GRANTED
-    ) {
+    if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
         NotificationManagerCompat.from(context).notify(
             if (isTomorrowPreview) {
                 CourseNotificationScheduler.NOTIFY_TOMORROW_DAILY
@@ -488,9 +475,7 @@ private suspend fun sendScheduleSummary(
 class BeforeClassScheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (!AppPrefs.isReminderEnabled(context) || !AppPrefs.isBeforeClassEnabled(context)) return
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            CourseNotificationScheduler(context.applicationContext).scheduleTodayBeforeClassAlarms()
-        }
+        runAsync { SleepyApp.get().notificationScheduler.reschedule() }
     }
 }
 
@@ -500,6 +485,37 @@ class BeforeClassScheduleReceiver : BroadcastReceiver() {
  */
 class BeforeClassNotifyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        runAsync {
+            CourseNotificationScheduler.schedulingMutex.withLock {
+                SleepyApp.get().repository.readConsistently {
+                    val debug = BuildConfig.DEBUG && intent.getBooleanExtra("debug_force_fluid", false)
+                    if (!debug) {
+                        val generation = intent.getStringExtra("generation") ?: return@readConsistently
+                        if (generation != CourseNotificationScheduler.alarmPrefs(context).getString("generation", null)) return@readConsistently
+                        val repo = SleepyApp.get().repository
+                        val course = repo.getCourse(intent.getLongExtra("courseId", -1L)) ?: return@readConsistently
+                        val table = com.imsx3d.classy.widget.WidgetTableResolver.resolveCurrentTable() ?: return@readConsistently
+                        if (course.tableId != table.id) return@readConsistently
+                        val today = LocalDate.now()
+                        val active = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(context, table, today, listOf(course))
+                        if (active.isEmpty()) return@readConsistently
+                        val start = runCatching { LocalTime.parse(getCourseStartTime(course, table)) }.getOrNull() ?: return@readConsistently
+                        val epoch = today.atTime(start).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val notifyEpoch = epoch - AppPrefs.getBeforeClassMinutes(context) * 60_000L
+                        if (epoch != intent.getLongExtra("classEpoch", -1L) ||
+                            notifyEpoch != intent.getLongExtra("notifyEpoch", -1L) ||
+                            System.currentTimeMillis() > epoch) return@readConsistently
+                        intent.putExtra("courseName", course.courseName)
+                        intent.putExtra("room", course.room)
+                        intent.putExtra("teacher", course.teacher)
+                    }
+                    showNotification(context, intent)
+                }
+            }
+        }
+    }
+
+    private fun showNotification(context: Context, intent: Intent) {
         android.util.Log.d("BeforeClassNotify", "entered extras=${intent.extras?.keySet()}")
         if (!hasNotifPermission(context)) {
             android.util.Log.w("BeforeClassNotify", "POST_NOTIFICATIONS denied")
@@ -515,7 +531,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
         val startTime = intent.getStringExtra("startTime") ?: ""
         val roomStr = room.ifBlank { context.getString(R.string.notif_room_unknown) }
         val teacher = intent.getStringExtra("teacher") ?: ""
-        val fluid = intent.getBooleanExtra("debug_force_fluid", false) || AppPrefs.isBeforeClassFluidEnabled(context)
+        val fluid = (BuildConfig.DEBUG && intent.getBooleanExtra("debug_force_fluid", false)) || AppPrefs.isBeforeClassFluidEnabled(context)
         val banner = AppPrefs.isBeforeClassBannerEnabled(context)
         if (!banner && !fluid) return
         val fields = AppPrefs.getBeforeClassFluidFields(context)
@@ -550,8 +566,12 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
                 putExtra("notifyEpoch", intent.getLongExtra("notifyEpoch", System.currentTimeMillis()))
                 putExtra("classEpoch", intent.getLongExtra("classEpoch", System.currentTimeMillis()))
             }
-            ContextCompat.startForegroundService(context, serviceIntent)
-            return
+            try {
+                ContextCompat.startForegroundService(context, serviceIntent)
+                return
+            } catch (e: RuntimeException) {
+                android.util.Log.w("BeforeClassNotify", "Foreground service unavailable; using notification", e)
+            }
         }
 
         // == Fallback: standard notification ==
@@ -571,9 +591,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
 
         // Lint MissingPermission + 运行时兜底: 同 DailyNotifyReceiver,
         //   onReceive 校验后到此处之间权限可能被撤销 → 内联 checkSelfPermission 再查一次
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             NotificationManagerCompat.from(context)
                 .notify(CourseNotificationScheduler.NOTIFY_BEFORE_CLASS_BASE, notif)
         }
@@ -587,12 +605,9 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED
             || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
-            if (AppPrefs.isReminderEnabled(context)) {
-                SleepyApp.get().notificationScheduler.scheduleAll()
-            }
-            // 课程边界闹钟无条件重排 (设计 §5): 与通知开关无关, armNext 阻塞读库 → IO
             val appContext = context.applicationContext
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            runAsync {
+                SleepyApp.get().notificationScheduler.reschedule()
                 com.imsx3d.classy.widget.WidgetBoundaryScheduler.armNext(appContext)
             }
         }
@@ -602,7 +617,7 @@ class BootReceiver : BroadcastReceiver() {
 // ==================== Shared helpers ====================
 
 private fun hasNotifPermission(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+    Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED
 
 private fun openAppIntent(context: Context): PendingIntent =
@@ -621,4 +636,14 @@ private fun getCourseStartTime(course: CourseEntity, table: TimeTableEntity): St
     val nodes = TimeTableUtils.parseNodes(table.timeJson)
     val node = nodes.find { it.node == course.startNode } ?: return ""
     return String.format("%02d:%02d", node.start.hour, node.start.minute)
+}
+
+/** Keep the process alive while handling a short broadcast, always release on failure. */
+private fun BroadcastReceiver.runAsync(block: suspend () -> Unit) {
+    val pending = goAsync()
+    CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        try { withTimeout(9_000) { block() } }
+        catch (e: Exception) { android.util.Log.e("CourseReceiver", "Broadcast work failed", e) }
+        finally { pending.finish() }
+    }
 }

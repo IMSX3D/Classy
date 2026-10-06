@@ -133,7 +133,7 @@ fun HolidaySettingsScreen(
         AppPrefs.updateHolidayTransfer(context, id, sourceDate, targetDate, segmentId)
         transfers = AppPrefs.getHolidayTransfers(context, id)
         // issue#44: 映射是按表存的, 只有改到当前选中的那张表才需要刷新课表页/widget/闹钟
-        if (id == tableId) {
+        run {
             viewModel.refreshTransfer()
             val app = context.applicationContext
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {

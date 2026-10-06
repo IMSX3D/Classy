@@ -105,12 +105,10 @@ open class TwoDayWidgetReceiver : AppWidgetProvider() {
                         val dates = if (source.display.status == com.imsx3d.classy.util.WeekDisplayStatus.NEAREST_BUSY_DAY) {
                             listOf(source.display.targetDate, source.display.targetDate.plusDays(1))
                         } else listOf(today, tomorrow)
-                        val status = DateUtils.semesterStatus(table.startDate, table.maxWeek, dates.first())
+                        val status = HolidayTransferHelper.semesterStatus(context, table, dates.first())
                         val days = dates.map { date ->
-                            val week = DateUtils.currentWeek(table.startDate, date)
-                            val dow = HolidayTransferHelper.effectiveDayOfWeek(context, table.id, date)
-                            val courses = if (status != DateUtils.SemesterStatus.IN_RANGE) emptyList()
-                                else source.coursesFor(dow, week)
+                            val dow = date.dayOfWeek.value
+                            val courses = source.coursesOn(date)
                             DayData(date = date, dayOfWeek = dow, courses = courses, timeJson = table.timeJson)
                         }
                         TwoDayData(

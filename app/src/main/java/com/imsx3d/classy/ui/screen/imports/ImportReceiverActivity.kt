@@ -36,23 +36,9 @@ class ImportReceiverActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             try {
-                // file:// URI 在 Android 7+ 直接 openInputStream 会 EACCES (Scoped Storage)，
-                // 先复制到 cacheDir 再读; content:// URI (SAF picker) 直接读即可, 已被授权。
                 val text = withContext(Dispatchers.IO) {
-                    if (uri.scheme == "file") {
-                        val src = uri.path
-                        if (src == null) return@withContext null
-                        val cacheFile = java.io.File(cacheDir, "shared_import_${System.currentTimeMillis()}.json")
-                        cacheFile.outputStream().use { out ->
-                            java.io.File(src).inputStream().use { input ->
-                                input.copyTo(out)
-                            }
-                        }
-                        cacheFile.readText().also {
-                            cacheFile.delete()
-                        }
-                    } else {
-                        contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    contentResolver.openInputStream(uri)?.use {
+                        com.imsx3d.classy.util.BoundedImportReader.read(it)
                     }
                 }
                 if (text.isNullOrBlank()) {
@@ -60,16 +46,18 @@ class ImportReceiverActivity : ComponentActivity() {
                     return@launch
                 }
 
-                // 通过 companion.pendingImportText 透传到 MainActivity, 不依赖 Intent extra
-                com.imsx3d.classy.MainActivity.pendingImportText = text
-
+                val token = withContext(Dispatchers.IO) {
+                    com.imsx3d.classy.util.PendingImportStore.save(this@ImportReceiverActivity, text)
+                }
                 val forward = Intent(this@ImportReceiverActivity, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra(EXTRA_FROM_IMPORT_RECEIVER, true)
-                    putExtra(EXTRA_IMPORT_TEXT, text)
+                    putExtra(EXTRA_IMPORT_TOKEN, token)
                 }
                 startActivity(forward)
                 finish()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("Classy", "external import failed", e)
                 finishWithError(e.message ?: "unknown")
@@ -78,20 +66,21 @@ class ImportReceiverActivity : ComponentActivity() {
     }
 
     private fun finishWithError(msg: String) {
-        // 跳回 MainActivity 让用户看到主界面, 不弹任何 dialog (避免惊吓)
-        val fallback = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        try {
-            startActivity(fallback)
-        } catch (_: Exception) {
-            // ignore
-        }
-        finish()
+        android.app.AlertDialog.Builder(this)
+            .setTitle("导入失败")
+            .setMessage(when (msg) {
+                "no_uri" -> "没有收到文件地址，请重新选择课表文件。"
+                "empty" -> "文件内容为空，请选择有效的课表文件。"
+                else -> msg
+            })
+            .setPositiveButton("确定") { _, _ -> finish() }
+            .setOnCancelListener { finish() }
+            .show()
     }
 
     companion object {
         const val EXTRA_FROM_IMPORT_RECEIVER = "extra_from_import_receiver"
+        const val EXTRA_IMPORT_TOKEN = "extra_import_token"
         const val EXTRA_IMPORT_TEXT = "extra_import_text"
     }
 }

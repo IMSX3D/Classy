@@ -25,6 +25,16 @@
                 <action android:name="com.imsx3d.classy.debug.SCHEDULE_NOW" />
             </intent-filter>
         </receiver>
+        <activity
+            android:name=".widget.WeekGridPreviewActivity"
+            android:exported="true"
+            android:label="Widget 预览"
+            android:theme="@style/Theme.Sleepy" />
+        <activity
+            android:name=".widget.WidgetRenderActivity"
+            android:exported="true"
+            android:label="Widget Render"
+            android:theme="@style/Theme.Sleepy" />
     </application>
 
 </manifest>

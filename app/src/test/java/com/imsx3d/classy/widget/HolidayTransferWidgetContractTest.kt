@@ -22,18 +22,17 @@ class HolidayTransferWidgetContractTest {
         "src/main/java/com/imsx3d/classy/widget/WeekViewWidget.kt",
         "src/main/java/com/imsx3d/classy/widget/WeekListWidget.kt",
         "src/main/java/com/imsx3d/classy/widget/WeekGridWidgetProvider.kt",
-        "src/main/java/com/imsx3d/classy/widget/WidgetRenderActivity.kt",
         "src/main/java/com/imsx3d/classy/widget/WidgetCompactWindow.kt",
         "src/main/java/com/imsx3d/classy/widget/notification/CourseNotificationScheduler.kt"
     )
 
     @Test
-    fun all_consumers_use_shared_effectiveDayOfWeek() {
+    fun all_consumers_use_shared_date_and_week_resolution() {
         consumers.forEach { rel ->
             val text = src(rel)
             assertTrue(
-                "$rel must use HolidayTransferHelper.effectiveDayOfWeek (or VM courseDayFor)",
-                text.contains("effectiveDayOfWeek")
+                "$rel must resolve full course dates, including source week parity",
+                text.contains("coursesOn(")
             )
         }
     }

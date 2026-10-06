@@ -89,7 +89,11 @@ object ScheduleExporter {
     }
 
     /** 导出 ICS 日历 */
-    fun exportIcs(table: TimeTableEntity, courses: List<CourseEntity>): String {
+    fun exportIcs(
+        table: TimeTableEntity,
+        courses: List<CourseEntity>,
+        transfers: List<com.imsx3d.classy.util.HolidayTransferEntry> = emptyList()
+    ): String {
         val sb = StringBuilder()
         sb.appendLine("BEGIN:VCALENDAR")
         sb.appendLine("VERSION:2.0")
@@ -151,6 +155,25 @@ object ScheduleExporter {
             } else {
                 sb.appendLine("RRULE:FREQ=WEEKLY$interval$until")
             }
+            // Suppress original occurrences on both affected days, then add the resolved
+            // destination occurrence. RDATE preserves the source week's single/double parity.
+            val affected = transfers.flatMap { listOf(it.sourceDate, it.targetDate) }.distinct()
+            val excluded = affected.filter { date ->
+                com.imsx3d.classy.util.CourseDateResolver.coursesOn(
+                    date, table.startDate, table.maxWeek, listOf(c)
+                ).isNotEmpty()
+            }
+            val added = affected.filter { date ->
+                com.imsx3d.classy.util.CourseDateResolver.coursesOn(
+                    date, table.startDate, table.maxWeek, listOf(c), transfers
+                ).isNotEmpty()
+            }
+            if (excluded.isNotEmpty()) sb.appendLine("EXDATE:" + excluded.joinToString(",") {
+                "${it.toString().replace("-", "")}T$startTime"
+            })
+            if (added.isNotEmpty()) sb.appendLine("RDATE:" + added.joinToString(",") {
+                "${it.toString().replace("-", "")}T$startTime"
+            })
             sb.appendLine("SUMMARY:${escapeIcs(c.courseName)}")
             if (c.room.isNotBlank()) sb.appendLine("LOCATION:${escapeIcs(c.room)}")
             // v7.10.16k 无损闭环: DESCRIPTION 写"第X-Y节"(字面 \n 转义换行, 与 WakeUp 格式一致:

@@ -28,14 +28,13 @@ internal object WidgetCompactWindow {
         } else {
             WidgetBitmapRenderers.compactWindowDates(today, todayFirst)
         }
+        val courses = repo.getCourses(tableId)
+        val transfers = com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(com.imsx3d.classy.SleepyApp.get(), tableId)
         return dates.map { effectiveDate ->
-            val dow = HolidayTransferHelper.effectiveDayOfWeek(
-                com.imsx3d.classy.SleepyApp.get(), tableId, effectiveDate
+            val dow = effectiveDate.dayOfWeek.value
+            val visible = com.imsx3d.classy.util.CourseDateResolver.coursesOn(
+                effectiveDate, startDate, maxWeek, courses, transfers
             )
-            val week = displayWeek ?: DateUtils.currentWeek(startDate, effectiveDate)
-            val afterEnd = DateUtils.semesterStatus(startDate, maxWeek, effectiveDate) == DateUtils.SemesterStatus.AFTER_END
-            val visible = if (afterEnd) emptyList()
-                else repo.getCoursesByDayOnce(tableId, dow).filter { it.inWeek(week) }.sortedBy { it.startNode }
             DayData(date = effectiveDate, dayOfWeek = dow, courses = visible, timeJson = timeJson)
         }
     }

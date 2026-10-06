@@ -4,16 +4,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/**
- * 撤回快照覆盖契约 — 用户 2026-09-10 报「编辑课表后没有撤回按钮」。
- *
- * 根因: issue#22 (3f76309) 把编辑课程保存从 updateCourseGroup(自带 capture)
- * 换成 applyDiff, 其 KDoc 要求"调用前必须已 captureForUndo"但无人履行 →
- * 编辑课程不产生快照 → 撤回按钮(ScheduleScreen 按 hasSnapshot 显隐)不亮。
- *
- * 仓库无 Robolectric(Room 实例不可 JVM 构造), 沿用 WidgetInfoXmlContractTest
- * 的"读源头文件当契约"先例: 扫 ScheduleRepository 源码, 断言每个写库的公开
- * 方法体内都出现 captureForUndo()。
+/** Architecture guard only: real rollback/undo behaviour is covered by RepositoryQualityTest.
+ * Public writes must join atomicEdit, which captures once before any DAO change.
  */
 class UndoCaptureCoverageTest {
 
@@ -43,9 +35,9 @@ class UndoCaptureCoverageTest {
 
     @Test
     fun `every public write method captures undo snapshot`() {
-        val missing = mustCapture.filter { "captureForUndo()" !in segmentOf(it) }
+        val missing = mustCapture.filter { "= atomicEdit(" !in segmentOf(it) }
         assertTrue(
-            "公开写方法缺少 captureForUndo: $missing — 这些动作的撤回按钮将不亮(2026-09-10 编辑课程翻车)",
+            "公开写方法缺少 atomicEdit: $missing — 这些动作的撤回按钮将不亮(2026-09-10 编辑课程翻车)",
             missing.isEmpty()
         )
     }
@@ -53,13 +45,13 @@ class UndoCaptureCoverageTest {
     @Test
     fun `applyDiff captures before first dao write`() {
         val seg = segmentOf("applyDiff")
-        val captureAt = seg.indexOf("captureForUndo()")
+        val captureAt = seg.indexOf("atomicEdit(")
         val firstWrite = listOf("deleteByIds", "updateAll", "insertAll")
             .map { seg.indexOf(it) }
             .filter { it >= 0 }
             .min()
         assertTrue(
-            "applyDiff 必须先 captureForUndo 再动 DAO — 否则编辑课程无快照可撤",
+            "applyDiff 必须先 atomicEdit 再动 DAO — 否则编辑课程无快照可撤",
             captureAt in 0 until firstWrite
         )
     }

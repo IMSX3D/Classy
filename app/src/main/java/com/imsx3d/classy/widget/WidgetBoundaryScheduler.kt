@@ -111,8 +111,15 @@ object WidgetBoundaryScheduler {
 /** 边界到点 → 全量重推 (notifyDataChanged 尾部自重排下一边界, 链自续)。 */
 class WidgetBoundaryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            WidgetUpdater.notifyDataChanged(context)
+            try {
+                kotlinx.coroutines.withTimeout(9_000) { WidgetUpdater.notifyDataChanged(context.applicationContext) }
+            } catch (e: Exception) {
+                Log.w("WidgetBoundaryReceiver", "Widget refresh failed", e)
+            } finally {
+                pending.finish()
+            }
         }
     }
 }
