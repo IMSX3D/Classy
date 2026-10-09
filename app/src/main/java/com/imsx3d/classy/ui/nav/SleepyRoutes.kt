@@ -16,6 +16,7 @@ sealed interface SleepyRoute : NavKey {
         val prevDefault: Long = NO_ID,
     ) : SleepyRoute
     @Serializable data object Appearance : SleepyRoute
+    @Serializable data object SettingsHome : SleepyRoute
     @Serializable data object General : SleepyRoute
     @Serializable data object ScheduleDisplay : SleepyRoute
     @Serializable data object ControlGallery : SleepyRoute

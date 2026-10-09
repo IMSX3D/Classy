@@ -351,8 +351,9 @@ object AppPrefs {
 
     // ===== 冲突课程显示样式：叠层 / 折角 / 竖轨 =====
 
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun getConflictStyle(ctx: Context): String =
-        sp(ctx).getString(KEY_CONFLICT_STYLE, "rail") ?: "rail"
+        "rail"
 
     fun setConflictStyle(ctx: Context, value: String) {
         require(value == "stack" || value == "fold" || value == "rail")
@@ -525,9 +526,23 @@ object AppPrefs {
     fun isCourseColorless(ctx: Context): Boolean =
         sp(ctx).getBoolean(KEY_COURSE_COLORLESS, false)
 
-    /** 课程色呈现方式：fill / bar，**默认 fill**（用户 2026-09-28 定；可在「通用 → 课表显示」切换） */
+    /** Effective fill/bar rendering for the unified choice under Appearance. */
     fun getCourseColorStyle(ctx: Context): String =
-        sp(ctx).getString(KEY_COURSE_COLOR_STYLE, COURSE_STYLE_FILL) ?: COURSE_STYLE_FILL
+        getCourseAppearance(ctx).style
+
+    fun getCourseAppearance(ctx: Context): CourseAppearance = CourseAppearance.fromLegacy(
+        sp(ctx).getString(KEY_COURSE_COLOR_STYLE, COURSE_STYLE_FILL),
+        sp(ctx).getBoolean(KEY_COURSE_COLORLESS, false)
+    )
+
+    fun setCourseAppearance(ctx: Context, value: CourseAppearance) {
+        // One editor avoids intermediate combinations when changing modes.
+        sp(ctx).edit()
+            .putString(KEY_COURSE_COLOR_STYLE, value.style)
+            .putBoolean(KEY_COURSE_COLORLESS, value.colorless)
+            .apply()
+        _changeBus.tryEmit(KEY_COURSE_COLOR_STYLE)
+    }
 
     fun setCourseColorStyle(ctx: Context, v: String) {
         sp(ctx).edit().putString(
@@ -543,8 +558,9 @@ object AppPrefs {
 
     // ===== WeekView 纯文字组件：课程间分隔线 — 默认 true =====
 
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun isWidgetSeparator(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_WIDGET_SEPARATOR, true)
+        true
 
     fun setWidgetSeparator(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_WIDGET_SEPARATOR, v).apply()
@@ -578,9 +594,10 @@ object AppPrefs {
         _changeBus.tryEmit(KEY_GRID_ADAPTIVE_HEIGHT)
     }
 
-    // v1.0.56 T3: 网格双指捏放行高开关(实验室, 默认关)
+    // Manual mode supports resizing directly; auto-fit must not acquire a competing gesture.
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun isGridPinchZoom(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_GRID_PINCH_ZOOM, DEFAULT_GRID_PINCH_ZOOM)
+        !isGridAdaptiveHeight(ctx)
 
     fun setGridPinchZoom(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_GRID_PINCH_ZOOM, v).apply()
@@ -643,8 +660,9 @@ object AppPrefs {
         _changeBus.tryEmit(KEY_WEEK_TWO_COLUMN)
     }
 
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun getWeekTwoColumnMode(ctx: Context): String =
-        sp(ctx).getString(KEY_WEEK_TWO_COLUMN_MODE, "days") ?: "days"
+        "days"
 
     fun setWeekTwoColumnMode(ctx: Context, v: String) {
         sp(ctx).edit().putString(KEY_WEEK_TWO_COLUMN_MODE, if (v == "balance") "balance" else "days").apply()
@@ -659,20 +677,22 @@ object AppPrefs {
         _changeBus.tryEmit(KEY_WEEK_HIDE_EMPTY_DAYS)
     }
 
-    // ===== issue#26 课程别名 — 三场景各自开关, 默认关(显示原名) =====
+    // ===== Timetable views prefer aliases; widget display retains its independent setting. =====
     // alias 只改"展示名"; 详情/预览/通知/导出等身份场景永远原名。
     // widget 是全局一档(渲染器无 widgetId, 与 colorless/separator/vertPunct 同先例)。
 
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun isWeekUseAlias(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_WEEK_USE_ALIAS, false)
+        true
 
     fun setWeekUseAlias(ctx: Context, v: Boolean) {
         sp(ctx).edit { putBoolean(KEY_WEEK_USE_ALIAS, v) }
         _changeBus.tryEmit(KEY_WEEK_USE_ALIAS)
     }
 
+    // Fixed presentation policy; legacy preference is retained for rollback.
     fun isGridUseAlias(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_GRID_USE_ALIAS, false)
+        true
 
     fun setGridUseAlias(ctx: Context, v: Boolean) {
         sp(ctx).edit { putBoolean(KEY_GRID_USE_ALIAS, v) }

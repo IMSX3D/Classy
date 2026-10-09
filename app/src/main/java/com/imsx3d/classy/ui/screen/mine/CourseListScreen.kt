@@ -38,7 +38,7 @@ import com.imsx3d.classy.ui.theme.SleepyTheme
 import com.imsx3d.classy.ui.component.settingsCard
 
 /**
- * 2026-09-21 用户令: 我的页「课程数」卡 → 新页, 列出当前课表所有课程(按课程名聚合)。
+ * 课表管理中的课程清单，按课程名和老师聚合；在本页添加课程。
  * 与管理页不同: 这里以「课程组」为单位, 一个名字出现多次(同一课程多次上课安排)聚合为
  * 一张卡显示, 副标题注明「X 个上课安排」; 字段: 课程名 / 老师 / 教室 / 全部周次段。
  */
@@ -46,6 +46,7 @@ import com.imsx3d.classy.ui.component.settingsCard
 @Composable
 fun CourseListScreen(
     onBack: () -> Unit,
+    onAddCourse: () -> Unit,
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -72,6 +73,11 @@ fun CourseListScreen(
     SettingsScaffold(
         title = stringResource(R.string.course_list_title),
         onBack = onBack,
+        actions = {
+            androidx.compose.material3.TextButton(onClick = onAddCourse) {
+                Text(stringResource(R.string.manage_manual_add))
+            }
+        },
         verticalSpacing = 12.dp
     ) {
         if (grouped.isEmpty()) {

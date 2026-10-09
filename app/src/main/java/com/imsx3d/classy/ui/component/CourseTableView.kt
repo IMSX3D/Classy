@@ -266,7 +266,7 @@ fun CardsGridView(
             )
             val rowHeightDp = TimetableViewportPolicy.manualRowHeightDp(
                 baseRowHeightDp = baseRowHeight,
-                verticalScale = rowHeightScale,
+                verticalScale = TimetableViewportPolicy.effectiveRowScale(adaptiveHeight, rowHeightScale),
                 minRowHeightDp = TimetableViewportPolicy.MIN_ROW_DP * scale.coerceIn(0.7f, 1.3f),
                 maxRowHeightDp = TimetableViewportPolicy.MAX_ROW_DP * scale.coerceIn(0.7f, 1.3f)
             )

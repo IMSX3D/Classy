@@ -463,11 +463,10 @@ internal fun MainTabs(
                 )
             }
             ManagementPage(autoShowImportSheet = autoOnce || MainActivity.pendingImportText != null || MainActivity.pendingImportToken != null, onJwImportRequested = { ctx.startActivity(Intent(ctx, com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)) }, onCreateNewTableRequested = onCreateNewTable,
-                // v1.0.56 T7: 新建作息表卡 — ManagementPage 内部建表(自动唯一命名)后回调带新 id,
-                // 与 PeriodTablesScreen 新建按钮同一套 pendingNew discard 残留语义
-                onCreateNewPeriodTableRequested = { newId -> navigator.createPeriodTableAndEdit(newId) },
-                onManualAdd = { navigator.openAddCourse() }, onEditCurrentTable = { navigator.openEditTable() }, onExportRequested = { navigator.openExport() },
+                onEditCurrentTable = { navigator.openEditTable() }, onExportRequested = { navigator.openExport() },
                 onOpenAllTables = { navigator.openAllTables() },
+                onOpenPeriodTables = { navigator.openPeriodTables() },
+                onOpenCourseList = { navigator.openCourseList() },
                 drafts = drafts,
                 onRestoreDraft = { id ->
                     ctx.startActivity(Intent(ctx, JwImportActivity::class.java).putExtra(JwImportActivity.EXTRA_DRAFT_ID, id))
@@ -481,12 +480,10 @@ internal fun MainTabs(
         }
         Tab.Mine -> holder.SaveableStateProvider(currentTab.name) {
             MineScreen(
-                onOpenAllTables = { navigator.openAllTables() },
-                onOpenCourseList = { navigator.openCourseList() },
-                onOpenPeriodTables = { navigator.openPeriodTables() },
+                onOpenManagement = { setCurrentTab(Tab.Manage) },
+                onOpenSettings = { navigator.openSettings() },
                 onOpenAppearance = { navigator.openAppearance() },
-                onOpenGeneral = { navigator.openGeneral() },
-                onOpenExport = { navigator.openExport() },
+                onOpenWidgets = { navigator.openWidgetManagement() },
                 onOpenReminder = { navigator.openReminder() },
                 onOpenAbout = { navigator.openAbout() },
                 updateNoticeVisible = updateNoticeVisible)

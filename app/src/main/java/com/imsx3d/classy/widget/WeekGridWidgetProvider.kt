@@ -520,7 +520,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
             }
 
             // v21: 竖排(直书) — token 化 + 拉丁组旋转 + 标点优化
-            val useVertForms = AppPrefs.isVertPunctReplace(context)  // 方案B开关(默认false=方案A'旋转)
+            // Display text is laid out by StaticLayout; keep the same original text in sizing.
             // issue#26: widget 场景别名 — 字号预算与绘制必须用同一个名字, 否则截断不一致
             val useAlias = AppPrefs.isWidgetUseAlias(context)
 
@@ -553,7 +553,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                     val roomReservePre = if (hasRoom) (nameMinDp * 0.7f).coerceAtMost(availCardHPre * 0.35f) else 0f
                     val nameAvailH = (availCardHPre - roomReservePre).coerceAtLeast(0f)
                     // v21: token 单位高度(拉丁组旋转省空间 → unit<字数 → 统一号可能更大)
-                    val tokens = tokenizeName(CourseDisplayUtil.displayName(course, useAlias), useVertForms)
+                    val tokens = tokenizeName(CourseDisplayUtil.displayName(course, useAlias))
                     val unitH = measureUnitHeight(tokens, measurePaint).coerceAtLeast(1f)
                     val hi = nameCeil.coerceAtLeast(nameMinDp)   // 防"空区间"崩溃
                     val ideal = (nameAvailH / unitH).coerceIn(nameMinDp, hi)
@@ -561,7 +561,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                 }
             }
             val unifiedCharSize = minIdeal
-            Log.d(TAG, "v21 unifiedCharSize=${unifiedCharSize.toInt()}px vertForms=$useVertForms (全表最小理想字号, token化) nameMin=${nameMinDp.toInt()}px nameMax=${nameCeil.toInt()}px slotH=${slotH}px dayW=${dayW}px")
+            Log.d(TAG, "v21 unifiedCharSize=${unifiedCharSize.toInt()}px (全表最小理想字号, token化) nameMin=${nameMinDp.toInt()}px nameMax=${nameCeil.toInt()}px slotH=${slotH}px dayW=${dayW}px")
 
             // day columns
             for ((idx, dow) in sortedDays.withIndex()) {
@@ -718,7 +718,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
 
         // ===== v21 竖排(直书) token 化 =====
         // 把课名切成有序 token: CJK run(直立) / Latin run≥2(整组旋转90°) / Latin=1(直立) / 标点
-        // 标点处理由 useVertForms 决定: true→替换为 Vertical Forms 直立; false→逐个旋转90°
+        // Token classes are used only for the size estimate; no glyphs are substituted.
 
         /** token 类型 */
         private enum class TT { CJK, LATIN, PUNCT }
@@ -734,42 +734,14 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
             '！', '？', '”', '“', '’', '‘', '"', '\'', '/', '／', '｜', '|'
         )
 
-        /** 方案B: 横排符号 → Unicode Vertical Forms (U+FE19–FE44) */
-        private val VERT_FORM_MAP = mapOf(
-            '(' to '︵', '（' to '︵',   // U+FE35
-            ')' to '︶', '）' to '︶',   // U+FE36
-            '〔' to '︹',                  // U+FE39
-            '〕' to '︺',                  // U+FE3A
-            '【' to '︻',                  // U+FE3B
-            '】' to '︼',                  // U+FE3C
-            '《' to '︽',                  // U+FE3D
-            '》' to '︾',                  // U+FE3E
-            '〈' to '︿',                  // U+FE3F
-            '〉' to '﹀',                  // U+FE40
-            '「' to '﹁',                  // U+FE41
-            '」' to '﹂',                  // U+FE42
-            '『' to '﹃',                  // U+FE43
-            '』' to '﹄',                  // U+FE44
-            '[' to '︻',                  // 复用
-            ']' to '︼',                  // 复用
-            '{' to '︷',                  // U+FE37
-            '}' to '︸',                  // U+FE38
-            '—' to '︱',                  // U+FE31
-            '…' to '︙'                   // U+FE19
-        )
-
         private fun isLatin(ch: Char): Boolean =
             (ch in 'A'..'Z' || ch in 'a'..'z' || ch in '0'..'9')
 
         private fun isCJK(ch: Char): Boolean =
             (ch in '一'..'鿿' || ch in '㐀'..'䶿' || ch in '豈'..'﫿')
 
-        /**
-         * 课名 → token 列表。先去空白, 再扫描连续 run。
-         * useVertForms=true(方案B): 标点替换为 Vertical Forms(变 CJK 直立)
-         * useVertForms=false(方案A'): 标点保持原样(绘制时逐个旋转)
-         */
-        private fun tokenizeName(name: String, useVertForms: Boolean): List<NameToken> {
+        /** Tokenize original text for the existing size estimate; rendering uses StaticLayout. */
+        private fun tokenizeName(name: String): List<NameToken> {
             val s = name.filter { it != '\n' && it != ' ' }
             if (s.isEmpty()) return emptyList()
             val tokens = ArrayList<NameToken>()
@@ -786,7 +758,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
 
             for (ch in s) {
                 // 方案B: 标点先替换为 Vertical Forms → 归为 CJK 直立
-                val c = if (useVertForms && ch in VERT_FORM_MAP) VERT_FORM_MAP[ch]!! else ch
+                val c = ch
                 val t = when {
                     isCJK(c) -> TT.CJK
                     c in PUNCT_CHARS -> TT.PUNCT
@@ -809,7 +781,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
          *   CJK/单字Latin: 每字 1.0
          *   LATIN run≥2(旋转): measureText/textSize (旋转后占高=组宽)
          *   PUNCT(旋转 方案A'): measureText(每字)/textSize
-         *   PUNCT 已替换为 VertForms → 走 CJK 路径(每字≈1.0)
+         *   标点保留原字符；本方法只参与字号估算。
          * 用临时 paint 在任意 textSize(如1.0)下测, 比值与绝对字号无关。
          */
         private fun measureUnitHeight(tokens: List<NameToken>, paint: Paint): Float {

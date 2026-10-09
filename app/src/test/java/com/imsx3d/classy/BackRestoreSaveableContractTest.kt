@@ -25,7 +25,7 @@ import org.junit.Test
  *      基线 §1.3 明确编辑课程会话在旋转/进程恢复时安全丢弃(防恢复成空表单重复加课),
  *      必须有恢复守卫锚定此例外;
  *   2. 4 个 tab 的内容切换处同样包 SaveableStateProvider(currentTab.name);
- *   3. GeneralSettingsScreen 的 expandedSections 必须 rememberSaveable(折叠展开态跨返回存活);
+ *   3. GeneralSettingsScreen 的 languageExpanded 必须 rememberSaveable(折叠展开态跨返回存活);
  *   4. JwImportActivity 的 stage 条件组合必须含 SaveableStateProvider(key=stage 类名);
  *   5. SchoolSelectScreen 的 query 必须 rememberSaveable(搜索词跨 WebView 往返存活)。
  */
@@ -161,18 +161,18 @@ class BackRestoreSaveableContractTest {
 
     /** 契约 3: GeneralSettingsScreen 的折叠展开态必须 rememberSaveable */
     @Test
-    fun generalSettingsScreen_expandedSections_uses_rememberSaveable() {
+    fun generalSettingsScreen_languageExpanded_uses_rememberSaveable() {
         assertTrue(
             "GeneralSettingsScreen must import androidx.compose.runtime.saveable.rememberSaveable",
             generalSource.contains("androidx.compose.runtime.saveable.rememberSaveable")
         )
         assertFalse(
-            "expandedSections must not be plain remember — collapse state must survive overlay round-trip",
-            Regex("""var\s+expandedSections\s+by\s+remember\s*\{""").containsMatchIn(generalSource)
+            "languageExpanded must not be plain remember — collapse state must survive overlay round-trip",
+            Regex("""var\s+languageExpanded\s+by\s+remember\s*\{""").containsMatchIn(generalSource)
         )
         assertTrue(
-            "expandedSections must be declared via rememberSaveable",
-            Regex("""var\s+expandedSections\s+by\s+rememberSaveable""").containsMatchIn(generalSource)
+            "languageExpanded must be declared via rememberSaveable",
+            Regex("""var\s+languageExpanded\s+by\s+rememberSaveable""").containsMatchIn(generalSource)
         )
     }
 

@@ -10,8 +10,7 @@ import java.io.File
  * 2026-09-21 用户令: 4 点行为契约 — 锁实现,以防后续重构破坏新行为。
  *
  *  A. 管理页「当前课表摘要卡」整张可点 → 所有课表页(用户直觉:点开就有课表列表)
- *  B. 我的页「课表数」卡可点 → 所有课表;「课程数」卡可点 → 新课程清单页;
- *     「周数」卡静态(无 onClick)
+ *  B. 我的页六个任务入口；课程清单与作息表、导出等能力迁入课表管理。
  *  C. 课表主页 TopBar 撤回/取消撤回合胶囊: 一体显隐(hasUndo||hasRedo 才挂载),
  *     体育场形状(CircleShape+两半 32dp)+中缝 1dp 淡淡竖线
  *  D. 课程清单(CourseListScreen)路由+导航入口齐全; 课程清单按 courseName 聚合,
@@ -80,46 +79,30 @@ class MineNavRedoCourseListContractTest {
         )
     }
 
-    // ---- B. 我的页: StatsCard 课表数/课程数可点,周数格静态 ----
-
+    // A passive overview must not increase the six task-level choices.
     @Test
-    fun `mine screen stats row wires tables and courses callbacks, week is static`() {
-        // UI-13a 之后统计行不再是 StatsCard 组件，而是"扁平三栏 StatItem 直挂"（无卡片底）。
-        // 口径不变：课表数 → 所有课表、课程数 → 课程清单、当前周**静态**（onClick = null）。
-        // 每个 StatItem( 之后取 320 字符作为"这一格"的上下文（首个 ')' 会被内层
-        // stringResource(...) 提前截断，所以按定长窗口取，不按括号配对）。
-        val statsRow = mineScreen.split("StatItem(").drop(1).map { it.take(700) }
-        assertTrue("MineScreen 统计行应有 3 个 StatItem，实际 ${statsRow.size}", statsRow.size >= 3)
-
-        assertTrue(
-            "课表数 StatItem 必须传 onClick = onOpenAllTables",
-            statsRow.any { it.contains("mine_stat_tables") && it.contains("onClick = onOpenAllTables") }
-        )
-        assertTrue(
-            "课程数 StatItem 必须传 onClick = onOpenCourseList",
-            statsRow.any { it.contains("mine_stat_courses") && it.contains("onClick = onOpenCourseList") }
-        )
-        assertTrue(
-            "当前周 StatItem 必须静态（onClick = null）",
-            statsRow.any { it.contains("mine_stat_week") && it.contains("onClick = null") }
-        )
+    fun `mine retains six task entries alongside the passive overview`() {
+        assertEquals(6, Regex("SettingsRow\\(Icons").findAll(mineScreen).count())
+        assertTrue(mineScreen.contains("onOpenManagement"))
+        assertTrue(mineScreen.contains("onOpenSettings"))
     }
 
     @Test
-    fun `mine screen declares onOpenCourseList parameter`() {
-        assertTrue(
-            "MineScreen 必须新增 onOpenCourseList: () -> Unit = {} 形参",
-            Regex("""onOpenCourseList:\s*\(\)\s*->\s*Unit\s*=\s*\{\}""").containsMatchIn(mineScreen)
-        )
+    fun `course list is accessible from management and can add courses`() {
+        assertTrue(managementPage.contains("onClick = onOpenCourseList"))
+        assertTrue(courseListScreen.contains("onClick = onAddCourse"))
+        val main = findUpward("app/src/main/java/com/imsx3d/classy/MainActivity.kt").readText()
+        assertTrue(main.contains("onOpenCourseList = { navigator.openCourseList() }"))
+        val host = findUpward("app/src/main/java/com/imsx3d/classy/ui/nav/SleepyNavHost.kt").readText()
+        assertTrue(host.contains("onAddCourse = { navigator.openAddCourse() }"))
     }
 
     @Test
-    fun `StatItem overload supports onClick nullable`() {
-        assertTrue(
-            "StatItem 必须有 3 参重载, 第三参 onClick: (() -> Unit)? = null",
-            Regex("""fun\s+StatItem\([\s\S]{0,200}?onClick:\s*\(\(\)\s*->\s*Unit\)\?\s*=\s*null""")
-                .containsMatchIn(mineScreen)
-        )
+    fun `management retains import period tables and export without duplicate all tables entry`() {
+        assertFalse(managementPage.contains("R.string.all_tables"))
+        assertTrue(managementPage.contains("onClick = onOpenPeriodTables"))
+        assertTrue(managementPage.contains("onClick = onExportRequested"))
+        assertTrue(managementPage.contains("onJwImportRequested ="))
     }
 
     // ---- C. 课表页撤回胶囊：UI-4w 已整块摘掉（含数据层的 capture/undo/redo 也只剩无 UI 入口的代码）----

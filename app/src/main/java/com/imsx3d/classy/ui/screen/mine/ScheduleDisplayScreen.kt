@@ -6,22 +6,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+
+
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import com.imsx3d.classy.ui.component.SettingsGroupRow
+import com.imsx3d.classy.ui.component.SettingsSegmentedRow
+import com.imsx3d.classy.ui.component.TimePickerField
 import com.imsx3d.classy.R
-import com.imsx3d.classy.ui.component.DisplayModeOption
 import com.imsx3d.classy.ui.component.SectionHeader
 import com.imsx3d.classy.ui.component.SettingsGroupCard
 import com.imsx3d.classy.ui.component.SettingsRowDivider
@@ -37,33 +45,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-/**
- * 「课表显示」二级页（UI-15a）—— 把「通用」页原先塞在同一张卡里的三处**多选项 / 多滑杆**内容搬出来。
- *
- * 为什么搬：那三处（主页显示 8 项、冲突样式 3 选 + 3 根滑杆、显示星期 7 个开关）原来是就地折叠卡，
- * 一屏之内决策点太多（用户 2026-09-27 的顾虑："一下子灌入太多信息，影响用户在调整相关设置或
- * 做决策时候的判断"）。搬到二级页后，「通用」页只剩 5 行（两个分段 + 一个入口 + 两个入口/开关），
- * 想深入调的人再进来 —— Cresto / Pear Wall 的关于页与设置页都是这个做法（入口行带「›」）。
- *
- * 内容**逐字搬移**，只是把"折叠"换成"独立页"，行为与原折叠卡完全一致（含各样式下的条件滑杆）。
- */
+/** 课表显示：保留阅读与布局选择，圆角和冲突提示尺寸沿用默认值或已有偏好。 */
 @Composable
-fun ScheduleDisplayScreen(onBack: () -> Unit) {
+fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
+    var displayMode by remember { mutableStateOf(AppPrefs.getDisplayMode(context)) }
+    var gridSubInfo by remember { mutableStateOf(AppPrefs.getGridSubInfo(context)) }
+    var startView by remember { mutableStateOf(AppPrefs.getStartView(context)) }
+    var autoHideEmptyEvening by remember { mutableStateOf(AppPrefs.isGridAutoHideEmptyEvening(context)) }
+    var gridAdaptiveHeight by remember { mutableStateOf(AppPrefs.isGridAdaptiveHeight(context)) }
+    var eveningStart by remember { mutableStateOf(AppPrefs.getGridEveningStart(context)) }
+
     var gridScale by remember { mutableStateOf(AppPrefs.getGridScale(context)) }
     var weekScale by remember { mutableStateOf(AppPrefs.getWeekScale(context)) }
-    var gridCorner by remember { mutableStateOf(AppPrefs.getGridCornerRatio(context)) }
     var weekTwoColumn by remember { mutableStateOf(AppPrefs.isWeekTwoColumn(context)) }
-    var weekTwoColumnMode by remember { mutableStateOf(AppPrefs.getWeekTwoColumnMode(context)) }
     var weekHideEmptyDays by remember { mutableStateOf(AppPrefs.isWeekHideEmptyDays(context)) }
-    var weekUseAlias by remember { mutableStateOf(AppPrefs.isWeekUseAlias(context)) }
-    var gridUseAlias by remember { mutableStateOf(AppPrefs.isGridUseAlias(context)) }
-    var conflictStyle by remember { mutableStateOf(AppPrefs.getConflictStyle(context)) }
-    var conflictStackInset by remember { mutableStateOf(AppPrefs.getConflictStackInset(context)) }
-    var conflictRailInset by remember { mutableStateOf(AppPrefs.getConflictRailInset(context)) }
-    var conflictFoldSize by remember { mutableStateOf(AppPrefs.getConflictFoldSize(context)) }
     var visibleDays by remember { mutableStateOf(AppPrefs.getVisibleDays(context)) }
 
     // 显示项变更后立即刷小组件（与「通用」页同一条管线）
@@ -76,6 +74,67 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
         title = stringResource(R.string.schedule_display_title),
         onBack = onBack
     ) {
+
+        item {
+            SettingsGroupCard {
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_display_mode),
+                    options = listOf(
+                            stringResource(R.string.settings_display_node),
+                            stringResource(R.string.settings_display_time)
+                        ),
+                    selectedKey = if (displayMode == "node") 0 else 1,
+                    onSelect = { i ->
+                            val v = if (i == 0) "node" else "time"
+                            displayMode = v; AppPrefs.setDisplayMode(context, v); refreshWidgets()
+                        },
+                )
+                SettingsRowDivider()
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_grid_sub_info),
+                    options = listOf(
+                            stringResource(R.string.settings_grid_sub_room),
+                            stringResource(R.string.settings_grid_sub_teacher),
+                            stringResource(R.string.settings_grid_sub_none)
+                        ),
+                    selectedKey = when (gridSubInfo) {
+                            "room" -> 0
+                            "teacher" -> 1
+                            else -> 2
+                        },
+                    onSelect = { i ->
+                            val v = listOf("room", "teacher", "none")[i]
+                            gridSubInfo = v; AppPrefs.setGridSubInfo(context, v); refreshWidgets()
+                        },
+                )
+                SettingsRowDivider()
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_start_view),
+                    options = listOf(
+                            stringResource(R.string.settings_start_view_full),
+                            stringResource(R.string.settings_start_view_cards)
+                        ),
+                    selectedKey = if (startView == "full") 0 else 1,
+                    onSelect = { i ->
+                            val v = if (i == 0) "full" else "cards"
+                            startView = v; AppPrefs.setStartView(context, v)
+                        },
+                )
+                SettingsRowDivider()
+                SettingsGroupRow(
+                    title = stringResource(R.string.settings_holiday_title),
+                    onClick = onOpenHoliday,
+                    trailing = {
+                        Icon(
+                            Icons.Outlined.ChevronRight,
+                            contentDescription = null,
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                )
+            }
+        }
         item {
             SectionHeader(
                 title = stringResource(R.string.settings_pill),
@@ -84,6 +143,13 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
         }
         item {
             SettingsGroupCard {
+            SettingsSegmentedRow(
+                title = stringResource(R.string.settings_grid_size),
+                options = listOf(stringResource(R.string.settings_grid_size_auto), stringResource(R.string.settings_grid_size_manual)),
+                selectedKey = if (gridAdaptiveHeight) 0 else 1,
+                onSelect = { gridAdaptiveHeight = it == 0; AppPrefs.setGridAdaptiveHeight(context, gridAdaptiveHeight) }
+            )
+            if (!gridAdaptiveHeight) {
             SettingsSliderRow(
                 title = stringResource(R.string.settings_pill_scale),
                 valueText = "${(gridScale * 100).roundToInt()}%",
@@ -92,6 +158,10 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
                 onValueChangeFinished = { AppPrefs.setGridScale(context, gridScale) },
                 valueRange = 0.7f..1.3f
             )
+                Text(stringResource(R.string.settings_grid_size_hint),
+                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            }
             SettingsRowDivider()
             SettingsSliderRow(
                 title = stringResource(R.string.settings_pill_week_scale),
@@ -102,37 +172,11 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
                 valueRange = 0.7f..1.3f
             )
             SettingsRowDivider()
-            SettingsSliderRow(
-                title = stringResource(R.string.settings_pill_corner),
-                valueText = "${(gridCorner * 100).roundToInt()}%",
-                value = gridCorner,
-                onValueChange = { gridCorner = (it * 20).roundToInt() / 20f },
-                onValueChangeFinished = { AppPrefs.setGridCornerRatio(context, gridCorner) },
-                valueRange = 0f..2f
-            )
-            SettingsRowDivider()
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_week_two_column),
                 checked = weekTwoColumn,
                 onCheckedChange = { weekTwoColumn = it; AppPrefs.setWeekTwoColumn(context, it) }
             )
-            // 分栏标准 — 两栏开启时才需要选
-            if (weekTwoColumn) {
-                SettingsRowDivider()
-                DisplayModeOption(
-                    label = stringResource(R.string.settings_week_two_column_days),
-                    subtitle = "",
-                    selected = weekTwoColumnMode == "days",
-                    onClick = { weekTwoColumnMode = "days"; AppPrefs.setWeekTwoColumnMode(context, "days") }
-                )
-                SettingsRowDivider()
-                DisplayModeOption(
-                    label = stringResource(R.string.settings_week_two_column_balance),
-                    subtitle = "",
-                    selected = weekTwoColumnMode == "balance",
-                    onClick = { weekTwoColumnMode = "balance"; AppPrefs.setWeekTwoColumnMode(context, "balance") }
-                )
-            }
             // 隐藏无课日 — 与两栏无关, 单栏/两栏都生效
             SettingsRowDivider()
             SettingsSwitchRow(
@@ -140,88 +184,6 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
                 checked = weekHideEmptyDays,
                 onCheckedChange = { weekHideEmptyDays = it; AppPrefs.setWeekHideEmptyDays(context, it) }
             )
-            // issue#26 课程别名: 周视图/网格场景 原名/别名 二选一, 关=原名 开=别名(自独立卡挪入, 行为零变化)
-            SettingsRowDivider()
-            SettingsSwitchRow(
-                title = stringResource(R.string.settings_week_alias),
-                checked = weekUseAlias,
-                onCheckedChange = { weekUseAlias = it; AppPrefs.setWeekUseAlias(context, it) }
-            )
-            SettingsRowDivider()
-            SettingsSwitchRow(
-                title = stringResource(R.string.settings_grid_alias),
-                checked = gridUseAlias,
-                onCheckedChange = { gridUseAlias = it; AppPrefs.setGridUseAlias(context, it) }
-            )
-            // UI-5c: 「网格视图表头显示日期」开关已移除 —— 表头恒显日期后它不再影响任何可见结果
-            //（小组件真实表头本来就恒显；该开关的剩余作用只在一条已废弃的位图渲染路径上）。
-            }
-        }
-
-        item {
-            SectionHeader(
-                title = stringResource(R.string.settings_conflict_style),
-                topSpacing = 12.dp
-            )
-        }
-        item {
-            SettingsGroupCard {
-                DisplayModeOption(
-                    label = stringResource(R.string.settings_conflict_stack),
-                    subtitle = stringResource(R.string.settings_conflict_stack_sub),
-                    selected = conflictStyle == "stack",
-                    onClick = { conflictStyle = "stack"; AppPrefs.setConflictStyle(context, "stack") }
-                )
-                SettingsRowDivider()
-                DisplayModeOption(
-                    label = stringResource(R.string.settings_conflict_fold),
-                    subtitle = stringResource(R.string.settings_conflict_fold_sub),
-                    selected = conflictStyle == "fold",
-                    onClick = { conflictStyle = "fold"; AppPrefs.setConflictStyle(context, "fold") }
-                )
-                SettingsRowDivider()
-                DisplayModeOption(
-                    label = stringResource(R.string.settings_conflict_rail),
-                    subtitle = stringResource(R.string.settings_conflict_rail_sub),
-                    selected = conflictStyle == "rail",
-                    onClick = { conflictStyle = "rail"; AppPrefs.setConflictStyle(context, "rail") }
-                )
-                // 折角幅度拖杆(v7.10.16o): 仅折角样式下显示 —— 其他样式没有折角符号
-                if (conflictStyle == "fold") {
-                    SettingsRowDivider()
-                    SettingsSliderRow(
-                        title = stringResource(R.string.settings_conflict_fold_size),
-                        valueText = "${conflictFoldSize.roundToInt()}dp",
-                        value = conflictFoldSize,
-                        onValueChange = { conflictFoldSize = it.roundToInt().toFloat() },
-                        onValueChangeFinished = { AppPrefs.setConflictFoldSize(context, conflictFoldSize) },
-                        valueRange = AppPrefs.CONFLICT_FOLD_SIZE_RANGE.start..AppPrefs.CONFLICT_FOLD_SIZE_RANGE.endInclusive
-                    )
-                }
-            // 叠层偏移量(用户 2026-09-04 拆分): 仅叠层样式下显示, 独立配置
-            if (conflictStyle == "stack") {
-                SettingsRowDivider()
-                SettingsSliderRow(
-                    title = stringResource(R.string.settings_conflict_stack_inset),
-                    valueText = "${conflictStackInset.roundToInt()}dp",
-                    value = conflictStackInset,
-                    onValueChange = { conflictStackInset = it.roundToInt().toFloat() },
-                    onValueChangeFinished = { AppPrefs.setConflictStackInset(context, conflictStackInset) },
-                    valueRange = AppPrefs.CONFLICT_TOP_INSET_RANGE.start..AppPrefs.CONFLICT_TOP_INSET_RANGE.endInclusive
-                )
-            }
-            // 右缘让宽(同上拆分): 仅侧边竖轨样式下显示, 与叠层互不影响
-            if (conflictStyle == "rail") {
-                SettingsRowDivider()
-                SettingsSliderRow(
-                    title = stringResource(R.string.settings_conflict_rail_inset),
-                    valueText = "${conflictRailInset.roundToInt()}dp",
-                    value = conflictRailInset,
-                    onValueChange = { conflictRailInset = it.roundToInt().toFloat() },
-                    onValueChangeFinished = { AppPrefs.setConflictRailInset(context, conflictRailInset) },
-                    valueRange = AppPrefs.CONFLICT_TOP_INSET_RANGE.start..AppPrefs.CONFLICT_TOP_INSET_RANGE.endInclusive
-                )
-            }
             }
         }
 
@@ -262,6 +224,59 @@ fun ScheduleDisplayScreen(onBack: () -> Unit) {
                     }
                     if (day != 7) SettingsRowDivider()
                 }
+            }
+        }
+        // ── 分组⑤ 实验室 (2026-09-16 用户令): 实验性功能默认全关, 可能随版本调整 ──
+        item {
+            SectionHeader(
+                title = stringResource(R.string.settings_lab),
+                topSpacing = 12.dp
+            )
+        }
+        item {
+            Text(
+                text = stringResource(R.string.settings_lab_sub),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        item {
+            SettingsGroupCard {
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_grid_auto_hide_evening),
+                    subtitle = stringResource(R.string.settings_grid_auto_hide_evening_sub),
+                    checked = autoHideEmptyEvening,
+                    onCheckedChange = {
+                        autoHideEmptyEvening = it
+                        AppPrefs.setGridAutoHideEmptyEvening(context, it)
+                    }
+                )
+                if (autoHideEmptyEvening) {
+                    SettingsRowDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_grid_evening_start),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TimePickerField(
+                            value = eveningStart,
+                            onValueChange = {
+                                eveningStart = it
+                                AppPrefs.setGridEveningStart(context, it)
+                            },
+                            label = "",
+                            modifier = Modifier.width(150.dp)
+                        )
+                    }
+                }
+
             }
         }
     }

@@ -337,10 +337,10 @@
     <string name="settings_display_node_sub">All courses show as \"Period N\"</string>
     <string name="settings_display_time">Times</string>
     <string name="settings_display_time_sub">All courses show as \"HH:mm–HH:mm\"</string>
-    <string name="settings_start_view">Default view on launch</string>
+    <string name="settings_start_view">Default schedule view</string>
     <string name="settings_start_view_full">Week view</string>
     <string name="settings_start_view_cards">Grid</string>
-    <string name="settings_grid_sub_info">Grid card details</string>
+    <string name="settings_grid_sub_info">Course card details</string>
     <string name="settings_grid_sub_room">Room</string>
     <string name="settings_grid_sub_room_sub">Show the room under the course name (hidden if none)</string>
     <string name="settings_grid_sub_teacher">Teacher</string>
@@ -416,7 +416,7 @@
     <string name="widget_edit_section_schedule">Schedule</string>
     <string name="widget_edit_section_alias">Course name display</string>
     <string name="widget_edit_default_label">Default (follow current schedule)</string>
-    <string name="widget_manage_title">Manage Widgets</string>
+    <string name="widget_manage_title">Widgets</string>
     <string name="widget_edit_title">Edit Widget</string>
     <string name="widget_manage_empty">No Classy widget added to home screen yet. Long-press empty space → Widgets → pick Classy to add.</string>
     <string name="widget_manage_entry">Manage Widgets</string>
@@ -758,7 +758,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="settings_widget">Widget settings</string>
     <string name="settings_widget_colorless">Uniform widget course colors</string>
     <string name="settings_widget_colorless_sub">Neutralize only widget course colors; in-app and custom colors are not affected</string>
-    <string name="settings_course_colorless">Uniform in-app course-pill colors</string>
+    <string name="settings_course_colorless">Uniform course background</string>
     <string name="settings_course_colorless_sub">Neutralize only in-app course pill colors; widget and custom colors are not affected</string>
     <string name="settings_widget_separator">Week-widget separator</string>
     <string name="settings_holiday_holiday">Gray out public holidays</string>
@@ -935,7 +935,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
         <item>I have always believed a tool should behave like a tool: pure, simple, good-looking, shaped around what people actually do and what they actually need. Those thoughts are what led me to build this app. It carries that original intent, and I hope everyone who uses it can feel the same clarity.</item>
         <item>Enjoy it!</item>
     </string-array>
-    <string name="about_update_notice">I first built this app for my own use, so updates come when they come; if people find it useful, I will put more time into it.</string>
+    <string name="about_update_notice">I started Classy to meet my own timetable needs, and I hope it makes your day a little easier too. I work on it in my spare time, so updates may be irregular. Thank you for your patience and support.</string>
     <string name="about_sleepy_subtitle">Upstream project · original author lingion</string>
     <string name="about_sleepy_footnote">sleepy is a minimal, local-first timetable app that is still actively maintained - many features here rest on its solid foundation. Please give the original author your support!</string>
     <string name="about_nevoit_subtitle">Glasense design system</string>
@@ -958,10 +958,26 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="widget_course_row_today_label">Today’s classes · list</string>
     <string name="widget_course_row_twoday_description">Scrollable list of today’s and tomorrow’s classes</string>
     <string name="widget_course_row_twoday_label">Upcoming classes · list</string>
-    <string name="settings_course_style">Course colour style</string>
+    <string name="settings_course_style">Course colors</string>
     <string name="settings_course_style_bar">Accent bar</string>
-    <string name="settings_course_style_fill">Filled</string>
+    <string name="settings_course_style_fill">Color fill</string>
     <string name="settings_course_style_sub">Bar: colour on the left edge only. Filled: the whole card.</string>
     <string name="jw_swjtu_period_fallback">Portal period times unavailable. SWJTU Xipu/Jiuli standard times (from 2025–2026) were filled in. Please check them before importing.</string>
     <string name="jw_draft_save_failed">Could not save draft. Please try again.</string>
+    <string name="settings_widget_refresh_error">Refresh failed. Please try again.</string>
+    <string name="settings_widget_refresh_requested">Widget refresh requested</string>
+    <string name="settings_course_neutral">Neutral background</string>
+    <string name="settings_course_palette_hint">Individually assigned course colors are kept.</string>
+    <string name="settings_grid_size">Grid size</string>
+    <string name="settings_grid_size_auto">Fit screen</string>
+    <string name="settings_grid_size_manual">Manual</string>
+    <string name="settings_grid_size_hint">You can also resize rows with two fingers on the timetable. Tap the checkmark to save.</string>
+    <string name="settings_home_title">Settings</string>
+    <string name="manage_more_title">More options</string>
+    <string name="overview_current_courses">Courses in this timetable</string>
+    <string name="overview_empty_title">No timetable yet</string>
+    <string name="overview_empty_hint">Import or create a timetable to see your courses and semester progress here.</string>
+    <string name="manage_period_tables_sub">Manage class times shared across timetables</string>
+    <string name="about_maintenance_title">A note on maintenance</string>
+    <string name="about_star_invitation">If Classy is useful to you, consider giving it a star on GitHub. Thanks for your support!</string>
 </resources>

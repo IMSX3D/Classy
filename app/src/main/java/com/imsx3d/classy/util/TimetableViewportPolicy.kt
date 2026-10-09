@@ -12,6 +12,10 @@ import kotlin.math.abs
  * adaptive timetable sizing can be verified with JVM tests.
  */
 object TimetableViewportPolicy {
+    /** Auto-fit ignores the saved manual adjustment without erasing it. */
+    fun effectiveRowScale(adaptive: Boolean, savedScale: Float): Float =
+        if (adaptive) 1f else savedScale
+
 
     const val DEFAULT_ROW_DP = 56f
     const val FIXED_ROW_DP = 52f // 原固定行高 (issue#8 时代 d(52f)) — 实验室自适应关闭时的基座

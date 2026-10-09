@@ -325,10 +325,10 @@
     <string name="settings_display_node_sub">Todos los cursos muestran \"Período N\"</string>
     <string name="settings_display_time">Horas</string>
     <string name="settings_display_time_sub">Todos los cursos muestran \"HH:mm–HH:mm\"</string>
-    <string name="settings_start_view">Vista al iniciar</string>
+    <string name="settings_start_view">Vista inicial del horario</string>
     <string name="settings_start_view_full">Vista semanal</string>
     <string name="settings_start_view_cards">Cuadrícula</string>
-    <string name="settings_grid_sub_info">Detalles de la tarjeta</string>
+    <string name="settings_grid_sub_info">Detalles de las clases</string>
     <string name="settings_grid_sub_room">Aula</string>
     <string name="settings_grid_sub_room_sub">Muestra el aula bajo el nombre del curso (oculta si no hay)</string>
     <string name="settings_grid_sub_teacher">Profesor</string>
@@ -404,7 +404,7 @@
     <string name="widget_edit_section_schedule">Horario mostrado</string>
     <string name="widget_edit_section_alias">Visualización del nombre</string>
     <string name="widget_edit_default_label">Predeterminado (sigue el horario actual)</string>
-    <string name="widget_manage_title">Administrar widgets del escritorio</string>
+    <string name="widget_manage_title">Widgets</string>
     <string name="widget_edit_title">Editar widget</string>
     <string name="widget_manage_empty">Aún no se ha añadido ningún widget de Classy al escritorio. Mantén pulsado un espacio vacío → Widgets → elige Classy para añadir.</string>
     <string name="widget_manage_entry">Administrar widgets del escritorio</string>
@@ -709,7 +709,7 @@ Agradecimientos por universidad (una tarjeta por universidad, expandir para ver 
     <string name="settings_widget">Ajustes del widget</string>
     <string name="settings_widget_colorless">Colores uniformes de cursos en widgets</string>
     <string name="settings_widget_colorless_sub">Neutraliza solo los colores de fondo en widgets; no afecta a la app ni colores personalizados</string>
-    <string name="settings_course_colorless">Color uniforme de cápsulas en la app</string>
+    <string name="settings_course_colorless">Fondo uniforme</string>
     <string name="settings_course_colorless_sub">Neutraliza solo los colores de las cápsulas en la app; no afecta a widgets ni colores personalizados</string>
     <string name="settings_widget_separator">Separador del widget semanal</string>
     <string name="settings_holiday_holiday">Atenuar festivos oficiales</string>
@@ -894,7 +894,7 @@ Agradecimientos por universidad (una tarjeta por universidad, expandir para ver 
         <item>Siempre he pensado que una herramienta debe comportarse como tal: pura, simple, bonita, pegada a lo que la gente hace y necesita de verdad. Esas ideas me llevaron a crear esta app. Lleva esa intencion original, y ojala quien la use sienta esa misma claridad.</item>
         <item>Que la disfrutes!</item>
     </string-array>
-    <string name="about_update_notice">Hice esta app para mi propio uso, asi que las actualizaciones llegan cuando llegan; si a la gente le resulta util, le dedicare mas tiempo.</string>
+    <string name="about_update_notice">Empecé Classy para organizar mi propio horario y espero que también facilite un poco tu día a día. Lo voy mejorando en mi tiempo libre, así que las actualizaciones pueden ser irregulares. Gracias por tu comprensión y apoyo.</string>
     <string name="about_sleepy_subtitle">Proyecto original · autor original lingion</string>
     <string name="about_sleepy_footnote">sleepy es una app de horarios minimalista y local-first que sigue muy activa. Muchas funciones de este proyecto se apoyan en su solida base. Apoya al autor original!</string>
     <string name="about_nevoit_subtitle">Sistema de diseno Glasense</string>
@@ -952,10 +952,26 @@ Agradecimientos por universidad (una tarjeta por universidad, expandir para ver 
     <string name="settings_reset_confirm_body">Se devolveran a los valores de fabrica todos los ajustes: visualizacion del horario (escala, esquinas, estilo de solapes), aspecto y tema, horas de los recordatorios, atenuado de festivos, barra inferior y pagina inicial.
 
 Los datos del horario, los temas personalizados y las correspondencias de festivos se conservan: no se pierde nada.</string>
-    <string name="settings_course_style">Estilo del color</string>
+    <string name="settings_course_style">Colores de las clases</string>
     <string name="settings_course_style_bar">Barra</string>
-    <string name="settings_course_style_fill">Relleno</string>
+    <string name="settings_course_style_fill">Relleno de color</string>
     <string name="settings_course_style_sub">Barra: color solo en el borde. Relleno: tarjeta completa.</string>
     <string name="jw_swjtu_period_fallback">Portal period times unavailable. SWJTU Xipu/Jiuli standard times (from 2025–2026) were filled in. Please check them before importing.</string>
     <string name="jw_draft_save_failed">Could not save draft. Please try again.</string>
+    <string name="settings_widget_refresh_error">No se pudo actualizar. Inténtalo de nuevo.</string>
+    <string name="settings_widget_refresh_requested">Actualización de widgets solicitada</string>
+    <string name="settings_course_neutral">Fondo uniforme</string>
+    <string name="settings_course_palette_hint">Se mantienen los colores asignados a clases individuales.</string>
+    <string name="settings_grid_size">Tamaño de cuadrícula</string>
+    <string name="settings_grid_size_auto">Automático</string>
+    <string name="settings_grid_size_manual">Manual</string>
+    <string name="settings_grid_size_hint">También puedes ajustar las filas con dos dedos. Toca la marca de verificación para guardar.</string>
+    <string name="settings_home_title">Ajustes</string>
+    <string name="manage_more_title">Más opciones</string>
+    <string name="overview_current_courses">Cursos de este horario</string>
+    <string name="overview_empty_title">Aún no hay horarios</string>
+    <string name="overview_empty_hint">Importa o crea un horario para ver aquí tus cursos y el progreso del semestre.</string>
+    <string name="manage_period_tables_sub">Gestiona las horas de clase compartidas entre horarios</string>
+    <string name="about_maintenance_title">Sobre el mantenimiento</string>
+    <string name="about_star_invitation">Si Classy te resulta útil, puedes darle una estrella en GitHub. ¡Gracias por tu apoyo!</string>
 </resources>

@@ -325,10 +325,10 @@
     <string name="settings_display_node_sub">すべての授業を「第N時限」と表示</string>
     <string name="settings_display_time">時刻</string>
     <string name="settings_display_time_sub">すべての授業を「HH:mm–HH:mm」と表示</string>
-    <string name="settings_start_view">起動時の表示</string>
+    <string name="settings_start_view">起動時の時間割表示</string>
     <string name="settings_start_view_full">週表示</string>
     <string name="settings_start_view_cards">グリッド</string>
-    <string name="settings_grid_sub_info">グリッドカードの補足情報</string>
+    <string name="settings_grid_sub_info">授業カードの表示</string>
     <string name="settings_grid_sub_room">教室</string>
     <string name="settings_grid_sub_room_sub">コマ名の下に教室を表示（未設定なら非表示）</string>
     <string name="settings_grid_sub_teacher">教員</string>
@@ -404,7 +404,7 @@
     <string name="widget_edit_section_schedule">表示する時間割</string>
     <string name="widget_edit_section_alias">科目名の表示</string>
     <string name="widget_edit_default_label">デフォルト（現在の時間割に従う）</string>
-    <string name="widget_manage_title">ホームウィジェットを管理</string>
+    <string name="widget_manage_title">ウィジェット</string>
     <string name="widget_edit_title">ウィジェットを編集</string>
     <string name="widget_manage_empty">ホーム画面に Classy ウィジェットが追加されていません。空いているスペースを長押し → ウィジェット → Classy を選択してください。</string>
     <string name="widget_manage_entry">ホームウィジェットを管理</string>
@@ -709,7 +709,7 @@
     <string name="settings_widget">ウィジェット設定</string>
     <string name="settings_widget_colorless">ウィジェットの授業色を統一</string>
     <string name="settings_widget_colorless_sub">ウィジェットのコマ背景色だけを中立色に統一。アプリ内やカスタム色には影響しません</string>
-    <string name="settings_course_colorless">アプリ内コースカプセルの色を統一</string>
+    <string name="settings_course_colorless">授業の背景色を統一</string>
     <string name="settings_course_colorless_sub">アプリ内のコマカプセル色だけを中立色に統一。ウィジェットやカスタム色には影響しません</string>
     <string name="settings_widget_separator">週ウィジェットの区切り線</string>
     <string name="settings_holiday_holiday">祝日の授業をグレー表示</string>
@@ -894,7 +894,7 @@
         <item>道具は道具らしくあるべきだ、と私はずっと思っています。純粋で、シンプルで、美しく、ユーザーの実際の体験に寄り添い、実際のニーズに応えるもの。そうした思いがこのアプリを作る原動力になりました。その初心をそのまま抱えたアプリです。使ってくれる一人ひとりが、この純粋さを感じ取ってくれたら嬉しいです。</item>
         <item>それでは、快適にお使いください〜</item>
     </string-array>
-    <string name="about_update_notice">このアプリは最初、自分のために作ったものです。更新の頻度や時期は約束できませんが、使ってくれる人が増えれば、もっと時間をかけていきます。</string>
+    <string name="about_update_notice">Classy は自分の時間割を使いやすくしたいと思って作り始めました。みなさんの日々の予定管理にも少し役立てばうれしいです。空いた時間に少しずつ改善しているため、更新は不定期になります。ご理解と応援に感謝します。</string>
     <string name="about_sleepy_subtitle">上流プロジェクト · 原作者 lingion</string>
     <string name="about_sleepy_footnote">sleepy はミニマルでローカル優先の時間割アプリで、今も活発に更新が続いています。本プロジェクトの多くの機能は、その堅実な土台なしには成り立ちません。原作者への応援をよろしくお願いします！</string>
     <string name="about_nevoit_subtitle">Glasense デザインシステム</string>
@@ -952,10 +952,26 @@
     <string name="settings_reset_confirm_body">時間割の表示（拡大縮小／角丸／重複のスタイル）、外観とテーマ、リマインダー時刻、祝日のグレー表示、ボトムバーと起動ページなど、すべての設定を工場出荷時の状態に戻します。
 
 時間割のデータ、カスタムテーマ、祝日の振替設定は保持され、失われません。</string>
-    <string name="settings_course_style">授業色の表示</string>
+    <string name="settings_course_style">授業の配色</string>
     <string name="settings_course_style_bar">アクセントバー</string>
-    <string name="settings_course_style_fill">塗りつぶし</string>
+    <string name="settings_course_style_fill">色付き背景</string>
     <string name="settings_course_style_sub">バー：左端の帯だけに色。塗り：カード全体を色で塗る。</string>
     <string name="jw_swjtu_period_fallback">Portal period times unavailable. SWJTU Xipu/Jiuli standard times (from 2025–2026) were filled in. Please check them before importing.</string>
     <string name="jw_draft_save_failed">Could not save draft. Please try again.</string>
+    <string name="settings_widget_refresh_error">更新できませんでした。もう一度お試しください。</string>
+    <string name="settings_widget_refresh_requested">ウィジェットの更新をリクエストしました</string>
+    <string name="settings_course_neutral">統一背景</string>
+    <string name="settings_course_palette_hint">個別に指定した授業の色は保持されます。</string>
+    <string name="settings_grid_size">グリッドのサイズ</string>
+    <string name="settings_grid_size_auto">自動調整</string>
+    <string name="settings_grid_size_manual">手動調整</string>
+    <string name="settings_grid_size_hint">時間割上で2本指を使って行の高さも変更できます。チェックマークで保存します。</string>
+    <string name="settings_home_title">設定</string>
+    <string name="manage_more_title">その他の管理</string>
+    <string name="overview_current_courses">この時間割の授業数</string>
+    <string name="overview_empty_title">時間割はまだありません</string>
+    <string name="overview_empty_hint">時間割をインポートまたは作成すると、授業数や学期の進み具合をここで確認できます。</string>
+    <string name="manage_period_tables_sub">複数の時間割で使う授業時間を管理</string>
+    <string name="about_maintenance_title">開発・更新について</string>
+    <string name="about_star_invitation">Classy が役に立ったら、GitHub で Star を付けてもらえるとうれしいです。応援ありがとうございます！</string>
 </resources>

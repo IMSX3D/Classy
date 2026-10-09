@@ -1,6 +1,7 @@
 package com.imsx3d.classy.ui.screen.mine
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,36 +13,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+import com.imsx3d.classy.ui.component.SettingsSwitchRow
+import com.imsx3d.classy.ui.component.SettingsRowDivider
+import com.imsx3d.classy.ui.component.SettingsSegmentedRow
 import com.imsx3d.classy.R
 import com.imsx3d.classy.ui.component.SectionHeader
 import com.imsx3d.classy.ui.component.SettingsGroupCard
-import com.imsx3d.classy.ui.component.SettingsGroupRow
 import com.imsx3d.classy.ui.component.SettingsRowSegmented
 import com.imsx3d.classy.ui.component.SettingsScaffold
 import com.imsx3d.classy.ui.theme.CustomSchemeDeriver
@@ -51,23 +52,24 @@ import com.imsx3d.classy.ui.theme.noRippleClickable
 import com.imsx3d.classy.ui.theme.ThemePreset
 import com.imsx3d.classy.ui.theme.ThemePresets
 import com.imsx3d.classy.data.CustomThemeStore
+import com.imsx3d.classy.util.CourseAppearance
 import com.imsx3d.classy.util.AppPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-/**
- * 外观页(决策 D2 合并页): 仅主题色彩组。课程显示/小组件组已迁至 GeneralSettingsScreen(2026-08-24)。
- * 保留 refreshWidgets() 管线, 主题变更后即时刷新小组件。
- */
+/** 外观：课程配色、底栏样式、主题与深浅色。 */
 @Composable
 fun AppearanceScreen(
     onBack: () -> Unit,
     themeMode: String = AppPrefs.THEME_MODE_SYSTEM,
-    onThemeModeChange: (String) -> Unit = {}
+    onThemeModeChange: (String) -> Unit = {},
+    navDock: Boolean = false,
+    onNavDockChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
+    var courseAppearance by remember { mutableStateOf(AppPrefs.getCourseAppearance(context)) }
     val colors = MaterialTheme.colorScheme
     // UI-4s: 分段选中块走共享"选中面"取色（深色下不再实心铺浅主色）
     val selSurface = selectedSurfaceColors()
@@ -92,7 +94,33 @@ fun AppearanceScreen(
         onBack = onBack,
         verticalSpacing = 12.dp
     ) {
-        // ── 分组① 主题色彩 ──
+
+        item {
+            SettingsGroupCard {
+                CourseAppearanceChoices(
+                    selected = courseAppearance,
+                    onSelect = { courseAppearance = it; AppPrefs.setCourseAppearance(context, it) }
+                )
+                SettingsRowDivider()
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_nav_style),
+                    options = listOf(
+                            stringResource(R.string.settings_nav_style_docked),
+                            stringResource(R.string.settings_nav_style_floating)
+                        ),
+                    selectedKey = if (navDock) 1 else 0,
+                    onSelect = { idx ->
+                            val on = idx == 1
+                            if (navDock != on) {
+                                AppPrefs.setNavDock(context, on)
+                                onNavDockChange(on)
+                            }
+                        },
+                )
+            }
+        }
+
+        // 主题选择
         item {
             // UI-25a：本页第一个分组标题 → 0（页头已带 12dp 底边距，避免叠成 40dp）
             SectionHeader(
@@ -417,5 +445,43 @@ private fun CustomThemeCard(
                 }
             }
         }
+    }
+}
+
+/** Preview and label share one selectable row, leaving room for larger fonts. */
+@Composable
+private fun CourseAppearanceChoices(selected: CourseAppearance, onSelect: (CourseAppearance) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_course_style), style = MaterialTheme.typography.bodyLarge)
+        CourseAppearance.entries.forEach { mode ->
+            val label = stringResource(when (mode) {
+                CourseAppearance.BAR -> R.string.settings_course_style_bar
+                CourseAppearance.FILL -> R.string.settings_course_style_fill
+                CourseAppearance.NEUTRAL -> R.string.settings_course_neutral
+            })
+            Row(
+                Modifier.fillMaxWidth().clip(SleepyTheme.shapes.medium)
+                    .background(if (selected == mode) colors.secondaryContainer else colors.surface)
+                    .selectable(selected = selected == mode, role = androidx.compose.ui.semantics.Role.RadioButton,
+                        onClick = { onSelect(mode) })
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(Modifier.size(width = 52.dp, height = 36.dp).clip(SleepyTheme.shapes.small)
+                    .background(if (mode == CourseAppearance.FILL) colors.primaryContainer else colors.surfaceVariant)) {
+                    if (mode == CourseAppearance.BAR) Box(Modifier.width(4.dp).height(36.dp).background(colors.primary))
+                    Column(Modifier.padding(start = 10.dp, top = 11.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Box(Modifier.width(28.dp).height(3.dp).background(colors.onSurfaceVariant.copy(alpha = 0.6f)))
+                        Box(Modifier.width(18.dp).height(3.dp).background(colors.onSurfaceVariant.copy(alpha = 0.3f)))
+                    }
+                }
+                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                if (selected == mode) Icon(Icons.Outlined.Check, contentDescription = null, tint = colors.primary)
+            }
+        }
+        Text(stringResource(R.string.settings_course_palette_hint), style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant)
     }
 }

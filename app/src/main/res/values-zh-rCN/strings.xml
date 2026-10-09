@@ -369,10 +369,10 @@
     <string name="settings_display_node_sub">所有课程显示为「第N节」</string>
     <string name="settings_display_time">时间</string>
     <string name="settings_display_time_sub">所有课程显示为「HH:mm–HH:mm」</string>
-    <string name="settings_start_view">启动默认页</string>
+    <string name="settings_start_view">默认课表视图</string>
     <string name="settings_start_view_full">周视图</string>
     <string name="settings_start_view_cards">网格</string>
-    <string name="settings_grid_sub_info">网格卡片副信息</string>
+    <string name="settings_grid_sub_info">课程卡片显示</string>
     <string name="settings_grid_sub_room">教室</string>
     <string name="settings_grid_sub_room_sub">课程名下方显示上课地点（无则不显示）</string>
     <string name="settings_grid_sub_teacher">教师</string>
@@ -421,7 +421,7 @@
     <string name="settings_widget">小组件设置</string>
     <string name="settings_widget_colorless">小组件统一课程底色</string>
     <string name="settings_widget_colorless_sub">仅将小组件课程底色统一为中性底色，不影响 App 内和自定义颜色课程</string>
-    <string name="settings_course_colorless">App 内课程胶囊统一底色</string>
+    <string name="settings_course_colorless">统一课程底色</string>
     <string name="settings_course_colorless_sub">仅将 App 内课程胶囊统一为中性底色，不影响小组件和自定义颜色课程</string>
     <string name="settings_widget_separator">周视图小组件分隔线</string>
     <string name="settings_holiday_holiday">法定节假日课程灰显</string>
@@ -509,7 +509,7 @@
     <string name="widget_edit_section_schedule">呈现的课表</string>
     <string name="widget_edit_section_alias">课程名显示</string>
     <string name="widget_edit_default_label">默认（跟随当前课表）</string>
-    <string name="widget_manage_title">管理桌面小组件</string>
+    <string name="widget_manage_title">小组件</string>
     <string name="widget_edit_title">编辑小组件</string>
     <string name="widget_manage_empty">暂未在桌面添加「Classy 课表」小组件。长按桌面空白处 → 小组件 → 选「Classy 课表」即可添加。</string>
     <string name="widget_manage_entry">管理桌面小组件</string>
@@ -951,7 +951,7 @@
         <item>我始终认为，一个工具就该有一个工具的样子：它应该是纯粹的、简洁的、美观的，贴合用户的实际体验，关注用户的实际需求。正是这些念头促使我做了这款软件 —— 它承载着我的初心，也希望每一个使用它的人都能感受到这份纯粹。</item>
         <item>希望大家使用愉快～</item>
     </string-array>
-    <string name="about_update_notice">本软件最初是为了满足我自己的需求而做的，更新频率不敢打包票；如果大家用着还不错，我会投入更多时间。</string>
+    <string name="about_update_notice">Classy 起初是为了解决我自己的课表需求，也希望能让你的日常安排轻松一点。我会利用空闲时间慢慢完善，更新节奏可能不固定，感谢你的理解与支持。</string>
     <string name="about_sleepy_subtitle">上游项目 · 原作者 lingion</string>
     <string name="about_sleepy_footnote">sleepy 是一个极简、本地优先的课表应用，至今仍在积极活跃地更新 —— 本项目的许多功能都离不开它坚实的基础。希望大家多多支持原作者！</string>
     <string name="about_nevoit_subtitle">Glasense 设计体系</string>
@@ -976,10 +976,26 @@
     <string name="widget_course_row_today_label">今日课程 · 列表</string>
     <string name="widget_course_row_twoday_description">可滚动的今明两天课程列表</string>
     <string name="widget_course_row_twoday_label">近日课程 · 列表</string>
-    <string name="settings_course_style">课程色呈现</string>
+    <string name="settings_course_style">课程配色</string>
     <string name="settings_course_style_bar">色条</string>
-    <string name="settings_course_style_fill">填充</string>
+    <string name="settings_course_style_fill">彩色填充</string>
     <string name="settings_course_style_sub">色条：颜色只占左缘一条；填充：整块用课色</string>
     <string name="jw_swjtu_period_fallback">未获取到作息，已填入西南交大犀浦/九里校区标准作息（2025—2026 学年起），请在确认页核对。</string>
     <string name="jw_draft_save_failed">保存草稿失败，请重试</string>
+    <string name="settings_widget_refresh_error">刷新失败，请稍后重试</string>
+    <string name="settings_widget_refresh_requested">已请求刷新小组件</string>
+    <string name="settings_course_neutral">统一底色</string>
+    <string name="settings_course_palette_hint">单独指定的课程颜色仍会保留。</string>
+    <string name="settings_grid_size">网格大小</string>
+    <string name="settings_grid_size_auto">自动适应</string>
+    <string name="settings_grid_size_manual">手动调整</string>
+    <string name="settings_grid_size_hint">也可在课表上双指调整行高，点击勾号保存。</string>
+    <string name="settings_home_title">设置</string>
+    <string name="manage_more_title">更多管理</string>
+    <string name="overview_current_courses">本表课程</string>
+    <string name="overview_empty_title">还没有课表</string>
+    <string name="overview_empty_hint">导入或新建课表后，在这里查看课程与学期进度。</string>
+    <string name="manage_period_tables_sub">管理上课时间，可供多张课表共用</string>
+    <string name="about_maintenance_title">关于维护</string>
+    <string name="about_star_invitation">如果 Classy 对你有帮助，欢迎到 GitHub 点一颗 Star。谢谢你的支持！</string>
 </resources>

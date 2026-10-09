@@ -208,7 +208,7 @@ internal fun SleepyNavHost(
         }
 
         entry<SleepyRoute.CourseList> {
-            CourseListScreen(onBack = { navigator.pop() })
+            CourseListScreen(onBack = { navigator.pop() }, onAddCourse = { navigator.openAddCourse() })
         }
 
         entry<SleepyRoute.EditTable> { key ->
@@ -258,20 +258,22 @@ internal fun SleepyNavHost(
                 onBack = { navigator.pop() },
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
+                navDock = navDock,
+                onNavDockChange = onNavDockChange,
             )
         }
 
         // ----------------------------------------------------------------
-        entry<SleepyRoute.General> {
-            GeneralSettingsScreen(
+        entry<SleepyRoute.SettingsHome> {
+            com.imsx3d.classy.ui.screen.mine.SettingsHomeScreen(
                 onBack = { navigator.pop() },
-                onOpenHoliday = { navigator.openHoliday() },
-                onOpenWidgetManagement = { navigator.openWidgetManagement() },
                 onOpenScheduleDisplay = { navigator.openScheduleDisplay() },
-                onOpenControlGallery = { navigator.openControlGallery() },
-                navDock = navDock,
-                onNavDockChange = onNavDockChange,
+                onOpenGeneral = { navigator.openGeneral() },
             )
+        }
+
+        entry<SleepyRoute.General> {
+            GeneralSettingsScreen(onBack = { navigator.pop() })
         }
 
         entry<SleepyRoute.ControlGallery> {
@@ -279,7 +281,7 @@ internal fun SleepyNavHost(
         }
 
         entry<SleepyRoute.ScheduleDisplay> {
-            com.imsx3d.classy.ui.screen.mine.ScheduleDisplayScreen(onBack = { navigator.pop() })
+            com.imsx3d.classy.ui.screen.mine.ScheduleDisplayScreen(onBack = { navigator.pop() }, onOpenHoliday = { navigator.openHoliday() })
         }
 
         entry<SleepyRoute.Holiday> {

@@ -47,6 +47,7 @@ class SleepyNavigator(
     fun openAllTables() = push(SleepyRoute.AllTables)
     fun openCourseList() = push(SleepyRoute.CourseList)
     fun openAppearance() = push(SleepyRoute.Appearance)
+    fun openSettings() = push(SleepyRoute.SettingsHome)
     fun openGeneral() = push(SleepyRoute.General)
     fun openScheduleDisplay() = push(SleepyRoute.ScheduleDisplay)
     fun openControlGallery() = push(SleepyRoute.ControlGallery)

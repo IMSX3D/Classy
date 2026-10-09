@@ -271,7 +271,8 @@ fun AboutScreen(
                 SettingsGroupRow(
                     title = stringResource(R.string.about_repo),
                     subtitle = if (AppIdentity.hasRepo) {
-                        AppIdentity.REPO_URL.removePrefix("https://")
+                        AppIdentity.REPO_URL.removePrefix("https://") + "\n" +
+                            stringResource(R.string.about_star_invitation)
                     } else {
                         stringResource(R.string.about_repo_pending_detail)
                     },
@@ -387,20 +388,29 @@ fun AboutScreen(
                         trailing = { RowChevron() }
                     )
                 }
-                Footnote(stringResource(R.string.about_sleepy_footnote))
-                Footnote(stringResource(R.string.about_credits_footnote))
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Footnote(stringResource(R.string.about_sleepy_footnote))
+                    Footnote(stringResource(R.string.about_credits_footnote))
+                }
             }
         }
 
-        // ── 页尾提示：更新节奏预期（脚注样式，不与正文抢注意力）──
+        // Maintenance note is a separate, left-aligned paragraph, like the credits above.
         item {
-            Text(
-                text = stringResource(R.string.about_update_notice),
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 8.dp)
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.about_maintenance_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface
+                )
+                Footnote(stringResource(R.string.about_update_notice))
+            }
         }
     }
 
@@ -451,9 +461,10 @@ private fun InitialAvatar(letter: String, tint: androidx.compose.ui.graphics.Col
 private fun Footnote(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.bodySmall,
+        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 20.sp),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp)
+        textAlign = TextAlign.Start,
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
