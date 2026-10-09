@@ -437,7 +437,7 @@ class JwImportActivity : ComponentActivity() {
                         } else saveableStateHolder.SaveableStateProvider("ConfigureConfirm") {
                         val colors = MaterialTheme.colorScheme
                         var confirmError by remember { mutableStateOf<String?>(null) }
-                        AlertDialog(
+                        com.imsx3d.classy.ui.component.ImportConfirmationDialog(
                             onDismissRequest = { requestExit() },
                             title = {
                                 Column {
@@ -454,8 +454,7 @@ class JwImportActivity : ComponentActivity() {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(max = 360.dp)
-                                        .verticalScroll(rememberScrollState()),
+                                        ,
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     DatePickerField(
@@ -477,9 +476,6 @@ class JwImportActivity : ComponentActivity() {
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
-                                    if (confirmError != null) {
-                                        Text(text = confirmError!!, color = colors.error, style = MaterialTheme.typography.bodySmall)
-                                    }
                                     TimeSlotEditor(
                                         rows = configRows,
                                         onRowsChange = { newRows ->
@@ -508,9 +504,10 @@ class JwImportActivity : ComponentActivity() {
                                         selectedPeriodTableId = configBindPeriodTableId,
                                         onSelectPeriodTable = { configBindPeriodTableId = it }
                                     )
-                                    Spacer(Modifier.height(8.dp))
-                                    // UI-31d：与全 app 弹窗一致的色块按钮行（原来是裸 TextButton）
-                                    com.imsx3d.classy.ui.component.DialogActionButtons(
+                                }
+                            },
+                            confirmButton = {
+                                com.imsx3d.classy.ui.component.DialogActionButtons(
                                         confirmText = getString(R.string.jw_config_confirm),
                                         onConfirm = {
                                         if (configStartDate.isBlank() || !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(configStartDate)) {
@@ -587,10 +584,8 @@ class JwImportActivity : ComponentActivity() {
                                         dismissText = getString(R.string.back),
                                         onDismiss = { requestExit() }
                                     )
-                                }
-                            },
-confirmButton = {},
-                            dismissButton = {}
+},
+error = confirmError
                         )
                         } // end else (school != null) — SaveableStateProvider("ConfigureConfirm")
                     }

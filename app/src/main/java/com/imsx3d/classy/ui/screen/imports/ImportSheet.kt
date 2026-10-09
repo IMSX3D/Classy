@@ -1335,7 +1335,7 @@ private fun ImportConfirmDialog(
         )
     }
     var errorMsg by remember { mutableStateOf<String?>(null) }
-    AlertDialog(
+    com.imsx3d.classy.ui.component.ImportConfirmationDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_confirm_title), color = colors.onSurface) },
         text = {
@@ -1365,18 +1365,10 @@ private fun ImportConfirmDialog(
                     isError = errorMsg != null && (startDate.isBlank() ||
                         !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(startDate))
                 )
-                if (errorMsg != null) {
-                    Text(
-                        text = errorMsg!!,
-                        color = colors.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState()),
+                        ,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TimeSlotEditor(
@@ -1393,9 +1385,10 @@ private fun ImportConfirmDialog(
                         onSelectPeriodTable = onSelectPeriodTable
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
-                com.imsx3d.classy.ui.component.DialogActionButtons(
+            }
+        },
+        confirmButton = {
+            com.imsx3d.classy.ui.component.DialogActionButtons(
                     confirmText = stringResource(R.string.import_confirm),
                     onConfirm = {
                         if (startDate.isBlank()) {
@@ -1435,10 +1428,8 @@ private fun ImportConfirmDialog(
                     dismissText = stringResource(R.string.back),
                     onDismiss = onDismiss
                 )
-            }
-        },
-        confirmButton = {},
-        dismissButton = {}
+},
+error = errorMsg
     )
 }
 

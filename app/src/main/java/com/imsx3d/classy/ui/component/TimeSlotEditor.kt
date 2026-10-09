@@ -23,6 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -98,6 +100,20 @@ fun decodeSmartPeriodConfig(json: String?): SmartPeriodConfig? =
         runCatching { Json.decodeFromString<SmartPeriodConfig>(raw) }.getOrNull()
     }
 
+/** Missing imported times may be generated, but existing partial times need explicit consent. */
+fun missingTimeAutoSeed(rows: List<TimeSlotRow>): SmartPeriodConfig? {
+    val standard = rows.filter { it.edgeClass == null }.sortedBy { it.node }
+    if (standard.isEmpty() || standard.size > 48 ||
+        standard.map { it.node } != (1..standard.size).toList() ||
+        standard.none { it.start.isBlank() || it.end.isBlank() }) return null
+    val start = standard.first().start.takeIf {
+        runCatching { com.imsx3d.classy.data.entity.RoutinePlan.minuteOfDay(it) }.isSuccess
+    } ?: "08:00"
+    return SmartPeriodConfig(startTime = start, totalPeriods = standard.size,
+        breaks = listOf(com.imsx3d.classy.data.entity.BreakOption(10)),
+        transitionAssignments = List(standard.size - 1) { 0 })
+}
+
 /**
  * 节次编辑器 v1.0.16+ / v1.0.56 三 Tab
  *
@@ -129,7 +145,18 @@ fun TimeSlotEditor(
     onSelectPeriodTable: (Long?) -> Unit = {},
     excludePeriodTableId: Long? = null
 ) {
-    var mode by remember { mutableStateOf(Mode.Manual) }
+    var mode by remember {
+        mutableStateOf(when {
+            selectedPeriodTableId != null -> Mode.PeriodTable
+            resolveAutoPeriodConfig(rows, smartConfig) == smartConfig -> Mode.Auto
+            else -> Mode.Manual
+        })
+    }
+
+
+    var modeError by remember { mutableStateOf<String?>(null) }
+    var pendingSeed by remember { mutableStateOf<SmartPeriodConfig?>(null) }
+    var generatedNotice by remember { mutableStateOf(false) }
 
     // Bug 2 fix: 自动模式下，smartConfig 一旦变化就立刻 derive 出 rows 同步给上层，
     // 否则保存时 timeJson 用的还是旧的手动 rows，导致"保存的不是自动模式数据"。
@@ -142,9 +169,20 @@ fun TimeSlotEditor(
     // issue#23 Task 4: 手动→自动切换时, 若现有配置已经对应当前手动行则原样保留,
     // 否则从当前手动行重新推断 —— 禁进自动即重置为全新默认配置。
     val switchToAuto = {
-        val resolved = resolveAutoPeriodConfig(rows, smartConfig) ?: smartConfig
-        onSmartConfigChange(resolved)
-        mode = Mode.Auto
+        val resolved = resolveAutoPeriodConfig(rows, smartConfig)
+        if (resolved == null) {
+            val seed = missingTimeAutoSeed(rows)
+            if (seed != null) {
+                pendingSeed = seed
+                modeError = null
+            } else {
+                modeError = "当前节次不连续或时间有重叠，请先在逐节编辑中调整。原时间已保留。"
+            }
+        } else {
+            modeError = null
+            onSmartConfigChange(resolved)
+            mode = Mode.Auto
+        }
     }
 
     Column(modifier = modifier) {
@@ -155,6 +193,12 @@ fun TimeSlotEditor(
             hasPeriodTableTab = periodTableOptions.isNotEmpty() || selectedPeriodTableId != null
         )
         Spacer(Modifier.height(8.dp))
+        modeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (generatedNotice) Text("当前时间由自动安排生成，并非学校识别结果。请按学校作息调整开始时间、课间和时段后再确认。",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        else if (rows.any { it.start.isBlank() || it.end.isBlank() }) Text(
+            "尚未取得完整上下课时间。可选择自动安排批量设置，或使用已有作息表。",
+            style = MaterialTheme.typography.bodySmall)
 
         when (mode) {
             Mode.Manual -> ManualTimeSlotEditor(
@@ -171,6 +215,18 @@ fun TimeSlotEditor(
                 onSelect = onSelectPeriodTable
             )
         }
+    }
+    pendingSeed?.let { seed ->
+        AlertDialog(onDismissRequest = { pendingSeed = null },
+            title = { Text("自动设置缺失的作息时间") },
+            text = { Text("已保留 ${seed.totalPeriods} 个节次。将以 ${seed.startTime} 开始、每节 45 分钟、课间 10 分钟生成可编辑示例，替换当前普通节次时间。请随后按学校作息设置午休和下午开始时间；课程内容不会改变。") },
+            confirmButton = { TextButton(onClick = {
+                onSmartConfigChange(seed)
+                generatedNotice = true
+                pendingSeed = null
+                mode = Mode.Auto
+            }) { Text("进入自动安排") } },
+            dismissButton = { TextButton(onClick = { pendingSeed = null }) { Text("取消") } })
     }
 }
 

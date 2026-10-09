@@ -271,6 +271,14 @@ fun PeriodTableEditScreen(
             }
         }
 
+        val boundTables = scheduleState.tables.filter { it.periodTableId == periodTable.id }
+        if (boundTables.isNotEmpty()) {
+            item {
+                Text("此作息正在用于：${boundTables.joinToString("、") { it.name }}。保存后会同步更新这些课表的时间。",
+                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+
         // 保存 — 先预览后确认(§5.2)
         item {
             Button(
@@ -360,6 +368,8 @@ fun PeriodTableEditScreen(
                         color = colors.onSurfaceVariant
                     )
                     // 逐课旧时间→新时间(§5.2) + 变化节次标注, 最多列 8 行防溢出。
+                    Text("关联课表：" + scheduleState.tables.filter { it.periodTableId == periodTable.id }
+                        .joinToString("、") { it.name }.ifEmpty { "暂无" }, style = MaterialTheme.typography.bodySmall)
                     // 2026-09-16 用户要求: 改早八必须列出所有第一节课的课程名+几点到几点。
                     pendingPreview!!.changedCourses.take(8).forEach { change ->
                         val oldT = change.oldTime ?: "?"

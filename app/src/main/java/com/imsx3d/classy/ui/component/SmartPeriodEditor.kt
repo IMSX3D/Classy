@@ -60,7 +60,7 @@ import com.imsx3d.classy.ui.theme.noRippleClickable
  * - 未选中的位置 = 0 分钟（连续上课）
  */
 @Composable
-fun SmartPeriodEditor(
+fun AdvancedSmartPeriodEditor(
     config: SmartPeriodConfig,
     onConfigChange: (SmartPeriodConfig) -> Unit,
     modifier: Modifier = Modifier

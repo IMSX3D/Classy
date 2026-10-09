@@ -882,8 +882,8 @@
     <string name="duration_min_one_period">至少 1 节才能分配课程时长</string>
     <string name="duration_period_n">%1$d 分钟 %2$s</string>
     <string name="add_label">添加%1$s</string>
-    <string name="mode_manual">手动模式</string>
-    <string name="mode_auto">自动模式</string>
+    <string name="mode_manual">逐节编辑</string>
+    <string name="mode_auto">自动安排</string>
     <string name="label_from">自</string>
     <string name="schedule_jump_week">跳转到周次</string>
     <string name="schedule_empty_name">「%1$s」还是空的</string>
