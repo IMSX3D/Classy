@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_day_empty">當天無課</string>
+    <string name="widget_day_today">今天</string>
+    <string name="widget_day_tomorrow">明天</string>
+    <string name="widget_add_title">新增到桌面</string>
+    <string name="widget_add_help">點選下方小工具，請系統新增到桌面。若未出現確認視窗，請長按桌面空白處 → 小工具。部分 OPPO／OnePlus／realme 系統需退出搜尋，在「卡片」頁底部進入「外掛」，再尋找 Classy。名稱以實際系統為準。</string>
+    <string name="widget_pin_requested">已向桌面送出新增請求，請完成系統確認並返回桌面查看；這不代表已新增成功。若沒有反應，請手動新增或複製診斷資訊回報。</string>
+    <string name="widget_pin_unsupported">目前桌面不支援從應用程式新增小工具，請手動新增。</string>
+    <string name="widget_pin_failed">桌面未接受新增請求，請手動新增並複製診斷資訊回報。</string>
+    <string name="widget_diagnostics">找不到小工具？查看診斷</string>
+    <string name="widget_system_registered">系統已辨識全部小工具。請檢查桌面小工具入口或嘗試上方新增；系統註冊不代表桌面一定顯示。</string>
+    <string name="widget_system_missing">系統未辨識全部小工具。請複製診斷資訊回報，不必解除安裝或清除資料。</string>
+    <string name="widget_system_unknown">暫時無法確認小工具狀態，請稍後重新整理或複製診斷資訊。</string>
+    <string name="widget_copy_diagnostics">複製診斷資訊</string>
+    <string name="widget_refresh_diagnostics">重新整理診斷</string>
+    <string name="widget_diagnostics_copied">已複製裝置、桌面與小工具資訊，不包含課表內容。</string>
+    <string name="sainz_evening_title">確認晚間課程節次</string>
+    <string name="sainz_evening_hint">教務將部分課程標為「晚上」，未標節次。請確認開始與結束節次，預設第 10–13 節。各節時間可在匯入預覽修改。確認後將擷取全部分頁，請勿同時翻頁。</string>
+    <string name="sainz_evening_start">開始節次</string>
+    <string name="sainz_evening_end">結束節次</string>
+    <string name="sainz_collect_all">確認並擷取全部頁面</string>
+</resources>

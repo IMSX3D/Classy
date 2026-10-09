@@ -256,6 +256,7 @@ class MainActivity : ComponentActivity() {
                 themeKey = themeKey,
                 customThemeVersion = customThemesJson
             ) {
+                com.imsx3d.classy.ui.component.WhatsNewDialog()
                 // GlasenseTheme 现由 SleepyThemeProvider 统一提供（UI-3），此处不再重复包裹。
                 AppRoot(
                         themeMode = themeMode,

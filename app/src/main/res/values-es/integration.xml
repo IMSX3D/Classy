@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_day_empty">Sin clases</string>
+    <string name="widget_day_today">Hoy</string>
+    <string name="widget_day_tomorrow">Mañana</string>
+    <string name="widget_add_title">Añadir a la pantalla de inicio</string>
+    <string name="widget_add_help">Elige un widget y confirma en el lanzador. Si no aparece la confirmación, mantén pulsado un espacio vacío de la pantalla de inicio y elige Widgets. En algunos OPPO, OnePlus o realme, sal de la búsqueda y busca Complementos al final de Tarjetas, y después Classy. Los nombres varían según el sistema.</string>
+    <string name="widget_pin_requested">Solicitud enviada al lanzador. Confirma y comprueba la pantalla de inicio; aún no significa que se haya añadido. Si no responde, añádelo manualmente o copia el diagnóstico.</string>
+    <string name="widget_pin_unsupported">Este lanzador no permite añadir widgets desde la app. Añádelo manualmente.</string>
+    <string name="widget_pin_failed">El lanzador no aceptó la solicitud. Prueba a añadirlo manualmente y copia el diagnóstico.</string>
+    <string name="widget_diagnostics">¿No encuentras los widgets? Ver diagnóstico</string>
+    <string name="widget_system_registered">El sistema reconoce todos los widgets. Revisa la lista del lanzador o prueba a añadirlos arriba; el registro no garantiza que se muestren.</string>
+    <string name="widget_system_missing">El sistema no reconoce algunos widgets. Copia el diagnóstico; no hace falta desinstalar ni borrar datos.</string>
+    <string name="widget_system_unknown">No se puede comprobar el estado. Actualiza más tarde o copia el diagnóstico.</string>
+    <string name="widget_copy_diagnostics">Copiar diagnóstico</string>
+    <string name="widget_refresh_diagnostics">Actualizar diagnóstico</string>
+    <string name="widget_diagnostics_copied">Se ha copiado información del dispositivo, lanzador y widgets, sin el contenido del horario.</string>
+    <string name="sainz_evening_title">Confirmar periodos nocturnos</string>
+    <string name="sainz_evening_hint">Algunas clases solo indican horario nocturno. Confirma el primer y último periodo; por defecto, 10–13. Puedes ajustar las horas en la vista previa. Se recogerán todas las páginas; no cambies de página durante el proceso.</string>
+    <string name="sainz_evening_start">Primer periodo</string>
+    <string name="sainz_evening_end">Último periodo</string>
+    <string name="sainz_collect_all">Confirmar y recoger todas las páginas</string>
+</resources>

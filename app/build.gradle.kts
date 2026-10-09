@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.Test
 import java.util.Properties
+import groovy.json.JsonSlurper
 
 plugins {
     id("com.android.application")
@@ -130,6 +131,31 @@ val verifyReleaseSigning by tasks.registering {
         }
     }
 }
+
+// A future version must ship its own user-facing notes, not redisplay old changes.
+val releaseNotesFile = layout.projectDirectory.file("src/main/assets/release-notes.json")
+val releaseNotesVersionCode = android.defaultConfig.versionCode
+val releaseNotesVersionName = android.defaultConfig.versionName
+val verifyReleaseNotes by tasks.registering {
+    inputs.file(releaseNotesFile)
+    inputs.property("versionCode", releaseNotesVersionCode!!)
+    inputs.property("versionName", releaseNotesVersionName!!)
+    doLast {
+        val notes = JsonSlurper().parse(releaseNotesFile.asFile) as Map<*, *>
+        check((notes["versionCode"] as? Number)?.toInt() == releaseNotesVersionCode &&
+            notes["versionName"] == releaseNotesVersionName) {
+            "Update app/src/main/assets/release-notes.json for this version before building."
+        }
+        val translations = notes["notes"] as? Map<*, *> ?: error("Missing release notes")
+        for (language in listOf("zh", "zh-Hant", "en", "es", "ja")) {
+            val items = translations[language] as? List<*>
+            check(!items.isNullOrEmpty() && items.all { it is String && it.isNotBlank() }) {
+                "Missing user-facing release notes for $language"
+            }
+        }
+    }
+}
+tasks.named("preBuild").configure { dependsOn(verifyReleaseNotes) }
 tasks.matching {
     it.name in setOf("packageRelease", "assembleRelease", "bundleRelease")
 }.configureEach { dependsOn(verifyReleaseSigning) }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_day_empty">No classes</string>
+    <string name="widget_day_today">Today</string>
+    <string name="widget_day_tomorrow">Tomorrow</string>
+    <string name="widget_add_title">Add to home screen</string>
+    <string name="widget_add_help">Choose a widget below and confirm with your launcher. If no confirmation appears, hold an empty area of the home screen and choose Widgets. On some OPPO, OnePlus or realme phones, leave search and scroll to the bottom of Cards to find Plugins, then look for Classy. Labels vary by system.</string>
+    <string name="widget_pin_requested">Request sent to the launcher. Complete the system confirmation, then check your home screen. This does not mean the widget has been added. If nothing happens, add it manually or copy diagnostics for feedback.</string>
+    <string name="widget_pin_unsupported">This launcher does not support adding widgets from the app. Please add it manually.</string>
+    <string name="widget_pin_failed">The launcher did not accept the request. Try adding manually and copy diagnostics for feedback.</string>
+    <string name="widget_diagnostics">Cannot find widgets? View diagnostics</string>
+    <string name="widget_system_registered">The system recognizes all widgets. Check the launcher widget list or try adding above; registration does not guarantee launcher visibility.</string>
+    <string name="widget_system_missing">Some widgets are not recognized by the system. Copy diagnostics for feedback; no need to uninstall or clear data.</string>
+    <string name="widget_system_unknown">Widget status is unavailable. Refresh later or copy diagnostics.</string>
+    <string name="widget_copy_diagnostics">Copy diagnostics</string>
+    <string name="widget_refresh_diagnostics">Refresh diagnostics</string>
+    <string name="widget_diagnostics_copied">Copied device, launcher and widget information. Timetable content is not included.</string>
+    <string name="sainz_evening_title">Confirm evening lesson periods</string>
+    <string name="sainz_evening_hint">Some classes are marked only as evening. Confirm their first and last periods; the default is 10–13. You can edit exact times in the import preview. All pages will be collected; do not change pages meanwhile.</string>
+    <string name="sainz_evening_start">First period</string>
+    <string name="sainz_evening_end">Last period</string>
+    <string name="sainz_collect_all">Confirm and collect all pages</string>
+</resources>

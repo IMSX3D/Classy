@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sainz_collect_all">确认并采集全部页面</string>
+    <string name="sainz_evening_end">结束节次</string>
+    <string name="sainz_evening_hint">教务把部分课程写成“晚上”，没有标出节次。请确认它对应的开始节次和结束节次；默认第 10–13 节。每节的具体时间可在导入预览中修改。确认后将采集所有分页，请勿同时翻页。</string>
+    <string name="sainz_evening_start">开始节次</string>
+    <string name="sainz_evening_title">确认晚间课程节次</string>
+    <string name="widget_add_help">点选下方组件，请系统添加到桌面。若未弹出确认窗口，请手动添加：长按桌面空白处 → 小组件。在部分 OPPO／一加／realme 系统中，需退出搜索，在“卡片”页滑到底部进入“插件”，再找 Classy 或课程组件。入口名称以实际系统为准。</string>
+    <string name="widget_add_title">添加到桌面</string>
+    <string name="widget_copy_diagnostics">复制诊断信息</string>
+    <string name="widget_day_empty">当天无课</string>
+    <string name="widget_day_today">今天</string>
+    <string name="widget_day_tomorrow">明天</string>
+    <string name="widget_diagnostics">找不到组件？查看诊断</string>
+    <string name="widget_diagnostics_copied">已复制设备、桌面和本应用组件信息，不包含课表内容。</string>
+    <string name="widget_pin_failed">桌面未接受添加请求，请尝试手动添加并复制诊断信息反馈。</string>
+    <string name="widget_pin_requested">添加请求已发给桌面，请完成系统确认并回桌面查看；这不代表已添加成功。没有反应时请按上方说明手动添加，或复制诊断信息反馈。</string>
+    <string name="widget_pin_unsupported">当前桌面不支持应用内添加，请按上方说明手动添加。</string>
+    <string name="widget_refresh_diagnostics">刷新诊断</string>
+    <string name="widget_system_missing">系统没有识别全部组件。请复制诊断信息反馈，无须卸载应用或清除数据。</string>
+    <string name="widget_system_registered">系统已识别全部组件。请检查原生“插件”入口或尝试上方直接添加；系统注册不等于桌面一定显示。</string>
+    <string name="widget_system_unknown">暂时无法确认系统组件状态，请稍后刷新或复制诊断信息。</string>
+</resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="whats_new_title">What’s new in %1$s</string>
+    <string name="whats_new_done">Got it</string>
+</resources>

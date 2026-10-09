@@ -1,0 +1,41 @@
+{
+  "versionCode": 9,
+  "versionName": "0.09",
+  "notes": {
+    "zh": [
+      "设置入口更清楚，外观和小组件在「我的」里就能找到。",
+      "课表空白处可点选新增课程，长按课程可拖动调课；保存前可确认，保存后可撤销。",
+      "设置课时、课间和各时段开始时间，就能自动安排作息；导入时也更方便核对。",
+      "已结束和节假日课程的变淡效果更一致，小组件显示更清楚。",
+      "改进课表导入、草稿恢复和课前提醒，修复赛恩斯部分连堂课程被拆开的情况。"
+    ],
+    "zh-Hant": [
+      "設定入口更清楚，外觀和小工具在「我的」裡就能找到。",
+      "點選課表空白處可新增課程，長按課程可拖曳調課；儲存前可確認，儲存後可復原。",
+      "設定課時、課間與各時段開始時間，就能自動安排作息；匯入時也更方便核對。",
+      "已結束與假日課程的淡化效果更一致，小工具顯示更清楚。",
+      "改善課表匯入、草稿還原與課前提醒，修正賽恩斯部分連堂課程被拆開的情況。"
+    ],
+    "en": [
+      "Find appearance and widgets directly in My, with clearer settings.",
+      "Tap an empty timetable slot to add a class, or hold and drag a class to move it. Confirm before saving and undo afterwards.",
+      "Set lesson lengths, breaks and section start times to arrange your daily schedule automatically, with an easier import preview.",
+      "Finished classes and holiday classes now fade consistently, and widgets are easier to read.",
+      "Improved timetable imports, draft recovery and class reminders; fixed some consecutive Sainz classes appearing separately."
+    ],
+    "es": [
+      "Encuentra apariencia y widgets en Mi, con ajustes más claros.",
+      "Toca un espacio vacío para añadir una clase o mantén pulsada una clase y arrástrala para moverla. Confirma antes de guardar y deshaz después.",
+      "Configura la duración de las clases, los descansos y el inicio de cada bloque para organizar el horario automáticamente y revisarlo al importar.",
+      "Las clases terminadas y las de días festivos se atenúan de forma uniforme, y los widgets son más claros.",
+      "Mejoras en la importación, la recuperación de borradores y los recordatorios; corrección de algunas clases consecutivas de Sainz que aparecían separadas."
+    ],
+    "ja": [
+      "設定を整理し、外観とウィジェットを「マイ」から開けるようにしました。",
+      "時間割の空き枠をタップして授業を追加したり、授業を長押ししてドラッグで移動できます。保存前に確認でき、保存後は元に戻せます。",
+      "授業時間・休み時間・各時間帯の開始時刻を指定すると、自動で時間割の時刻を設定できます。取り込み時の確認もしやすくなりました。",
+      "終了した授業と祝日の授業の薄さを統一し、ウィジェットを見やすくしました。",
+      "時間割の取り込み、下書きの復元、授業前の通知を改善し、賽恩斯の一部の連続授業が分かれる問題を修正しました。"
+    ]
+  }
+}

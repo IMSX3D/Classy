@@ -81,6 +81,8 @@ Classy 提供网格、周视图与今日三种视图。课程、时间、地点�
 
 [**免费下载 Android 版 ↗**](https://github.com/IMSX3D/Classy/releases/latest)
 
+[查看 v0.09 更新内容](docs/releases/v0.09.md)：课表拖动调课、自动作息、设置整理与升级说明。
+
 Android 8.0 及以上。大多数手机选择 `app-arm64-v8a-release.apk`；其他架构见 Releases。
 
 安装后，从「课表管理 → 导入课表」开始。首次安装如有系统提示，请为所使用的安装来源授予安装权限。

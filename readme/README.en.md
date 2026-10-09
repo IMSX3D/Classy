@@ -56,6 +56,8 @@ Academic-system import parses data locally after school login, without a Classy 
 
 [**Download the latest Android release ↗**](https://github.com/IMSX3D/Classy/releases/latest)
 
+[v0.09 release notes](../docs/releases/v0.09.md): drag classes, arrange daily lesson times, clearer settings, and an offline update summary after upgrades.
+
 Requires Android 8.0 or later. Most phones should use `app-arm64-v8a-release.apk`. Other architectures are available on Releases. Native iOS is not currently available.
 
 ## Built in the open.

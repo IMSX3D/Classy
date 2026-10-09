@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_day_empty">授業なし</string>
+    <string name="widget_day_today">今日</string>
+    <string name="widget_day_tomorrow">明日</string>
+    <string name="widget_add_title">ホーム画面に追加</string>
+    <string name="widget_add_help">下のウィジェットを選び、ホームアプリで追加を確認してください。確認画面が出ない場合はホーム画面の空白を長押ししてウィジェットを選択します。一部の OPPO・OnePlus・realme では検索を閉じ、カード画面の一番下のプラグインから Classy を探してください。名称は機種により異なります。</string>
+    <string name="widget_pin_requested">ホームアプリに追加を依頼しました。システムの確認を完了してホーム画面をご確認ください。まだ追加成功を意味しません。反応がない場合は手動で追加するか、診断情報をコピーしてください。</string>
+    <string name="widget_pin_unsupported">このホームアプリはアプリからのウィジェット追加に対応していません。手動で追加してください。</string>
+    <string name="widget_pin_failed">ホームアプリが追加を受け付けませんでした。手動で追加し、診断情報をコピーしてご報告ください。</string>
+    <string name="widget_diagnostics">見つかりませんか？診断を確認</string>
+    <string name="widget_system_registered">システムはすべてのウィジェットを認識しています。ホームアプリの一覧を確認するか、上から追加してください。登録されていても一覧に表示されるとは限りません。</string>
+    <string name="widget_system_missing">システムが一部のウィジェットを認識していません。診断情報をコピーしてください。アンインストールやデータ消去は不要です。</string>
+    <string name="widget_system_unknown">状態を確認できません。後で更新するか診断情報をコピーしてください。</string>
+    <string name="widget_copy_diagnostics">診断情報をコピー</string>
+    <string name="widget_refresh_diagnostics">診断を更新</string>
+    <string name="widget_diagnostics_copied">端末・ホームアプリ・ウィジェットの情報をコピーしました。時間割の内容は含みません。</string>
+    <string name="sainz_evening_title">夜間授業の時限を確認</string>
+    <string name="sainz_evening_hint">一部の授業には「夜間」とだけ記載されています。開始・終了時限を確認してください。初期値は第10～13限です。時刻は取り込み確認画面で変更できます。全ページを取得する間はページを移動しないでください。</string>
+    <string name="sainz_evening_start">開始時限</string>
+    <string name="sainz_evening_end">終了時限</string>
+    <string name="sainz_collect_all">確認して全ページを取得</string>
+</resources>
