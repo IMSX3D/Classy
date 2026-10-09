@@ -196,6 +196,7 @@ internal fun SleepyNavHost(
                     setCurrentTab(Tab.Schedule)
                 },
                 editingCourse = editingCourse,
+                prefill = key.prefill,
             )
         }
 

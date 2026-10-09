@@ -1,6 +1,14 @@
 package com.imsx3d.classy.ui.component
 
 import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import com.imsx3d.classy.util.GridHitRow
+import com.imsx3d.classy.util.GridSelection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -150,8 +158,19 @@ fun CardsGridView(
     rowHeightScale: Float = 1f,
     onRowHeightScaleChange: (Float) -> Unit = {},
     // v1.0.56 T3(实验室): 双指捏放行高总开关, 默认 false = 手势整个不挂(存量缩放值不清)。
-    pinchZoomEnabled: Boolean = false
+    pinchZoomEnabled: Boolean = false,
+    interactionKey: Long = 0L,
+    onQuickAdd: (GridSelection) -> Unit = {},
+    onMoveCourse: (CourseEntity, GridSelection) -> Unit = { _, _ -> },
+    onGestureActive: (Boolean) -> Unit = {}
 ) {
+    val interaction = remember(interactionKey, currentWeek) { GridCourseInteraction() }
+    interaction.onAdd = onQuickAdd
+    interaction.onMove = onMoveCourse
+    androidx.activity.compose.BackHandler(enabled = interaction.selection != null) { interaction.clear() }
+    LaunchedEffect(interaction.dragging) { onGestureActive(interaction.dragging) }
+    LaunchedEffect(courses, timeSlots, visibleDays, rowHeightScale) { interaction.clear() }
+    DisposableEffect(interaction) { onDispose { onGestureActive(false) } }
     val colors = glasenseM3Scheme()
     // 设置页改 scale / cornerRatio 后强制 recompose
     var prefVersion by remember { mutableIntStateOf(0) }
@@ -312,11 +331,45 @@ fun CardsGridView(
             // 用户反馈 2026-09-09: 占位节次行同样扩展网格高度(按分钟加权, 不占满整行)。
             val gridH = yOfRows(renderSlots.size.coerceAtLeast(1).toFloat())
 
+            val density = LocalDensity.current
+            interaction.days = sortedDays
+            interaction.left = with(density) { (timeW + gapW).toPx() }
+            interaction.width = with(density) { colW.toPx() }
+            interaction.gap = with(density) { gapW.toPx() }
+            interaction.rows = renderSlots.mapIndexed { index, slot ->
+                GridHitRow(if (slot.isPlaceholder) null else slot.nodeStart,
+                    with(density) { yOfRows(index.toFloat()).toPx() },
+                    with(density) { (yOfRows((index + 1).toFloat()) - gapH).toPx() },
+                    edge = !slot.isPlaceholder && slot.nodeStart !in 1..TimeTableUtils.maxStandardNode(timeJson ?: ""))
+            }
             val scrollState = rememberScrollState()
+            var viewport by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+            LaunchedEffect(interaction.dragging) {
+                if (!interaction.dragging) return@LaunchedEffect
+                var previous = withFrameNanos { it }
+                while (interaction.dragging) {
+                    val now = withFrameNanos { it }
+                    val elapsed = ((now - previous) / 1_000_000_000f).coerceAtMost(.05f)
+                    previous = now
+                    val y = interaction.pointerRoot?.y ?: continue
+                    val bounds = viewport ?: continue
+                    val edge = with(density) { 48.dp.toPx() }
+                    val speed = when {
+                        y < bounds.top + edge -> -((bounds.top + edge - y) / edge).coerceIn(0f, 1f)
+                        y > bounds.bottom - edge -> ((y - bounds.bottom + edge) / edge).coerceIn(0f, 1f)
+                        else -> 0f
+                    }
+                    if (speed != 0f) {
+                        scrollState.scrollBy(speed * with(density) { 360.dp.toPx() } * elapsed)
+                        interaction.refreshPointer()
+                    }
+                }
+            }
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .onGloballyPositioned { viewport = it.boundsInRoot() }
                     .then(
                         // v1.0.56 T3: 实验室开关默认关 — 手势不挂即捏不动; 开=原行为
                         if (pinchZoomEnabled) Modifier.verticalResizeGesture(
@@ -330,7 +383,7 @@ fun CardsGridView(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(scrollState)
+                        .verticalScroll(scrollState, enabled = !interaction.dragging)
                 ) {
                 // ---- 表头：自然 Compose Row ----
                 Row(
@@ -363,7 +416,18 @@ fun CardsGridView(
                 Spacer(modifier = Modifier.height(gapH))
 
                 // ---- Grid 主体：固定高度 Box，内部全用 Modifier.offset 绝对定位 ----
-                Box(modifier = Modifier.fillMaxWidth().height(gridH)) {
+                Box(modifier = Modifier.fillMaxWidth().height(gridH)
+                    .onGloballyPositioned { interaction.grid = it }
+                    .pointerInput(interaction) { detectTapGestures(onTap = interaction::select) }
+                    .pointerInput(interaction) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                if (event.changes.count { it.pressed } > 1) interaction.clear()
+                            }
+                        }
+                    }
+                ) {
                     // 时间栏：每个节次一个 Row，用 offset 定位到正确 y (分钟加权)
                     for ((i, slot) in renderSlots.withIndex()) {
                         Row(
@@ -461,7 +525,8 @@ fun CardsGridView(
                                 // 气泡选课 = 换来看: 步数使目标层转到基准序首位(会话态)
                                 onRotationStep(clusterKey, layerPos)
                             },
-                            onCourseClick = onCourseClick,
+                            onCourseClick = { interaction.clear(); onCourseClick(it) },
+                            courseGesture = { Modifier.courseDrag(it, interaction) },
                             colW = colW,
                             rowH = rowH,
                             maxNode = maxNode,
@@ -504,17 +569,19 @@ fun CardsGridView(
 
                         CourseOverlayCard(
                             course = course,
-                            onClick = { onCourseClick(course) },
+                            onClick = { interaction.clear(); onCourseClick(course) },
                             modifier = Modifier
                                 .offset(x = cardX, y = cardY)
                                 .width(colW)
-                                .height(cardH),
+                                .height(cardH)
+                                .courseDrag(course, interaction),
                             isGrey = course.day in greyDays,
                             scale = scale,
                             cornerRatio = cornerRatio,
                             groupRows = courses.filter { it.groupId == course.groupId }
                         )
                     }
+                    GridSelectionOverlay(interaction)
                 }
                     if (navExtra > 0.dp) Spacer(modifier = Modifier.height(navExtra))
                 }

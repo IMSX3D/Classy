@@ -428,6 +428,7 @@ fun ConflictClusterCard(
     topOverrideId: Long?,
     onPickTop: (Long?) -> Unit,
     onCourseClick: (CourseEntity) -> Unit,
+    courseGesture: (CourseEntity) -> Modifier = { Modifier },
     colW: Dp,
     rowH: Dp,
     maxNode: Int,
@@ -681,7 +682,8 @@ fun ConflictClusterCard(
                             modifier = Modifier
                                 .offset(x = topRect.x, y = topRect.y)
                                 .width(topRect.width)
-                                .height(topRect.height),
+                                .height(topRect.height)
+                                .then(courseGesture(course)),
                             isGrey = isGrey,
                             shape = memberShape,
                             groupRows = groupRowsForCard
@@ -718,7 +720,7 @@ fun ConflictClusterCard(
                             ConflictCourseCard(
                                 course = course,
                                 onClick = { if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(course.id) ?: course.id) },
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().then(courseGesture(course)),
                                 isGrey = isGrey,
                                 shape = cardShape,
                                 groupRows = groupRowsForCard

@@ -190,13 +190,18 @@ fun AddCourseScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     editingCourse: CourseEntity? = null,
+    prefill: com.imsx3d.classy.util.CourseGridPrefill? = null,
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val currentTable = state.currentTable
+    val currentTable = state.effectiveCurrentTable
+    val validPrefill = prefill?.takeIf { editingCourse == null }
+    LaunchedEffect(validPrefill?.tableId) {
+        if (validPrefill != null && state.selectedTableId != validPrefill.tableId) viewModel.selectTable(validPrefill.tableId)
+    }
     val fieldShape = SleepyTheme.fieldShape
     val fieldColors = SleepyTheme.fieldColors()
 
@@ -228,7 +233,7 @@ fun AddCourseScreen(
     var courseAlias by remember(editingCourse?.id) { mutableStateOf(editingCourse?.alias ?: "") }
     // issue#22: teacher/room/note/color/colorMode 已下沉到 MeetingBlockDraft(每个时段独立编辑)
     var startWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.startWeek ?: 1) }
-    var endWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.endWeek ?: 16) }
+    var endWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.endWeek ?: validPrefill?.maxWeek ?: 16) }
     var nextBlockId by remember(editingCourse?.id) { mutableIntStateOf(2) }
     var validationIssues by remember { mutableStateOf<List<ValidationIssue>>(emptyList()) }
     // issue#23 逐卡: 三个弹层目标 — 顶层持状态, 内容按卡片渲染
@@ -248,7 +253,17 @@ fun AddCourseScreen(
     var pendingGroupColorHex by remember { mutableStateOf<String?>(null) }
 
     val meetingBlocks = remember(editingCourse?.id) {
-        mutableStateListOf(initialMeetingBlock(editingCourse))
+        mutableStateListOf(initialMeetingBlock(editingCourse).also { block ->
+            validPrefill?.let {
+                block.days.clear()
+                block.days.add(it.day)
+                block.startNode = it.startNode
+                block.step = it.step
+                block.endWeek = it.maxWeek
+                block.isIrregularNode = it.isIrregularNode
+                block.selectedEdgeNode = if (block.isIrregularNode) it.startNode else 0
+            }
+        })
     }
 
     val editListState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -310,7 +325,8 @@ fun AddCourseScreen(
 
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
-    val canSave = !saving && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    val prefillReady = validPrefill == null || currentTable?.id == validPrefill.tableId
+    val canSave = !saving && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -319,6 +335,10 @@ fun AddCourseScreen(
     // 保存主流程: 校验 → 草稿 → 冲突明细 → 落库。forceAfterConflict = 冲突弹窗「仍然保存」回调
     fun performSave(forceAfterConflict: Boolean) {
         if (saving) return
+        if (!prefillReady) {
+            saveError = "原课表暂不可用，请返回课表后重试"
+            return
+        }
         val issues = validateCourseDraft(
             courseName = courseName,
             blocks = meetingBlocks,
@@ -330,7 +350,7 @@ fun AddCourseScreen(
         validationIssues = issues
         if (issues.isNotEmpty()) return
 
-        val draftTableId = state.selectedTableId  // 进入 scope 前取，drafts 需要
+        val draftTableId = validPrefill?.tableId ?: state.selectedTableId  // 进入 scope 前取，drafts 需要
         val drafts = meetingBlocks.flatMap { block ->
             block.days.sorted().map { day ->
                 buildCourseEntity(

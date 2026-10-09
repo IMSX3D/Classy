@@ -105,12 +105,20 @@ fun ScheduleScreen(
     onViewModeChange: (ViewMode) -> Unit,
     onGoImport: () -> Unit = {},
     onManualAdd: () -> Unit = {},
+    onQuickAdd: (com.imsx3d.classy.util.CourseGridPrefill) -> Unit = {},
     onCreateTable: () -> Unit = {},
     onEditCourse: (CourseEntity) -> Unit = {},
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    var gestureActive by remember { mutableStateOf(false) }
+    var moveRequest by remember(state.selectedTableId, state.selectedWeek, viewMode) {
+        mutableStateOf<com.imsx3d.classy.ui.component.CourseMoveRequest?>(null)
+    }
+    moveRequest?.let { request ->
+        com.imsx3d.classy.ui.component.CourseMoveDialog(request, onDismiss = { moveRequest = null })
+    }
     var selectedCourse by remember { mutableStateOf<CourseEntity?>(null) }
     // v7.10.5 会话级置顶 override — 网格 onPickTop 与详情弹窗 radio 共用真相源。
     // radio 点击 → 这里瞬时换层(同帧) + AppPrefs 持久化(跨会话),两条通道一次写齐。
@@ -153,7 +161,7 @@ fun ScheduleScreen(
                     onCreateTable = onCreateTable
                 )
             }
-        } else if (!hasCourses) {
+        } else if (!hasCourses && viewMode != ViewMode.Cards) {
             // 有表无课：直接打开加课弹窗（addEmptyCourse 内部若 selectedTableId 为空会自动建表）
             Box(
                 modifier = Modifier
@@ -201,6 +209,11 @@ fun ScheduleScreen(
                         onDismiss = { showShareSheet = false }
                     )
                 }
+            }
+
+            if (viewMode == ViewMode.Cards) {
+                Text("点空白格新增 · 长按课程拖动调课", modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             if (showTableSwitcher) {
@@ -260,6 +273,7 @@ fun ScheduleScreen(
 
             HorizontalPager(
                 state = pagerState,
+                userScrollEnabled = !gestureActive,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 val renderCourses = state.effectiveCurrentTable?.let { table ->
@@ -323,7 +337,7 @@ fun ScheduleScreen(
                     ViewMode.Cards -> CardsGridView(
                         courses = renderCourses,
                         allCourses = state.courses,
-                        timeSlots = TimeTableUtils.timeSlotsFor(state.currentTable),
+                        timeSlots = TimeTableUtils.timeSlotsFor(state.effectiveCurrentTable),
                         visibleDays = visibleDays,
                         showDate = showDate,
                         startDate = state.currentTable?.startDate ?: "",
@@ -344,7 +358,29 @@ fun ScheduleScreen(
                         rowHeightScale = rowHeightScale,
                         onRowHeightScaleChange = { rowHeightScale = it },
                         // v1.0.56 T3: 实验室开关 — 默认关=手势不挂(顶栏 tick 按钮也随 scaleUncommitted 恒 false 不亮)
-                        pinchZoomEnabled = AppPrefs.isGridPinchZoom(context)
+                        pinchZoomEnabled = AppPrefs.isGridPinchZoom(context),
+                        interactionKey = state.selectedTableId ?: 0L,
+                        onGestureActive = { gestureActive = it },
+                        onQuickAdd = { selected ->
+                            state.effectiveCurrentTable?.let { table ->
+                                onQuickAdd(com.imsx3d.classy.util.CourseGridPrefill(table.id,
+                                    selected.day, selected.startNode, selected.step, table.maxWeek,
+                                    selected.startNode !in 1..TimeTableUtils.maxStandardNode(table.timeJson)))
+                            }
+                        },
+                        onMoveCourse = { displayed, target ->
+                            val table = state.effectiveCurrentTable
+                            val original = state.courses.firstOrNull { it.id == displayed.id }
+                            if (table != null && original != null) {
+                                val date = DateUtils.dateOfWeek(table.startDate, page + 1, displayed.day)
+                                val sourceDate = com.imsx3d.classy.util.CourseDateResolver.teachingDate(date, state.transfers)
+                                if (sourceDate != null) {
+                                    moveRequest = com.imsx3d.classy.ui.component.CourseMoveRequest(
+                                        original, DateUtils.currentWeek(table.startDate, sourceDate),
+                                        page + 1, target, table, state.transfers)
+                                }
+                            }
+                        }
                     )
                 }
                 }

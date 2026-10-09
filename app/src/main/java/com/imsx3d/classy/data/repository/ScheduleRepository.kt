@@ -421,6 +421,42 @@ class ScheduleRepository(private val db: AppDatabase) {
         onDataChanged()
     }
 
+    /** Recheck the source and conflicts inside the same transaction as the split. */
+    suspend fun moveCourseMeeting(
+        expected: CourseEntity,
+        sourceWeek: Int,
+        targetWeek: Int,
+        target: com.imsx3d.classy.util.GridSelection,
+        scope: com.imsx3d.classy.util.CourseMoveScope,
+        expectedTable: TimeTableEntity,
+        expectedTransfers: List<com.imsx3d.classy.util.HolidayTransferEntry>,
+        allowConflicts: Boolean = false
+    ): Unit = atomicEdit {
+        val current = requireNotNull(courseDao.getById(expected.id)) { "课程已删除，请返回课表" }
+        require(current == expected) { "课程已发生变化，请重新拖动" }
+        val table = requireNotNull(tableDao.getById(current.tableId)) { "课表已删除" }
+        val hydrated = table.hydratedWith(table.periodTableId?.let { periodTableDao.getById(it) })
+        require(hydrated.timeJson == expectedTable.timeJson && table.startDate == expectedTable.startDate &&
+            table.maxWeek == expectedTable.maxWeek &&
+            AppPrefs.getHolidayTransfers(SleepyApp.get(), table.id) == expectedTransfers) {
+            "课表时间设置已变化，请重新拖动"
+        }
+        val plan = com.imsx3d.classy.util.CourseMovePlanner.details(current, sourceWeek, targetWeek,
+            target, scope, table.maxWeek, hydrated.timeJson)
+        val planned = plan.rows
+        if (targetWeek == sourceWeek && plan.moved.all {
+                it.day == current.day && it.startNode == current.startNode && it.step == current.step &&
+                    it.startTime == current.startTime && it.endTime == current.endTime
+            }) return@atomicEdit
+        val stored = courseDao.getByTable(table.id).filter { it.id != current.id } + plan.retained
+        val conflicts = com.imsx3d.classy.util.ConflictDetailReporter.draftConflictDetails(plan.moved, stored,
+            arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日"), hydrated.timeJson)
+        if (conflicts.isNotEmpty() && !allowConflicts) throw CourseMoveConflictException(
+            conflicts.map { "${it.dayText} ${it.nodeRangeText} 节 · ${it.weekText} · ${it.existingName}" }.distinct())
+        courseDao.update(planned.first())
+        if (planned.size > 1) courseDao.insertAll(planned.drop(1))
+    }
+
     /** 查同 groupId 下所有课程（用于编辑回填，按时段分 block） */
     suspend fun getGroupCourses(tableId: Long, groupId: String): List<CourseEntity> =
         courseDao.getByGroupId(tableId, groupId)

@@ -440,6 +440,7 @@ internal fun MainTabs(
                 onViewModeChange = onViewModeChange,
                 onGoImport = { MainActivity.autoShowImportOnceState.value = true; setCurrentTab(Tab.Manage) },
                 onManualAdd = { navigator.openAddCourse() },
+                onQuickAdd = { navigator.openAddCourse(prefill = it) },
                 onCreateTable = onCreateNewTable,
                 onEditCourse = { course -> session.beginEditCourse(course); navigator.openAddCourse(course.id, editing = true) })
         }
