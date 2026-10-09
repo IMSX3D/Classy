@@ -1,6 +1,18 @@
 [
   {
     "sortKey": "G",
+    "name": "广西中医药大学赛恩斯新医药学院",
+    "url": "https://jw.gxzyxysy.com/student/public/login.asp",
+    "type": "gxzyxysy",
+    "aliases": [
+      "赛恩斯",
+      "赛院",
+      "gxzyxysy"
+    ],
+    "sortKeyFull": "guangxizhongyiyaodaxuesaiensixinyiyaoxueyuan"
+  },
+  {
+    "sortKey": "G",
     "name": "广东东软学院",
     "url": "http://jw.nuit.edu.cn/jwapp/sys/homeapp/home/index.html?av=&contextPath=/jwapp",
     "type": "nuit",

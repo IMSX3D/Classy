@@ -15,6 +15,7 @@ package com.imsx3d.classy.data.jw
  * 中 `app/src/main/java/com/suda/yzune/wakeupschedule/schedule_import/Common.kt`。
  */
 object JwProtocol {
+    const val TYPE_GXZYXYSY = "gxzyxysy"
 
     const val TYPE_HELP = "help"
     const val TYPE_ZF = "zf"
@@ -263,7 +264,7 @@ object JwProtocol {
         TYPE_WISEDU, TYPE_CQU, TYPE_CHAOXING, TYPE_BOYA_PP, TYPE_EAMS5, TYPE_CLASSIC_EAMS, TYPE_KUST, TYPE_NUIT, TYPE_PKU, TYPE_BNUZ,
         TYPE_CF, TYPE_CF_NEW, TYPE_HNUST, TYPE_HNIU,
         TYPE_SEU, TYPE_ZJU, TYPE_USTC, TYPE_SCU, TYPE_NEU, TYPE_WHUT,
-        TYPE_BJTU, TYPE_YETHAN,
+        TYPE_BJTU, TYPE_YETHAN, TYPE_GXZYXYSY,
         TYPE_ZF, TYPE_ZF_1, TYPE_URP, TYPE_URP_NEW, TYPE_ZF_NEW,
         TYPE_QZ, TYPE_QZ_CRAZY, TYPE_QZ_BR, TYPE_QZ_WITH_NODE, TYPE_QZ_IEAS, TYPE_QZ_APP, TYPE_UCAS, TYPE_QZ_OLD,
     )
@@ -275,6 +276,7 @@ object JwProtocol {
     )
 
     fun displayName(type: String?): String = when (type) {
+        TYPE_GXZYXYSY -> "赛恩斯学院教务"
         TYPE_QZ, TYPE_QZ_OLD, TYPE_QZ_CRAZY, TYPE_QZ_BR, TYPE_QZ_WITH_NODE -> "强智教务"
         TYPE_QZ_APP -> "强智移动教务"
         TYPE_QZ_IEAS -> "强智教务（iEAS 网络版）"

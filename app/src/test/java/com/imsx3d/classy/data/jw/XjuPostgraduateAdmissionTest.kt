@@ -35,11 +35,11 @@ class XjuPostgraduateAdmissionTest {
     }
 
     @Test
-    fun `main assets schools json count gate 341`() {
+    fun `main assets schools json count gate 349`() {
         val main = String(javaClass.classLoader!!.getResource("jw/schools.json")!!.readBytes())
         // 计数闸双副本同值（主副本由 JwJouAdaptationTest 锁 1:1, 这里锁总数）
         val count = JwImportViewModel.parseSchoolsJson(main).size
-        assertEquals("2026-09-19 四校适配（NWUPL/LIXIN/KMUST/NUIT）→ 348", 348, count)
+        assertEquals("2026-09-19 四校适配（NWUPL/LIXIN/KMUST/NUIT）→ 349", 349, count)
     }
 
     // ---------- ② URL 判型 ----------

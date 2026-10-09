@@ -307,6 +307,7 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
          *  - B5 补 CF/PKU/BNUZ/HNUST URL 分支
          */
         internal fun detectProtocolFromUrlImpl(u: String): String? = when {
+            u.matches(Regex("https?://jw\\.gxzyxysy\\.com(?::443)?/student/.*")) -> JwProtocol.TYPE_GXZYXYSY
             // ⓪ CAS / authserver 统一身份认证网关页：只是一跳中转，不当任何协议指纹。
             //    service= 参数里常带 jwglxt 等业务路径，不与业务锚点同判（fp.cas-gateway）。
             u.matches(Regex(""".*/cas/login.*"""))
@@ -458,6 +459,9 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
          * CAS / authserver 网关页不设指纹（返回 null 走兜底）。
          */
         internal fun detectProtocolFromHtmlImpl(html: String): String? {
+            if (html.trimStart().startsWith("{") && runCatching {
+                org.json.JSONObject(html).optString("format") == "gxzyxysy-v1"
+            }.getOrDefault(false)) return JwProtocol.TYPE_GXZYXYSY
             if (html.isBlank()) return null
             val lower = html.lowercase()
             val title = extractTitle(html)

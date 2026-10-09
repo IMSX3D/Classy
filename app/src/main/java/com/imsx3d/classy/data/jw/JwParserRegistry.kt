@@ -17,6 +17,7 @@ object JwParserRegistry {
     )
 
     private val TYPE_PRIORITY: Map<String, Int> = linkedMapOf(
+        JwProtocol.TYPE_GXZYXYSY to 1,
         JwProtocol.TYPE_KINGO_NEW to 8,
         JwProtocol.TYPE_JZ to 9,
         JwProtocol.TYPE_SOUTH_SOFT to 10,
@@ -62,6 +63,7 @@ object JwParserRegistry {
     )
 
     private val FACTORIES: Map<String, (String) -> JwParser> = linkedMapOf(
+        JwProtocol.TYPE_GXZYXYSY to ::JwGxzyxysyParser,
         JwProtocol.TYPE_KINGO_NEW to ::JwKingoParser,
         JwProtocol.TYPE_JZ to ::JwJzParser,
         JwProtocol.TYPE_SOUTH_SOFT to ::JwSouthSoftParser,

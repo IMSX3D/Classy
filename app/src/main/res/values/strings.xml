@@ -1005,4 +1005,9 @@
     <string name="manage_period_tables_sub">管理上课时间，可供多张课表共用</string>
     <string name="about_maintenance_title">关于维护</string>
     <string name="about_star_invitation">如果 Classy 对你有帮助，欢迎到 GitHub 点一颗 Star。谢谢你的支持！</string>
+    <string name="sainz_evening_title">确认晚间课程节次</string>
+    <string name="sainz_evening_hint">教务把部分课程写成“晚上”，没有标出节次。请确认它对应的开始节次和结束节次；默认第 10–13 节。每节的具体时间可在导入预览中修改。确认后将采集所有分页，请勿同时翻页。</string>
+    <string name="sainz_evening_start">开始节次</string>
+    <string name="sainz_evening_end">结束节次</string>
+    <string name="sainz_collect_all">确认并采集全部页面</string>
 </resources>

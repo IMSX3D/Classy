@@ -116,6 +116,9 @@ fun JwWebViewLoginScreen(
     viewModel: JwImportViewModel = viewModel()
 ) {
     val colors = MaterialTheme.colorScheme
+    var sainzConfirm by remember { mutableStateOf(false) }
+    var sainzStart by remember { mutableStateOf("10") }
+    var sainzEnd by remember { mutableStateOf("13") }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var progress by remember { mutableStateOf(0) }
@@ -247,6 +250,37 @@ fun JwWebViewLoginScreen(
         }, FETCH_TIMEOUT_MS)
     }
 
+    if (sainzConfirm) {
+        val first = sainzStart.toIntOrNull()
+        val last = sainzEnd.toIntOrNull()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { sainzConfirm = false },
+            title = { Text(stringResource(R.string.sainz_evening_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.sainz_evening_hint))
+                    androidx.compose.material3.OutlinedTextField(value = sainzStart, onValueChange = { sainzStart = it },
+                        label = { Text(stringResource(R.string.sainz_evening_start)) }, singleLine = true)
+                    androidx.compose.material3.OutlinedTextField(value = sainzEnd, onValueChange = { sainzEnd = it },
+                        label = { Text(stringResource(R.string.sainz_evening_end)) }, singleLine = true)
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = first != null && last != null && first in 1..30 && last in first..30,
+                    onClick = {
+                        sainzConfirm = false
+                        scope.launch { snackbar.showSnackbar(fetchingMsg) }
+                        webViewRef?.evaluateJavascript(gxzyxysyFetchJs(first!!, last!!), null)
+                    }
+                ) { Text(stringResource(R.string.sainz_collect_all)) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { sainzConfirm = false }) {
+                Text(stringResource(android.R.string.cancel))
+            } }
+        )
+    }
+
     BackHandler {
         webViewRef?.let { wv ->
             if (wv.canGoBack()) wv.goBack() else onBack()
@@ -274,6 +308,12 @@ fun JwWebViewLoginScreen(
                         return@CaptureBar
                     }
                     val url = wv.url ?: ""
+                    if (school.type == JwProtocol.TYPE_GXZYXYSY ||
+                        viewModel.detectProtocolFromUrl(school.url) == JwProtocol.TYPE_GXZYXYSY ||
+                        viewModel.detectProtocolFromUrl(url) == JwProtocol.TYPE_GXZYXYSY) {
+                        sainzConfirm = true
+                        return@CaptureBar
+                    }
                     Log.d("JwWebView", "capture tapped, current url=$url")
                     scope.launch { snackbar.showSnackbar(fetchingMsg) }
                     // wisedu (金智 jwapp)：课表数据在 JSON API 不在页面 HTML，改用 fetch 拿 JSON（结果走 JS 桥回调）
