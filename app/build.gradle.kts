@@ -27,7 +27,7 @@ android {
         // 0.0.7 = 整块清掉休眠的「位图组件管线」（用户拍板 A）；
         // 0.0.8 = 分发前的收口：自动检查更新恢复默认开（原始顾虑已消失）+ 注释与实现对齐
         versionCode = 9
-        versionName = "0.09"
+        versionName = "0.0.9"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
             localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")
