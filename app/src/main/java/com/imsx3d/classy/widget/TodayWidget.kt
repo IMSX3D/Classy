@@ -62,6 +62,7 @@ open class TodayWidgetReceiver : AppWidgetProvider() {
                     try { push(context, awm, id) }
                     catch (e: Throwable) { Log.e(TAG, "render failed $id", e) }
                 }
+                kotlinx.coroutines.withContext(Dispatchers.IO) { WidgetBoundaryScheduler.armNext(context) }
             } finally { pending.finish() }
         }
     }

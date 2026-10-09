@@ -9,8 +9,8 @@ import java.io.File
  * Cross-checked protocol contract test. Locks the post-review fixes:
  * vivo operation flips 0→1 on update, clickResp is sent, baseInfos.progress
  * is gone (use infos.progress), shortInfos has image/icon, capsule has icon,
- * Meizu capsule has icon + colors, Xiaomi does not auto-expand on every
- * repaint and references miui.focus.pics.
+ * Meizu capsule has icon + colors. Xiaomi uses the standard progress path;
+ * private focus payloads are covered by VendorLiveCardRendererExtrasTest.
  */
 class VendorLiveCardRendererFixContractTest {
 
@@ -30,26 +30,6 @@ class VendorLiveCardRendererFixContractTest {
         assertTrue(
             "Promoted ongoing is part of the OPPO baseline lifecycle",
             source.contains("setRequestPromotedOngoing(true)")
-        )
-    }
-
-    @Test
-    fun `xiaomi disables auto-expand on every update`() {
-        assertTrue(
-            "Xiaomi must not auto-expand on every repaint (causes 15s expand churn)",
-            source.contains("put(\"enableFloat\", false)")
-        )
-        assertTrue(
-            "Xiaomi should still allow first-shot expand via islandFirstFloat",
-            source.contains("put(\"islandFirstFloat\", true)")
-        )
-    }
-
-    @Test
-    fun `xiaomi ships pics bundle so bigIslandArea picInfo resolves`() {
-        assertTrue(
-            "Xiaomi renderer must register miui.focus.pics",
-            source.contains("\"miui.focus.pics\"")
         )
     }
 

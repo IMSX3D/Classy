@@ -38,7 +38,7 @@ object UpdateManager {
     suspend fun fetchUpdateInfo(context: Context): UpdateInfo = withContext(Dispatchers.IO) {
         // 仓库未配置 → 直接拒绝：宁可报"检查失败"，也不能去查上游 Releases
         // （查到会提示新版并下载官方包，签名不一致装不上，用户还可能被引导去卸载 → 课表数据全丢）
-        check(AppIdentity.hasRepo) { "开源仓库未配置，更新检查已停用" }
+        check(AppIdentity.hasReleaseUpdates) { "当前构建不使用正式版更新，请使用对应的测试安装包" }
         val abi = currentAbi()
         val abiAsset = currentAbiAsset()
         val json = try {

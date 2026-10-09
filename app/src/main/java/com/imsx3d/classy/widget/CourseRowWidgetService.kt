@@ -1,5 +1,9 @@
 package com.imsx3d.classy.widget
 
+import com.imsx3d.classy.util.CourseCompletion
+import androidx.compose.ui.graphics.lerp
+import java.time.LocalDate
+import java.time.LocalDateTime
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -44,10 +48,14 @@ class CourseRowWidgetService : RemoteViewsService() {
             const val EXTRA_SCOPE = "scope"
             const val SCOPE_TODAY = "today"
             const val SCOPE_TWODAY = "twoday"
+            const val SCOPE_LEFT = "twoday_left"
+            const val SCOPE_RIGHT = "twoday_right"
         }
 
         private val widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, -1)
         private val scope = intent.getStringExtra(EXTRA_SCOPE) ?: SCOPE_TODAY
+        private val compactRows = scope == SCOPE_LEFT || scope == SCOPE_RIGHT ||
+            android.appwidget.AppWidgetManager.getInstance(context).getAppWidgetInfo(widgetId)?.provider?.className == TodaySmallWidgetReceiver::class.java.name
 
         /** 预解析行 — 文案与颜色都在 onDataSetChanged 算完，getViewAt 只做赋值。 */
         private data class Row(
@@ -63,6 +71,7 @@ class CourseRowWidgetService : RemoteViewsService() {
         /** 一天的数据切片（今日档只有一片，近日档两片）。 */
         private data class Slice(
             val label: String?,
+            val date: LocalDate,
             val courses: List<CourseEntity>,
             val timeJson: String
         )
@@ -106,31 +115,38 @@ class CourseRowWidgetService : RemoteViewsService() {
             } catch (t: Throwable) {
                 Log.e(TAG, "onDataSetChanged failed id=$widgetId scope=$scope", t)
                 rows = emptyList()
+                fillerRows = 0
             }
         }
 
         private fun buildRows(): List<Row> {
             val scheme: WidgetScheme
             val slices: List<Slice>
-            if (scope == SCOPE_TWODAY) {
+            if (scope in setOf(SCOPE_TWODAY, SCOPE_LEFT, SCOPE_RIGHT)) {
                 val d = TwoDayWidgetReceiver.loadDataSync(context, widgetId)
                 scheme = resolveSchemePublic(context, d.themeKey, d.isDark)
-                slices = d.days.map { day ->
+                val selectedDays = when (scope) {
+                    SCOPE_LEFT -> d.days.take(1)
+                    SCOPE_RIGHT -> d.days.drop(1).take(1)
+                    else -> d.days
+                }
+                slices = selectedDays.map { day ->
                     val label = when {
                         day.isToday -> "今天"
                         day.isTomorrow -> "明天"
                         else -> day.dayLabel
                     }
-                    Slice(label, day.courses, day.timeJson)
+                    Slice(if (scope == SCOPE_TWODAY) label else null, day.date, day.courses, day.timeJson)
                 }
             } else {
                 val d = TodayWidgetReceiver.loadDataSync(context, widgetId)
                 scheme = resolveSchemePublic(context, d.themeKey, d.isDark)
-                slices = listOf(Slice(null, d.courses, d.timeJson))
+                slices = listOf(Slice(null, d.date, d.courses, d.timeJson))
             }
+            val now = LocalDateTime.now()
             return slices.flatMap { slice ->
                 slice.courses.sortedBy { it.startNode }
-                    .map { rowFor(slice.label, it, slice.timeJson, scheme) }
+                    .map { rowFor(slice.label, it, slice.timeJson, scheme, CourseCompletion.isCompleted(it, slice.date, slice.timeJson, now)) }
             }
         }
 
@@ -138,13 +154,15 @@ class CourseRowWidgetService : RemoteViewsService() {
             dayLabel: String?,
             course: CourseEntity,
             timeJson: String,
-            scheme: WidgetScheme
+            scheme: WidgetScheme,
+            completed: Boolean
         ): Row {
             val bg = CourseColorUtil.pickCourseColorCompose(
                 course, scheme.isDark, scheme.surfaceVariant
             )
             val name = if (course.alias.isNotBlank()) course.alias else course.courseName
-            val place = listOf(course.room, course.teacher).filter { it.isNotBlank() }
+            val compact = compactRows
+            val place = (if (compact) listOf(course.room) else listOf(course.room, course.teacher)).filter { it.isNotBlank() }
             val meta = buildString {
                 if (dayLabel != null) {
                     append(dayLabel)
@@ -157,14 +175,17 @@ class CourseRowWidgetService : RemoteViewsService() {
                 course.startNode, course.step, timeJson,
                 course.ownTime, course.startTime, course.endTime
             )
+            // Blend colors rather than remote View.setAlpha (not supported by every host).
+            fun tone(color: androidx.compose.ui.graphics.Color): Int =
+                (if (completed) lerp(scheme.surfaceContainer, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
             return Row(
                 name = name,
                 // 极端情况（导入数据缺地点/教师）也给一行可见文案，不留空行
                 meta = meta.ifBlank { "—" },
-                time = if (clock.isNullOrBlank()) nodes else "$nodes · $clock",
-                barColor = bg.toArgb(),
-                nameColor = scheme.onSurface.toArgb(),
-                metaColor = scheme.onSurfaceVariant.toArgb(),
+                time = if (clock.isNullOrBlank()) nodes else if (compact) clock else "$nodes · $clock",
+                barColor = tone(bg),
+                nameColor = tone(scheme.onSurface),
+                metaColor = tone(scheme.onSurfaceVariant),
                 cardColor = scheme.surfaceContainer.toArgb()
             )
         }
@@ -180,7 +201,8 @@ class CourseRowWidgetService : RemoteViewsService() {
                 filler.setOnClickFillInIntent(R.id.widget_row_filler_root, Intent())
                 return filler
             }
-            val views = RemoteViews(context.packageName, R.layout.widget_course_row)
+            val compact = compactRows
+            val views = RemoteViews(context.packageName, if (compact) R.layout.widget_course_row_compact else R.layout.widget_course_row)
             val r = snapshot[position]
             views.apply {
                 setTextViewText(R.id.widget_row_name, r.name)
@@ -199,7 +221,8 @@ class CourseRowWidgetService : RemoteViewsService() {
 
         override fun getLoadingView(): RemoteViews? = null
 
-        override fun getViewTypeCount(): Int = 1
+        // A factory emits one course layout plus the distinct filler layout.
+        override fun getViewTypeCount(): Int = 2
 
         override fun getItemId(position: Int): Long = position.toLong()
 

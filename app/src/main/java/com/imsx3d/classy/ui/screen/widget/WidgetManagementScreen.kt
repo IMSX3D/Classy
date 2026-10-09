@@ -51,11 +51,12 @@ fun WidgetManagementScreen(
         onBack = onBack,
         verticalSpacing = 8.dp
     ) {
+        item { WidgetAddPanel(onRefresh = { vm.reload() }) }
         if (items.isEmpty()) {
             item {
                 Column(
                     modifier = Modifier
-                        .fillParentMaxSize()
+                        .fillMaxWidth()
                         .padding(24.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally

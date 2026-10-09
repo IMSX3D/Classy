@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.screen.schedule
 
+import com.imsx3d.classy.ui.component.CourseCompletionProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -302,6 +303,11 @@ fun ScheduleScreen(
                         value = marks
                     }
                 }
+                CourseCompletionProvider(
+                    startDate = state.currentTable?.startDate.orEmpty(),
+                    week = page + 1,
+                    timeJson = state.effectiveCurrentTable?.timeJson
+                ) {
                 when (viewMode) {
                     ViewMode.Full -> FullWeekView(
                         courses = renderCourses,
@@ -340,6 +346,7 @@ fun ScheduleScreen(
                         // v1.0.56 T3: 实验室开关 — 默认关=手势不挂(顶栏 tick 按钮也随 scaleUncommitted 恒 false 不亮)
                         pinchZoomEnabled = AppPrefs.isGridPinchZoom(context)
                     )
+                }
                 }
             }
         }

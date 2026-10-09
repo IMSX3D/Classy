@@ -1,5 +1,8 @@
 package com.imsx3d.classy.ui.screen.today
 
+import androidx.compose.ui.draw.alpha
+import com.imsx3d.classy.ui.component.rememberCourseClock
+import com.imsx3d.classy.util.CourseCompletion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,7 +68,8 @@ fun TodayScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val today = LocalDate.now()
+    val now = rememberCourseClock()
+    val today = now.toLocalDate()
     val actualWeek = state.currentTable?.let { DateUtils.currentWeek(it.startDate, today) } ?: state.currentWeek
     // 学期外感知: BEFORE_START/AFTER_END 时今日课不按周过滤展示
     val semesterStatus = state.currentTable?.let {
@@ -123,6 +127,7 @@ fun TodayScreen(
                         TodayCourseCard(
                             course = row.courses[0],
                             timeJson = state.effectiveCurrentTable?.timeJson,
+                            now = now,
                             onClick = { selectedCourse = row.courses[0] },
                             groupRows = todayCourses.filter { it.groupId == row.courses[0].groupId }
                         )
@@ -153,6 +158,7 @@ fun TodayScreen(
                                         TodayCourseCard(
                                             course = laneCourse,
                                             timeJson = state.effectiveCurrentTable?.timeJson,
+                                            now = now,
                                             onClick = { selectedCourse = laneCourse },
                                             groupRows = todayCourses.filter { it.groupId == laneCourse.groupId }
                                         )
@@ -301,6 +307,7 @@ private fun EmptyToday(semesterStatus: DateUtils.SemesterStatus = DateUtils.Seme
 @Composable
 private fun TodayCourseCard(
     course: CourseEntity,
+    now: java.time.LocalDateTime,
     timeJson: String? = null,
     onClick: (() -> Unit)? = null,
     groupRows: List<CourseEntity> = listOf(course)
@@ -328,6 +335,7 @@ private fun TodayCourseCard(
 
     Row(
         modifier = Modifier
+            .alpha(if (CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now)) CourseCompletion.DIM_ALPHA else 1f)
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
             .clip(GlasenseTheme.specs.cardShape)

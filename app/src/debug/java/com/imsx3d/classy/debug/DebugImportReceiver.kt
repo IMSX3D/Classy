@@ -16,7 +16,7 @@ import java.io.File
 class DebugScheduleReceiver : android.content.BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("CourseScheduler", "debug receiver entered action=${intent.action}")
-        if (intent.action != "com.imsx3d.classy.debug.SCHEDULE_NOW") return
+        if (intent.action != "${context.packageName}.debug.SCHEDULE_NOW") return
         try {
             runBlocking {
                 SleepyApp.get().notificationScheduler.scheduleTodayBeforeClassAlarms()

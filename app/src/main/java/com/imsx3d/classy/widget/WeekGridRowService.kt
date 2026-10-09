@@ -1,5 +1,8 @@
 package com.imsx3d.classy.widget
 
+import com.imsx3d.classy.util.CourseCompletion
+import androidx.compose.ui.graphics.lerp
+import java.time.LocalDateTime
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -48,7 +51,8 @@ class WeekGridRowFactory(
     /** 一次渲染的全部输入（onDataSetChanged 里算好，getViewAt 只读）。 */
     private class Snapshot(
         val nodeCount: Int,                        // 渲染的节次总数（1..nodeCount 全出，空节次占位）
-        val courses: List<com.imsx3d.classy.data.entity.CourseEntity>,
+        val days: List<DayData>,
+        val now: LocalDateTime,
         val starts: List<String>,                  // 每节的开始时间（下标 0 = 第 1 节）
         val scheme: WidgetScheme,
         val visibleDays: List<Int>
@@ -72,7 +76,8 @@ class WeekGridRowFactory(
             val maxNode = courses.maxOfOrNull { it.startNode + it.step - 1 } ?: 0
             snap = Snapshot(
                 nodeCount = maxNode,
-                courses = courses,
+                days = data.days,
+                now = LocalDateTime.now(),
                 starts = slots,
                 scheme = resolveSchemePublic(context, data.themeKey, data.isDark),
                 visibleDays = data.visibleDays.sorted()
@@ -128,7 +133,8 @@ class WeekGridRowFactory(
             if (idx >= colIds.size) break
             val colId = colIds[idx]
             // 该天按起始节次排序，逐个"块"铺下去
-            val dayCourses = s.courses.filter { it.day == dow }.sortedBy { it.startNode }
+            val day = s.days.firstOrNull { it.dayOfWeek == dow }
+            val dayCourses = day?.courses.orEmpty().sortedBy { it.startNode }
             var node = 1
             for (course in dayCourses) {
                 if (course.startNode > s.nodeCount) continue
@@ -148,7 +154,10 @@ class WeekGridRowFactory(
                     course, s.scheme.isDark, s.scheme.surfaceVariant
                 )
                 val fg = CourseColorUtil.textColorOn(bg, s.scheme.isDark, s.scheme.onSurface)
-                val bgInt = bg.toArgb()
+                val completed = day != null && CourseCompletion.isCompleted(course, day.date, day.timeJson, s.now)
+                fun tone(color: androidx.compose.ui.graphics.Color): Int =
+                    (if (completed) lerp(s.scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
+                val bgInt = tone(bg)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     // 圆角 shape + 动态 tint（不能用 setBackgroundColor，那会变成方形色块）
                     block.setColorStateList(
@@ -160,9 +169,9 @@ class WeekGridRowFactory(
                 block.setTextViewText(
                     R.id.wg_blk_name, CourseDisplayUtil.displayName(course, useAlias)
                 )
-                block.setTextColor(R.id.wg_blk_name, fg.toArgb())
+                block.setTextColor(R.id.wg_blk_name, tone(fg))
                 block.setTextViewText(R.id.wg_blk_room, course.room.filter { it != '\n' })
-                block.setTextColor(R.id.wg_blk_room, fg.copy(alpha = 0.72f).toArgb())
+                block.setTextColor(R.id.wg_blk_room, tone(fg.copy(alpha = 0.72f)))
                 views.addView(colId, block)
                 node = course.startNode + span
             }

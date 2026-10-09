@@ -15,10 +15,10 @@ import org.junit.Test
 class WidgetVariantInfoTest {
 
     @Test
-    fun `ALL_WIDGET_VARIANTS has exactly 3 entries`() {
+    fun `ALL_WIDGET_VARIANTS has exactly 4 entries`() {
         assertEquals(
             "组件家族收敛到 3 个（UI-4c）；加回尺寸档要先改这条闸",
-            3, ALL_WIDGET_VARIANTS.size
+            4, ALL_WIDGET_VARIANTS.size
         )
     }
 
@@ -57,7 +57,7 @@ class WidgetVariantInfoTest {
                 .removeSuffix("WidgetReceiver")
         }
         val counts = byKind.groupingBy { it }.eachCount()
-        val expected = mapOf("Today" to 1, "TwoDay" to 1, "WeekGrid" to 1)
+        val expected = mapOf("Today" to 2, "TwoDay" to 1, "WeekGrid" to 1)
         assertEquals("家族集合必须恰好是这三家", expected.keys, counts.keys)
         counts.forEach { (kind, count) ->
             assertEquals("kind=$kind 只能有一条登记", expected.getValue(kind), count)

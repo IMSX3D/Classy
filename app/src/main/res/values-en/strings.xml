@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">Classy Schedule</string>
-    <string name="widget_today_label">Today\’s Classes</string>
+    <string name="widget_today_label">Classy · Today\’s Classes · 4×2</string>
     <string name="widget_today_wide_label">Today · Medium</string>
     <string name="widget_twoday_wide_label">Two Days · Medium</string>
     <string name="widget_week_list_wide_label">Week List · Medium</string>
-    <string name="widget_today_small_label">Today\’s Classes · Small</string>
+    <string name="widget_today_small_label">Classy · Today\’s Classes · Small · 2×2</string>
     <string name="widget_week_list_label">This Week (List)</string>
     <string name="widget_week_list_small_label">This Week (List) · Small</string>
-    <string name="widget_week_grid_label">This Week (Grid)</string>
+    <string name="widget_week_grid_label">Classy · This Week (Grid) · 4×4</string>
     <string name="widget_week_grid_small_label">This Week (Grid) · Small</string>
-    <string name="widget_twoday_label">Next Two Days</string>
+    <string name="widget_twoday_label">Classy · Next Two Days · 4×2</string>
     <string name="widget_twoday_small_label">Next Two Days · Small</string>
     <string name="widget_week_view_label">This Week (View)</string>
     <string name="widget_week_view_small_label">This Week (View) · Small</string>

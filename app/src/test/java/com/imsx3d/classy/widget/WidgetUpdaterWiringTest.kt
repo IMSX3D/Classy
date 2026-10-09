@@ -21,6 +21,6 @@ class WidgetUpdaterWiringTest {
         expected.forEach { receiver ->
             assertTrue("missing ${receiver.simpleName}", receiver in receivers)
         }
-        assertEquals("当前上架组件数（今日 / 最近两天 / 本周课表）", 3, expected.size)
+        assertEquals("当前组件数（今日两种尺寸 / 最近两天 / 本周课表）", 4, expected.size)
     }
 }

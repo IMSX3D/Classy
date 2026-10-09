@@ -80,6 +80,6 @@ class WidgetBindingCleanupWiringTest {
         // 五个 base 类都还在（尺寸档 receiver 继承它们，将来加回也不用改这里）；
         // 但**登记的**变体只剩 3 个，所以 3 个都必须落在某个 base 的清理链上。
         assertEquals(5, cleanupBases.size)
-        assertEquals(3, ALL_WIDGET_VARIANTS.size)
+        assertEquals(4, ALL_WIDGET_VARIANTS.size)
     }
 }

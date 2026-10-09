@@ -20,6 +20,10 @@
 
     <!-- QQ 群入口: Android 11+ 包可见性, 检测/拉起 QQ 需要 -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <package android:name="com.tencent.mobileqq" />
         <package android:name="com.tencent.tim" />
     </queries>
@@ -115,6 +119,10 @@
             </intent-filter>
         </activity-alias>
 
+        <receiver android:name=".widget.TodaySmallWidgetReceiver" android:exported="true" android:label="@string/widget_today_small_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_small_widget_info" />
+        </receiver>
         <!-- App Widget Receivers -->
         <receiver
             android:name=".widget.TodayWidgetReceiver"
@@ -169,6 +177,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
 

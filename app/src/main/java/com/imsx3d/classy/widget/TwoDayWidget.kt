@@ -57,6 +57,7 @@ open class TwoDayWidgetReceiver : AppWidgetProvider() {
                     try { push(context, awm, id) }
                     catch (e: Throwable) { Log.e(TAG, "render failed $id", e) }
                 }
+                kotlinx.coroutines.withContext(Dispatchers.IO) { WidgetBoundaryScheduler.armNext(context) }
             } finally { pending.finish() }
         }
     }
@@ -102,9 +103,7 @@ open class TwoDayWidgetReceiver : AppWidgetProvider() {
                         TwoDayData(days = emptyList(), hasTable = false, isDark = isDark, themeKey = themeKey)
                     } else {
                         val table = source.table
-                        val dates = if (source.display.status == com.imsx3d.classy.util.WeekDisplayStatus.NEAREST_BUSY_DAY) {
-                            listOf(source.display.targetDate, source.display.targetDate.plusDays(1))
-                        } else listOf(today, tomorrow)
+                        val dates = listOf(today, tomorrow)
                         val status = HolidayTransferHelper.semesterStatus(context, table, dates.first())
                         val days = dates.map { date ->
                             val dow = date.dayOfWeek.value

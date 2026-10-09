@@ -1,0 +1,5 @@
+<resources>
+ <string name="widget_day_empty">当天无课</string>
+ <string name="widget_day_today">今天</string>
+ <string name="widget_day_tomorrow">明天</string>
+</resources>

@@ -23,29 +23,13 @@ class VendorLiveCardRendererExtrasTest {
         }
 
     @Test
-    fun `xiaomi extras use miui focus param and param v2 envelope`() {
-        assertTrue(
-            "Xiaomi renderer must put miui.focus.param extras",
-            rendererSource.contains("\"miui.focus.param\"")
-        )
-        assertTrue(
-            "Xiaomi renderer must wrap params in param_v2",
-            rendererSource.contains("\"param_v2\"")
-        )
-        assertTrue(
-            "Xiaomi renderer must include bigIslandArea",
-            rendererSource.contains("\"bigIslandArea\"")
-        )
-        assertTrue(
-            "Xiaomi renderer must include paramtextInfo (correct key path)",
-            rendererSource.contains("\"miui.focus.paramtextInfo\"")
-        )
-        assertTrue(
-            "Xiaomi renderer must include sequence for ordering",
-            rendererSource.contains("\"sequence\"")
-        )
+    fun `xiaomi uses standard progress without private focus payloads`() {
+        assertTrue(rendererSource.contains("LiveCardVendor.XIAOMI -> Unit"))
+        assertTrue(rendererSource.contains("NotificationCompat.ProgressStyle()"))
+        assertTrue(rendererSource.contains("setRequestPromotedOngoing(true)"))
+        assertTrue("Private focus payloads demote the island notification on affected HyperOS versions",
+            !rendererSource.contains("miui.focus.") && !rendererSource.contains("addXiaomiExtras"))
     }
-
     @Test
     fun `vivo extras use notification superx envelope`() {
         assertTrue(

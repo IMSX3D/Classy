@@ -328,8 +328,8 @@ fun AboutScreen(
             }
         }
 
-        // ── 更新（仓库未公开前整组不渲染；见文件头 ②）──
-        if (AppIdentity.hasRepo) {
+        // Independent test builds keep repository links but never offer production updates.
+        if (AppIdentity.hasReleaseUpdates) {
             item {
                 SectionHeader(title = stringResource(R.string.about_section_update), topSpacing = 12.dp)
             }

@@ -1,16 +1,16 @@
 <resources>
     <string name="app_name">Classy 時間割</string>
-    <string name="widget_today_label">今日の授業</string>
+    <string name="widget_today_label">Classy · 今日の授業 · 4×2</string>
     <string name="widget_today_wide_label">今日 · 中</string>
     <string name="widget_twoday_wide_label">2日間 · 中</string>
     <string name="widget_week_list_wide_label">週リスト · 中</string>
     <string name="widget_week_list_label">今週の時間割（リスト）</string>
-    <string name="widget_week_grid_label">今週の時間割（グリッド）</string>
-    <string name="widget_twoday_label">直近2日</string>
+    <string name="widget_week_grid_label">Classy · 今週の時間割（グリッド） · 4×4</string>
+    <string name="widget_twoday_label">Classy · 直近2日 · 4×2</string>
     <string name="widget_twoday_small_label">直近2日 · 小</string>
     <string name="widget_week_view_label">今週の時間割（ビュー）</string>
     <string name="widget_week_view_small_label">今週の時間割（ビュー）· 小</string>
-    <string name="widget_today_small_label">今日 · 小</string>
+    <string name="widget_today_small_label">Classy · 今日 · 小 · 2×2</string>
     <string name="widget_week_grid_small_label">今週の時間割（グリッド）· 小</string>
     <string name="widget_week_list_small_label">今週の時間割（リスト）· 小</string>
 

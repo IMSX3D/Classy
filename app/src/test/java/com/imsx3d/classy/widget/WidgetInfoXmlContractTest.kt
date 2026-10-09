@@ -205,15 +205,36 @@ class WidgetInfoXmlContractTest {
     }
 
     @Test
-    fun `bitmap widget container has Xiaomi compatible root background`() {
+    fun `bitmap initial layout remains a plain image for ColorOS drag and drop`() {
         val file = sequenceOf(
             File("app/src/main/res/layout/widget_bitmap_container.xml"),
             File("src/main/res/layout/widget_bitmap_container.xml")
         ).first { it.isFile }
         val root = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file).documentElement
-        assertEquals("@android:id/background", root.getAttribute("android:id"))
+        assertEquals("ImageView", root.tagName)
+        assertEquals("@+id/widget_bitmap", root.getAttribute("android:id"))
+        assertEquals("@android:color/transparent", root.getAttribute("android:background"))
         assertEquals("match_parent", root.getAttribute("android:layout_width"))
         assertEquals("match_parent", root.getAttribute("android:layout_height"))
+    }
+
+    @Test
+    fun `every registered widget has both static preview fallbacks`() {
+        val layouts = mapOf(
+            "today_widget_info" to "widget_preview_today",
+            "today_small_widget_info" to "widget_preview_today_small",
+            "twoday_widget_info" to "widget_preview_twoday",
+            "week_grid_widget_info" to "widget_preview_weekgrid"
+        )
+        assertEquals(manifestReceivers.values.toSet(), layouts.keys)
+        layouts.forEach { (name, layout) ->
+            val root = infoXmls.getValue(name)
+            assertEquals("$name needs a data-free Android 12+ preview", "@layout/$layout",
+                root.getAttribute("android:previewLayout"))
+            assertTrue("$name needs the older-launcher image fallback",
+                root.getAttribute("android:previewImage").startsWith("@drawable/"))
+            assertTrue(File(resXmlDir.parentFile, "layout/$layout.xml").isFile)
+        }
     }
 
     /**
@@ -305,8 +326,9 @@ class WidgetInfoXmlContractTest {
      */
     private val tierByReceiver = mapOf(
         // L 档 300×250 targetCell 4×4（三个家族的默认尺寸）
-        "TodayWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
-        "TwoDayWidgetReceiver" to Triple("300dp", "250dp", "4x4"),
+        "TodayWidgetReceiver" to Triple("300dp", "110dp", "4x2"),
+        "TodaySmallWidgetReceiver" to Triple("110dp", "110dp", "2x2"),
+        "TwoDayWidgetReceiver" to Triple("300dp", "110dp", "4x2"),
         "WeekGridWidgetProvider" to Triple("300dp", "250dp", "4x4")
     )
 

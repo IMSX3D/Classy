@@ -1,16 +1,16 @@
 <resources>
     <string name="app_name">Classy Horario</string>
-    <string name="widget_today_label">Clases de hoy</string>
+    <string name="widget_today_label">Classy · Clases de hoy · 4×2</string>
     <string name="widget_today_wide_label">Hoy · Mediano</string>
     <string name="widget_twoday_wide_label">Dos días · Mediano</string>
     <string name="widget_week_list_wide_label">Lista semanal · Mediano</string>
     <string name="widget_week_list_label">Esta semana (lista)</string>
-    <string name="widget_week_grid_label">Esta semana (cuadrícula)</string>
-    <string name="widget_twoday_label">Próximos dos días</string>
+    <string name="widget_week_grid_label">Classy · Esta semana (cuadrícula) · 4×4</string>
+    <string name="widget_twoday_label">Classy · Próximos dos días · 4×2</string>
     <string name="widget_twoday_small_label">Próximos dos días · Pequeño</string>
     <string name="widget_week_view_label">Esta semana (vista)</string>
     <string name="widget_week_view_small_label">Esta semana (vista) · Pequeño</string>
-    <string name="widget_today_small_label">Hoy · Pequeño</string>
+    <string name="widget_today_small_label">Classy · Hoy · Pequeño · 2×2</string>
     <string name="widget_week_grid_small_label">Esta semana (cuadrícula) · Pequeño</string>
     <string name="widget_week_list_small_label">Esta semana (lista) · Pequeño</string>
 

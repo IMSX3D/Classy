@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/twoday_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:background="@drawable/widget_scroll_clip" android:clipToOutline="true" android:outlineProvider="background" android:padding="6dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="4dp">
+  <TextView android:id="@+id/twoday_header" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
+  <TextView android:id="@+id/twoday_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:maxLines="1" android:layout_marginStart="6dp" />
+ </LinearLayout>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:layout_marginTop="3dp">
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical">
+   <TextView android:id="@+id/twoday_left_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:paddingHorizontal="6dp" android:maxLines="1" android:ellipsize="end" />
+   <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+    <ListView android:id="@+id/twoday_left_list" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@null" android:scrollbars="none" android:listSelector="@android:color/transparent" android:cacheColorHint="@android:color/transparent" />
+    <TextView android:id="@+id/twoday_left_empty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textSize="12sp" android:text="@string/widget_day_empty" android:visibility="gone" />
+   </FrameLayout>
+  </LinearLayout>
+  <ImageView android:id="@+id/twoday_divider" android:layout_width="1dp" android:layout_height="match_parent" android:background="#FFD6D6D6" />
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical">
+   <TextView android:id="@+id/twoday_right_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:paddingHorizontal="6dp" android:maxLines="1" android:ellipsize="end" />
+   <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+    <ListView android:id="@+id/twoday_right_list" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="@null" android:scrollbars="none" android:listSelector="@android:color/transparent" android:cacheColorHint="@android:color/transparent" />
+    <TextView android:id="@+id/twoday_right_empty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textSize="12sp" android:text="@string/widget_day_empty" android:visibility="gone" />
+   </FrameLayout>
+  </LinearLayout>
+ </LinearLayout>
+</LinearLayout>

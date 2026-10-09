@@ -11,7 +11,6 @@ import com.imsx3d.classy.R
 import com.imsx3d.classy.util.AppPrefs
 import com.imsx3d.classy.widget.resolveSchemePublic
 import androidx.compose.ui.graphics.toArgb
-import org.json.JSONObject
 
 /** Android vendor surface selected from the runtime manufacturer string. */
 enum class LiveCardVendor {
@@ -66,7 +65,7 @@ object VendorLiveCardRenderer {
 
         val style = NotificationCompat.ProgressStyle()
             .setStyledByProgress(true)
-            .setProgress(state.progress)
+            .setProgress(state.progress.coerceIn(0, 100))
         val isSystemDark = (context.resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
             android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -92,7 +91,8 @@ object VendorLiveCardRenderer {
             .setShortCriticalText(primaryText.take(7))
 
         when (vendor) {
-            LiveCardVendor.XIAOMI -> addXiaomiExtras(builder, state, contentIntent, context)
+            // Upstream #80: private focus extras demote the progress notification on HyperOS.
+            LiveCardVendor.XIAOMI -> Unit
             LiveCardVendor.VIVO, LiveCardVendor.IQOO -> addVivoExtras(builder, state, contentIntent, context)
             LiveCardVendor.MEIZU -> addMeizuExtras(builder, state, contentIntent, context, themePrimaryArgb)
             LiveCardVendor.OPPO, LiveCardVendor.ONEPLUS, LiveCardVendor.REALME,
@@ -100,65 +100,6 @@ object VendorLiveCardRenderer {
             LiveCardVendor.GENERIC -> Unit
         }
         return builder.build()
-    }
-
-    private fun addXiaomiExtras(
-        builder: NotificationCompat.Builder,
-        state: CourseLiveCardState,
-        contentIntent: PendingIntent,
-        context: Context
-    ) {
-        val params = JSONObject().apply {
-            put("protocol", 1)
-            put("business", "schedule")
-            put("islandFirstFloat", true)
-            put("enableFloat", false)
-            put("updatable", true)
-            put("timeout", 60)
-            put("sequence", state.updateSequence)
-            put("ticker", state.courseName)
-            put("aodTitle", "${state.startTime} ${state.courseName}")
-            put("param_island", JSONObject().apply {
-                put("islandProperty", 1)
-                put("islandTimeout", 3600)
-                put("bigIslandArea", JSONObject().apply {
-                    put("imageTextInfoLeft", JSONObject().apply {
-                        put("type", 1)
-                        put("picInfo", JSONObject().apply {
-                            put("type", 1)
-                            put("pic", "miui.focus.pic_start")
-                        })
-                        put("miui.focus.paramtextInfo", JSONObject().apply {
-                            put("frontTitle", state.startTime)
-                            put("title", state.courseName)
-                            put("content", state.room)
-                            put("useHighLight", false)
-                        })
-                    })
-                })
-                put("smallIslandArea", JSONObject().apply {
-                    put("picInfo", JSONObject().apply {
-                        put("type", 1)
-                        put("pic", "miui.focus.pic_end")
-                    })
-                })
-            })
-            put("baseInfo", JSONObject().apply {
-                put("title", state.courseName)
-                put("content", state.detailText)
-                put("type", 1)
-            })
-        }
-        val pics = Bundle().apply {
-            putParcelable("miui.focus.pic_start", Icon.createWithResource(context, R.drawable.ic_notification_time))
-            putParcelable("miui.focus.pic_end", Icon.createWithResource(context, R.drawable.ic_notifications))
-        }
-        builder.setExtras(Bundle().apply {
-            putString("miui.focus.param", JSONObject().apply {
-                put("param_v2", params)
-            }.toString())
-            putBundle("miui.focus.pics", pics)
-        })
     }
 
     private fun addVivoExtras(

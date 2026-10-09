@@ -5,10 +5,10 @@
          生产用户拿到的 release APK 里不存在 DebugImportReceiver / DebugScheduleReceiver。 -->
 
     <permission
-        android:name="com.imsx3d.classy.permission.DEBUG_TOOL"
+        android:name="${applicationId}.permission.DEBUG_TOOL"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="com.imsx3d.classy.permission.DEBUG_TOOL" />
+    <uses-permission android:name="${applicationId}.permission.DEBUG_TOOL" />
 
     <application>
         <!-- Debug: 注入课表 / 触发流体云 / 清理测试数据（走 ScheduleParser + repository 真实链路） -->
@@ -22,7 +22,7 @@
             android:name="com.imsx3d.classy.debug.DebugScheduleReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.imsx3d.classy.debug.SCHEDULE_NOW" />
+                <action android:name="${applicationId}.debug.SCHEDULE_NOW" />
             </intent-filter>
         </receiver>
         <activity

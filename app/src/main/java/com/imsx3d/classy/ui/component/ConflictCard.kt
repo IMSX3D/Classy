@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -522,6 +523,7 @@ fun ConflictClusterCard(
     // 课色(描边/虚线/flap 取色,含 isGrey 灰显,与卡渲染取同一色)
     // issue#22: 同名课程多地点 — 传 cluster 全行作为 groupRows,支持 AUTO/CUSTOM 模式取色
     val groupRowsForCard = cluster.courses
+    val completed = LocalCourseCompleted.current
     fun courseColorOf(course: CourseEntity): Color {
         val bg = CourseColorUtil.pickCourseColorComposeWithGroupRows(
             row = course,
@@ -530,7 +532,9 @@ fun ConflictClusterCard(
             neutralColor = colors.surfaceVariant,
             colorless = AppPrefs.isCourseColorless(context)
         )
-        return if (isGrey) bg.copy(alpha = SleepyTheme.Alpha.inactive) else bg
+        return if (isGrey || completed(course))
+            bg.copy(alpha = bg.alpha * com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA)
+        else bg
     }
     val courseById = drawList.associateBy { it.course.id }
 
@@ -981,8 +985,8 @@ private fun ConflictCourseCard(
         colorless = AppPrefs.isCourseColorless(context)
     )
     val fg = CourseColorUtil.textColorOn(bg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
-    val effectiveBg = if (isGrey) bg.copy(alpha = SleepyTheme.Alpha.inactive) else bg
-    val effectiveFg = if (isGrey) fg.copy(alpha = SleepyTheme.Alpha.inactive) else fg
+    val effectiveBg = bg
+    val effectiveFg = fg
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") TextDecoration.LineThrough else null
     val subInfo = AppPrefs.getGridSubInfo(context)
@@ -996,6 +1000,7 @@ private fun ConflictCourseCard(
 
     Box(
         modifier = modifier
+            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
             .padding(2.dp)
             .clip(shape)
             .background(effectiveBg)

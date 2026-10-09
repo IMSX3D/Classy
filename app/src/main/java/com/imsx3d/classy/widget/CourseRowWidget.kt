@@ -109,6 +109,10 @@ internal object CourseRowPusher {
     suspend fun push(context: Context, awm: AppWidgetManager, id: Int, scope: String) {
         // 世代号：连发更新时旧任务晚到不能覆盖新结果（与既有组件同机制）
         val gen = WidgetResizeCore.bump(id)
+        if (scope == CourseRowWidgetService.CourseRowFactory.SCOPE_TWODAY) {
+            TwoDayColumnsPusher.push(context, awm, id, gen)
+            return
+        }
 
         // UI-6a：顶行 = 课表名（左）+ 日期·周几（右）—— 对齐 wakeup 的顶行信息结构。
         // 原来的 "N 门课" 从顶行去掉：课程行本身就一眼看得出有几门，顶行留给"这是哪张表 + 今天几号周几"。
@@ -131,7 +135,7 @@ internal object CourseRowPusher {
             isDark = d.isDark
             themeKey = d.themeKey
         }
-        val headerName = runCatching { WidgetTableResolver.resolveCurrentTable()?.name }
+        val headerName = runCatching { (WidgetTableResolver.resolveBoundTable(id) ?: WidgetTableResolver.resolveCurrentTable())?.name }
             .getOrNull().orEmpty()
         // UI-6b：顶行日期后面补当天节日名（"周四 10/1 · 国庆节"），与网格组件表头同一套信息
         //（那边是把"周X"换成节日名，这边列表要保留星期几，所以追加）。

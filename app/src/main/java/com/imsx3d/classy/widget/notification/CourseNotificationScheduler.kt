@@ -604,11 +604,14 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED
-            || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
+            || intent.action == Intent.ACTION_TIME_CHANGED
+            || intent.action == Intent.ACTION_TIMEZONE_CHANGED
+            || intent.action == Intent.ACTION_DATE_CHANGED) {
             val appContext = context.applicationContext
             runAsync {
                 SleepyApp.get().notificationScheduler.reschedule()
-                com.imsx3d.classy.widget.WidgetBoundaryScheduler.armNext(appContext)
+                com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(appContext)
             }
         }
     }

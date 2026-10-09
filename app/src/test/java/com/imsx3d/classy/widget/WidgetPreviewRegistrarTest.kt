@@ -1,29 +1,27 @@
 package com.imsx3d.classy.widget
 
-import android.os.Build
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
+/** Guard the upgrade path: stopping registration alone leaves old previews cached. */
 class WidgetPreviewRegistrarTest {
+    private val javaRoot = sequenceOf(
+        File("app/src/main/java/com/imsx3d/classy"),
+        File("src/main/java/com/imsx3d/classy")
+    ).first { it.isDirectory }
 
     @Test
-    fun `pre Android 15 uses XML preview fallback without registration`() {
-        assertEquals(false, WidgetPreviewRegistrar.shouldRegisterGeneratedPreview(34))
-        assertEquals(true, WidgetPreviewRegistrar.shouldRegisterGeneratedPreview(35))
-    }
-
-    @Test
-    fun `provider matrix remains complete for generated previews`() {
-        assertTrue(ALL_WIDGET_VARIANTS.size >= 3)
-        ALL_WIDGET_VARIANTS.forEach { variant ->
-            assertTrue(variant.receiverClass.name.isNotBlank())
-            // UI-7：API 35+ 的生成式预览取这个布局。为空 = 选择器里一张空白卡
-            //（正是用户 2026-09-28 报的「组件视图太简陋」两个根因之一）。
-            assertTrue(
-                "${variant.receiverClass.simpleName} 没配 previewLayoutRes",
-                variant.previewLayoutRes != 0
-            )
-        }
+    fun `upgrade removes generated previews without registering replacements`() {
+        val source = File(javaRoot, "widget/WidgetPreviewRegistrar.kt").readText()
+        assertTrue(source.contains("manager.removeWidgetPreview("))
+        assertFalse(source.contains("manager.setWidgetPreview("))
+        assertTrue(source.contains("ALL_WIDGET_VARIANTS.forEach"))
+        assertTrue(source.contains("WIDGET_CATEGORY_HOME_SCREEN"))
+        assertTrue(source.contains("catch (error: RuntimeException)"))
+        val app = File(javaRoot, "SleepyApp.kt").readText()
+        assertTrue(app.contains("Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM"))
+        assertTrue(app.contains("WidgetPreviewRegistrar.clearLegacyGeneratedPreviews(this@SleepyApp)"))
     }
 }

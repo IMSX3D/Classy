@@ -54,7 +54,8 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            versionNameSuffix = "-debug"
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug-oem7"
         }
         release {
             isMinifyEnabled = true

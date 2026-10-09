@@ -1,16 +1,16 @@
 <resources>
     <string name="app_name">Classy 課表</string>
-    <string name="widget_today_label">今日課程</string>
+    <string name="widget_today_label">Classy · 今日課程 · 4×2</string>
     <string name="widget_today_wide_label">今日課程 · 中</string>
     <string name="widget_twoday_wide_label">兩日課程 · 中</string>
     <string name="widget_week_list_wide_label">週列表 · 中</string>
     <string name="widget_week_list_label">本週課表（列表）</string>
-    <string name="widget_week_grid_label">本週課表（網格）</string>
-    <string name="widget_twoday_label">最近兩天</string>
+    <string name="widget_week_grid_label">Classy · 本週課表（網格） · 4×4</string>
+    <string name="widget_twoday_label">Classy · 最近兩天 · 4×2</string>
     <string name="widget_twoday_small_label">最近兩天 · 小</string>
     <string name="widget_week_view_label">本週課表（週檢視）</string>
     <string name="widget_week_view_small_label">本週課表（週檢視）· 小</string>
-    <string name="widget_today_small_label">今日課程 · 小</string>
+    <string name="widget_today_small_label">Classy · 今日課程 · 小 · 2×2</string>
     <string name="widget_week_grid_small_label">本週課表（網格）· 小</string>
     <string name="widget_week_list_small_label">本週課表（列表）· 小</string>
 

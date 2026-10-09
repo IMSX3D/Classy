@@ -9,7 +9,6 @@ import com.imsx3d.classy.data.repository.ScheduleRepository
 import com.imsx3d.classy.data.repository.ImportDraftRepository
 import com.imsx3d.classy.util.AppPrefs
 import com.imsx3d.classy.util.HolidayManager
-import com.imsx3d.classy.widget.PreviewRegistrationResult
 import com.imsx3d.classy.widget.WidgetPreviewRegistrar
 import com.imsx3d.classy.widget.WidgetUpdater
 import com.imsx3d.classy.widget.notification.CourseNotificationScheduler
@@ -72,15 +71,11 @@ class SleepyApp : Application() {
                 runCatching { notificationScheduler.scheduleAll() }
             }
         }
-        // Android 15+ generated previews improve picker fidelity; older hosts
-        // continue using previewLayout/previewImage from provider XML.
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            val preview = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                WidgetPreviewRegistrar.register(this@SleepyApp)
-            } else {
-                PreviewRegistrationResult.UNSUPPORTED_API
+        // Use XML previews like upstream #92; also clear previews cached by older Classy builds.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                WidgetPreviewRegistrar.clearLegacyGeneratedPreviews(this@SleepyApp)
             }
-            Log.i("WidgetPreview", "generated preview registration: $preview")
         }
         // 15-min periodic 兜底 (KEEP 幂等): 午夜自续链是单次任务, 强杀进程会清掉,
         // periodic 是唯一能复活它的自主驱动 — schedule() 此前零调用方 (7ecb554 起断链),

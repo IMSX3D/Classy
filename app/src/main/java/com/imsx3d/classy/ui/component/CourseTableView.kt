@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -723,26 +724,12 @@ private fun CourseOverlayCard(
     val primaryInfo = if (subInfo == "teacher") teacherText else roomText
     val secondaryInfo = if (subInfo == "teacher") roomText else teacherText
 
-    // 节假日灰显：色块叠 alpha + 文字应用 strikethrough 样式
-    val inactive = SleepyTheme.Alpha.inactive
-    val effectiveBg = when {
-        // 灰显（休假日）在色条版下也必须是**中性底** —— 否则同一屏里
-        // "平时=白底+色条、休假日=淡色填充"两种画法混在一起（2026-09-28 自查发现）
-        accentBarStyle -> colors.surfaceContainer.copy(alpha = if (isGrey) inactive else 1f)
-        isGrey -> bg.copy(alpha = inactive)
-        else -> bg
-    }
-    val effectiveFg = when {
-        isGrey -> fg.copy(alpha = inactive)
-        accentBarStyle -> colors.onSurface             // 色条版：正文回中性前景
-        else -> fg
-    }
-    val effectiveInfoFg = if (accentBarStyle) {
-        colors.onSurfaceVariant.copy(alpha = if (isGrey) inactive else 1f)
-    } else {
-        effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
-    }
-    val effectiveAccentBar = if (isGrey) accentBar.copy(alpha = inactive) else accentBar
+    // Keep the original palette; dim the composed card once, regardless of the reason.
+    val effectiveBg = if (accentBarStyle) colors.surfaceContainer else bg
+    val effectiveFg = if (accentBarStyle) colors.onSurface else fg
+    val effectiveInfoFg = if (accentBarStyle) colors.onSurfaceVariant
+        else effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
+    val effectiveAccentBar = accentBar
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") {
         androidx.compose.ui.text.style.TextDecoration.LineThrough
@@ -761,6 +748,7 @@ private fun CourseOverlayCard(
 
     BoxWithConstraints(
         modifier = modifier
+            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
             .padding(sd(1.5f))
             .clip(shape)
             .background(effectiveBg)
@@ -1564,25 +1552,12 @@ private fun LessonRow(
         colorless = AppPrefs.isCourseColorless(context),
         slot = com.imsx3d.classy.util.LocalCourseColorSlots.current[CourseColorUtil.colorSeed(course)]
     )
-    val inactive = SleepyTheme.Alpha.inactive
-    val effectiveBg = when {
-        barStyle -> if (isGrey) colors.surfaceContainer.copy(alpha = inactive) else colors.surfaceContainer
-        isGrey -> fillBg.copy(alpha = inactive)
-        else -> fillBg
-    }
-    val effectiveAccent = if (isGrey) accent.copy(alpha = inactive) else accent
-    // fill 版的正文色跟着底色走（深色自定义课色上必须切白字，见 D5-13）；
-    // bar 版正文回中性前景，只有时间/节次用课色。
-    val effectiveFg = when {
-        isGrey -> (if (barStyle) colors.onSurface else CourseColorUtil.textColorOn(fillBg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)).copy(alpha = inactive)
-        barStyle -> colors.onSurface
-        else -> CourseColorUtil.textColorOn(fillBg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
-    }
-    val effectiveFgVariant = when {
-        isGrey -> colors.onSurfaceVariant.copy(alpha = inactive)
-        barStyle -> colors.onSurfaceVariant
-        else -> effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
-    }
+    val effectiveBg = if (barStyle) colors.surfaceContainer else fillBg
+    val effectiveAccent = accent
+    val effectiveFg = if (barStyle) colors.onSurface
+        else CourseColorUtil.textColorOn(fillBg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
+    val effectiveFgVariant = if (barStyle) colors.onSurfaceVariant
+        else effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") androidx.compose.ui.text.style.TextDecoration.LineThrough else null
 
@@ -1594,6 +1569,7 @@ private fun LessonRow(
 
     Row(
         modifier = Modifier
+            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
             .fillMaxWidth()
             // IntrinsicSize.Min：左侧色条要 fillMaxHeight 撑到内容高（今日页同款写法）
             .height(IntrinsicSize.Min)

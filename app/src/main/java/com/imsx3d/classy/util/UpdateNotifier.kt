@@ -61,7 +61,7 @@ object UpdateNotifier {
     fun maybeCheckOnStart(context: Context, scope: CoroutineScope) {
         // 仓库未配置（AppIdentity.REPO_URL 为空）时连请求都不发：改版包签名与上游不同，
         // 查到上游新版会给出装不上的官方包。填好仓库地址后这里自动恢复。
-        if (!AppIdentity.hasRepo) return
+        if (!AppIdentity.hasReleaseUpdates) return
         if (!AppPrefs.isUpdateCheckEnabled(context)) return
         scope.launch(SupervisorJob() + Dispatchers.IO) {
             // 同一进程只查一次, 后到的请求直接忽略
