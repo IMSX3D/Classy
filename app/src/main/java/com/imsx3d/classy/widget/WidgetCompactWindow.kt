@@ -22,11 +22,14 @@ internal object WidgetCompactWindow {
         today: LocalDate,
         todayFirst: Boolean,
         displayWeek: Int? = null,
+        targetDate: LocalDate? = null,
     ): List<DayData> {
-        val dates = if (displayWeek != null) {
+        val dates = if (targetDate != null) {
+            WidgetCompactWindowCore.dates(today, targetDate, todayFirst)
+        } else if (displayWeek != null) {
             (1..3).map { day -> DateUtils.dateOfWeek(startDate, displayWeek, day) }
         } else {
-            WidgetBitmapRenderers.compactWindowDates(today, todayFirst)
+            WidgetCompactWindowCore.dates(today, null, todayFirst)
         }
         val courses = repo.getCourses(tableId)
         val transfers = com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(com.imsx3d.classy.SleepyApp.get(), tableId)

@@ -566,7 +566,7 @@ class ScheduleRepository(private val db: AppDatabase) {
         catch (e: Exception) { android.util.Log.w("ScheduleRepository", "Preference cleanup failed", e) }
         try { WidgetUpdater.notifyDataChanged(app) }
         catch (e: Exception) { android.util.Log.w("ScheduleRepository", "Widget refresh failed", e) }
-        app.notificationScheduler.scheduleAll()
+        app.notificationScheduler.requestReschedule()
     }
 
     private fun assignGroupIds(courses: List<CourseEntity>): List<CourseEntity> {

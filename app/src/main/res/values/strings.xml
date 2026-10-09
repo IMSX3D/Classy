@@ -987,4 +987,6 @@
     <string name="settings_course_style_bar">色条</string>
     <string name="settings_course_style_fill">填充</string>
     <string name="settings_course_style_sub">色条：颜色只占左缘一条；填充：整块用课色</string>
+    <string name="jw_swjtu_period_fallback">未获取到作息，已填入西南交大犀浦/九里校区标准作息（2025—2026 学年起），请在确认页核对。</string>
+    <string name="jw_draft_save_failed">保存草稿失败，请重试</string>
 </resources>

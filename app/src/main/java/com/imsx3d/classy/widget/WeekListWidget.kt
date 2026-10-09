@@ -191,6 +191,9 @@ open class WeekListWidgetReceiver : AppWidgetProvider() {
                         val compactWindow = WidgetCompactWindow.build(
                             repo, table.id, table.timeJson, table.startDate, table.maxWeek,
                             today, WidgetCompactWindowStore.isTodayFirst(context, appWidgetId),
+                            targetDate = source.display.targetDate.takeIf {
+                                source.display.status == com.imsx3d.classy.util.WeekDisplayStatus.NEAREST_BUSY_DAY
+                            },
                             displayWeek = source.display.targetWeek.takeIf {
                                 source.display.status == com.imsx3d.classy.util.WeekDisplayStatus.NEAREST_BUSY_DAY
                             }

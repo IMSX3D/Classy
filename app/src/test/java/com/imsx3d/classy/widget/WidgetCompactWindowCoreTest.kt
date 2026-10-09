@@ -16,6 +16,20 @@ import org.junit.Test
  */
 class WidgetCompactWindowCoreTest {
 
+    @Test fun nearestThursdayIsVisibleInsteadOfMondayToWednesday() {
+        val today = java.time.LocalDate.parse("2026-10-05")
+        val target = today.plusDays(3)
+        assertEquals(listOf(target, target.plusDays(1), target.plusDays(2)),
+            WidgetCompactWindowCore.dates(today, target, true))
+    }
+
+    @Test fun centeredNearestDateCrossesYearBoundary() {
+        val target = java.time.LocalDate.parse("2027-01-01")
+        assertEquals(listOf(target.minusDays(1), target, target.plusDays(1)),
+            WidgetCompactWindowCore.dates(target.minusDays(5), target, false))
+        assertEquals(target, WidgetCompactWindowCore.dates(target, null, false)[1])
+    }
+
     @Test
     fun `read returns null until explicitly written`() {
         assertNull(WidgetCompactWindowCore.read(emptyMap(), 7))

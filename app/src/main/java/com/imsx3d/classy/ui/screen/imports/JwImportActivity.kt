@@ -169,8 +169,11 @@ class JwImportActivity : ComponentActivity() {
                 }
 
                 fun currentDraftSnapshot(): JwImportDraftSnapshot? {
-                    val school = parsedSchool ?: return null
-                    if (parsedCourses.isEmpty()) return null
+                    val school = parsedSchool ?: selectedSchool ?: return null
+                    if (parsedCourses.isEmpty()) return JwImportDraftSnapshot(
+                        school = school, courses = emptyList(), periods = emptyList(),
+                        phase = JwImportDraftPhase.WEBVIEW_LOGIN,
+                    )
                     return JwImportDraftSnapshot(
                         school = school,
                         courses = parsedCourses,
@@ -344,10 +347,16 @@ class JwImportActivity : ComponentActivity() {
                         ExitDraftOutcome.KeepDraft -> {
                             val id = draftId
                             val snapshot = currentDraftSnapshot()
-                            if (id != null && snapshot != null) {
+                            if (snapshot != null) {
                                 scope.launch {
-                                    draftRepository.update(id, snapshot)
-                                    finish()
+                                    try {
+                                        if (id == null) draftId = draftRepository.save(snapshot, sourceType = "jw", sourceUrl = snapshot.school.url)
+                                        else draftRepository.update(id, snapshot)
+                                        finish()
+                                    } catch (e: Exception) {
+                                        if (e is kotlinx.coroutines.CancellationException) throw e
+                                        errorMsg = getString(R.string.jw_draft_save_failed)
+                                    }
                                 }
                             } else {
                                 finish()
@@ -384,6 +393,11 @@ class JwImportActivity : ComponentActivity() {
                     draftId = id
                     parsedSchool = snapshot.school
                     selectedSchool = snapshot.school
+                    if (snapshot.phase == JwImportDraftPhase.WEBVIEW_LOGIN) {
+                        exitDraftState = exitDraftState.copy(activeImport = true)
+                        stage = Stage.WebViewLogin
+                        return@LaunchedEffect
+                    }
                     parsedCourses = snapshot.courses
                     configStartDate = snapshot.termStartDate
                     configTableName = snapshot.tableName.ifBlank {
@@ -680,7 +694,11 @@ confirmButton = {},
                                                 smartConfigJson = Json.encodeToString(inferredSmartConfig),
                                             )
                                             draftId = withContext(Dispatchers.IO) {
-                                                draftRepository.save(snapshot, sourceType = "jw", sourceUrl = sch.url)
+                                                val existingId = draftId
+                                                if (existingId != null) {
+                                                    draftRepository.update(existingId, snapshot)
+                                                    existingId
+                                                } else draftRepository.save(snapshot, sourceType = "jw", sourceUrl = sch.url)
                                             }
                                             stage = Stage.ConfigureConfirm
                                             // v1.0.56 T10: 默认选中「本次导入自动建作息表」(合成 id=-1)

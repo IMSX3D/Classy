@@ -139,7 +139,8 @@ internal class MeetingBlockDraft(
     teacher: String = "",
     note: String = "",
     color: String = "",
-    colorMode: Int = com.imsx3d.classy.data.entity.CourseColorMode.GROUP
+    colorMode: Int = com.imsx3d.classy.data.entity.CourseColorMode.GROUP,
+    val sourceIds: List<Long> = emptyList(),
 ) {
     var startNode by mutableStateOf(startNode)
     var step by mutableStateOf(step)
@@ -250,8 +251,12 @@ fun AddCourseScreen(
         mutableStateListOf(initialMeetingBlock(editingCourse))
     }
 
+    val editListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var blocksLoaded by remember(editingCourse?.id) { mutableStateOf(false) }
+    var positioned by remember(editingCourse?.id) { mutableStateOf(false) }
+
     // 编辑模式：查同 groupId 全部课程，按时段分组回填多个 block (issue#22 分组规则不变)
-    LaunchedEffect(editingCourse?.groupId) {
+    LaunchedEffect(editingCourse?.id, state.selectedTableId) {
         val eg = editingCourse
         if (eg != null && eg.groupId.isNotBlank()) {
             val tid = state.selectedTableId ?: return@LaunchedEffect
@@ -272,6 +277,7 @@ fun AddCourseScreen(
                     val isEdge = first.startNode in edgeNodes
                     meetingBlocks.add(MeetingBlockDraft(
                         id = bid++,
+                        sourceIds = courses.map { it.id },
                         days = androidx.compose.runtime.mutableStateListOf<Int>().apply {
                             addAll(courses.map { it.day }.distinct().sorted())
                         },
@@ -299,6 +305,7 @@ fun AddCourseScreen(
                 }
             }
         }
+        blocksLoaded = true
     }
 
     var saving by remember { mutableStateOf(false) }
@@ -530,10 +537,22 @@ fun AddCourseScreen(
         )
     }
 
+    LaunchedEffect(blocksLoaded, editingCourse?.id) {
+        if (blocksLoaded && !positioned) {
+            val target = findTargetBlockIndex(meetingBlocks, editingCourse)
+            if (target >= 0) {
+                // Scaffold header, spacer, basic info, week range, slot heading, optional validation.
+                editListState.scrollToItem(target + 5 + if (validationIssues.isNotEmpty()) 1 else 0)
+            }
+            positioned = true
+        }
+    }
+
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
         title = stringResource(if (editingCourse != null) R.string.edit_course else R.string.create_course),
         onBack = onBack,
+        listState = editListState,
         verticalSpacing = 14.dp
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
@@ -784,6 +803,9 @@ internal fun groupSlotsForEdit(courses: List<CourseEntity>): List<List<CourseEnt
         "${c.ownTime}|${c.startNode}|${c.step}|${c.startTime}|${c.endTime}|${c.startWeek}|${c.endWeek}|${c.type}|${c.room}|${c.teacher}"
     }.values.toList()
 
+internal fun findTargetBlockIndex(blocks: List<MeetingBlockDraft>, course: CourseEntity?): Int =
+    if (course == null) -1 else blocks.indexOfFirst { course.id in it.sourceIds }
+
 private fun initialMeetingBlock(course: CourseEntity?): MeetingBlockDraft {
     if (course == null) {
         return MeetingBlockDraft(
@@ -799,6 +821,7 @@ private fun initialMeetingBlock(course: CourseEntity?): MeetingBlockDraft {
     return MeetingBlockDraft(
         id = 1,
         days = days,
+        sourceIds = listOf(course.id),
         startNode = course.startNode,
         step = course.step,
         startTime = course.startTime.ifBlank { "08:00" },

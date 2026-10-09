@@ -956,4 +956,6 @@ Los datos del horario, los temas personalizados y las correspondencias de festiv
     <string name="settings_course_style_bar">Barra</string>
     <string name="settings_course_style_fill">Relleno</string>
     <string name="settings_course_style_sub">Barra: color solo en el borde. Relleno: tarjeta completa.</string>
+    <string name="jw_swjtu_period_fallback">Portal period times unavailable. SWJTU Xipu/Jiuli standard times (from 2025–2026) were filled in. Please check them before importing.</string>
+    <string name="jw_draft_save_failed">Could not save draft. Please try again.</string>
 </resources>

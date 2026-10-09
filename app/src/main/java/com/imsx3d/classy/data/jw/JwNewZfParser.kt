@@ -261,7 +261,7 @@ class JwNewZfParser(source: String) : JwParser(source) {
         if (s.isBlank()) return emptyList()
         val out = mutableListOf<Pair<Int, Int>>()
         s.split(",", "，", ";", "；").forEach { seg ->
-            val t = seg.trim()
+            val t = seg.trim().removeSuffix("节").trim()
             if (t.isEmpty()) return@forEach
             // 形态 1: 含 '-' 的范围串
             if (t.contains("-")) {

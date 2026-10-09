@@ -206,6 +206,7 @@ fun SettingsScaffold(
     bottomCTA: (@Composable () -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.background,
     horizontalPadding: Dp = 16.dp,
+    listState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     content: LazyListScope.() -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -224,6 +225,7 @@ fun SettingsScaffold(
         }
     ) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
             contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(verticalSpacing)

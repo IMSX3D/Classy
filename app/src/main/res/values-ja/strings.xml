@@ -956,4 +956,6 @@
     <string name="settings_course_style_bar">アクセントバー</string>
     <string name="settings_course_style_fill">塗りつぶし</string>
     <string name="settings_course_style_sub">バー：左端の帯だけに色。塗り：カード全体を色で塗る。</string>
+    <string name="jw_swjtu_period_fallback">Portal period times unavailable. SWJTU Xipu/Jiuli standard times (from 2025–2026) were filled in. Please check them before importing.</string>
+    <string name="jw_draft_save_failed">Could not save draft. Please try again.</string>
 </resources>

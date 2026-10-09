@@ -133,6 +133,7 @@ fun JwWebViewLoginScreen(
     val sepPortalHintMsg = stringResource(R.string.jw_err_ucas_sep_portal)
     val fetchTimeoutMsg = stringResource(R.string.jw_fetch_timeout)
     val fetchNoCoursesMsg = stringResource(R.string.jw_fetch_no_courses)
+    val fallbackPeriodsMsg = stringResource(R.string.jw_swjtu_period_fallback)
 
     // wisedu (金智) 协议：WebView 内 fetch 课表 JSON 的回调结果处理
     // 桥回调已切到主线程；result 形如 {ok:true,data:"<xskcb.do JSON>"} 或 {ok:false,err:"..."}
@@ -191,6 +192,13 @@ fun JwWebViewLoginScreen(
                             if (termStart.isBlank() && cfgStart.isNotBlank()) termStart = cfgStart
                         } catch (e: Exception) {
                             Log.w("JwWebView", "yethanConfig parse failed", e)
+                        }
+                    }
+                    if (periods.isEmpty() && school.type == JwProtocol.TYPE_YETHAN) {
+                        val fallback = com.imsx3d.classy.data.jw.SwjtuPeriodFallback.forSchool(school.url)
+                        if (fallback.isNotEmpty()) {
+                            periods.addAll(fallback)
+                            scope.launch { snackbar.showSnackbar(fallbackPeriodsMsg) }
                         }
                     }
                     val effectiveStartDate = termStart.ifBlank { termStartDate }
@@ -672,14 +680,18 @@ private const val WISEDU_FETCH_JS = """
     }
     // 0. 先 GET 我的课表(wdkb)微应用入口，初始化 app 会话；否则 module API 返回 403
     fetch('/jwapp/sys/wdkb/*default/index.do', {credentials:'include'})
-    .then(function(){
+    .then(function(r){
+      if (!r.ok) throw new Error('教务入口 HTTP ' + r.status + '，请重新登录或稍后重试');
       return fetch('/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do', {
         method:'POST',
         headers:{'X-Requested-With':'XMLHttpRequest'},
         credentials:'include'
       });
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (!r.ok) throw new Error('学期接口 HTTP ' + r.status + '，请重新登录或稍后重试');
+      return r.json();
+    })
     .then(function(d){
       var rows = [];
       try { rows = d.datas.dqxnxq.rows || []; } catch(e) {}
@@ -726,17 +738,20 @@ private const val WISEDU_FETCH_JS = """
       // 若页面没有学期控件，才使用接口标记的当前学期；禁止无条件取 rows[0]。
       if (!xnxq) {
         var current = rows.find(function(row) {
-          return row.DM && (row.SFDQ === '1' || row.SFDQ === 1 || row.CURRENT === '1' || row.current === true);
+          return row.DM && (row.SFDQ === '1' || row.SFDQ === 1 || row.SFSY === '1' || row.SFSY === 1 || row.CURRENT === '1' || row.current === true);
         });
         xnxq = current ? String(current.DM) : '';
       }
+      if (!xnxq && rows.length === 1 && rows[0].DM) xnxq = String(rows[0].DM);
       if (!xnxq) throw new Error('无法识别当前选中的学期，请先在教务页面选择学期后再点导入');
       return fetch('/jwapp/sys/wdkb/modules/xskcb/xskcb.do', {
         method:'POST',
         headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},
         body:'XNXQDM='+encodeURIComponent(xnxq),
         credentials:'include'
-      }).then(function(r){ return r.text().then(function(txt){
+      }).then(function(r){
+        if (!r.ok) throw new Error('课表接口 HTTP ' + r.status);
+        return r.text().then(function(txt){
         return {xnxq:xnxq, txt:txt};
       });});
     })
@@ -953,30 +968,26 @@ private const val YETHAN_FETCH_JS = """
       window.__sleepyBridge.onWiseduResult(JSON.stringify({ok:false, err:'请先登录西南交通大学逐专平台后再点导入'}));
       return;
     }
-    var token = '';
-    try { token = localStorage.getItem('ytoken') || ''; } catch(e) {}
-    if (!token) {
-      // 按页面标记区分卡点 (2026-09-16 用户复测: 微信扫码页点导入, 旧文案不指路):
-      //   ① 微信扫码页: 「使用微信扫一扫登录」/「微信登录」入口标记
-      //   ② 账号密码页: password 输入框
-      //   ③ 其余: 通用文案
-      var pageHint = '';
-      try {
-        var lower = (document.body ? document.body.innerText : '') || '';
-        if (lower.indexOf('使用微信扫一扫登录') >= 0 || lower.indexOf('微信登录') >= 0) {
-          pageHint = '当前停在微信扫码登录页：请用微信扫码并确认，或点「微信登录」旁的切换按钮改用账号密码登录，登录完成后再点导入';
-        } else if (document.querySelector('input[type="password"]')) {
-          pageHint = '当前停在账号密码登录页：请输入学号密码和验证码完成登录，登录完成后再点导入';
-        }
-      } catch(e2) {}
-      if (!pageHint) pageHint = '未取到登录凭据，请先登录逐专平台后再点导入';
-      window.__sleepyBridge.onWiseduResult(JSON.stringify({ok:false, err:pageHint}));
-      return;
+    function loginHint() {
+      var text = (document.body && document.body.innerText) || '';
+      if (text.indexOf('微信登录') >= 0 || text.indexOf('使用微信扫一扫登录') >= 0)
+        return '请完成微信扫码登录，或切换账号密码登录后重新导入';
+      if (document.querySelector('input[type="password"]')) return '请完成学号密码登录后重新导入';
+      return '登录态已过期，请重新登录后导入';
     }
-    var headers = {Accept:'application/json', 'ytoken':token};
+    var token = '';
+    try {
+      var cookie = document.cookie.match(/(?:^|;\s*)ytoken=([^;]+)/);
+      if (cookie) token = decodeURIComponent(cookie[1]);
+    } catch(e) {}
+    if (!token) { try { token = localStorage.getItem('ytoken') || ''; } catch(e) {} }
+    // HttpOnly cookies cannot be read by JS; let the server decide authentication.
+    var headers = {Accept:'application/json'};
+    if (token) headers.ytoken = token;
     var get = function(path) {
       return fetch(path, {method:'GET', credentials:'include', headers:headers}).then(function(r) {
         return r.text().then(function(txt) {
+          if (r.status === 401 || r.status === 403) throw new Error(loginHint());
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return txt;
         });
@@ -984,13 +995,15 @@ private const val YETHAN_FETCH_JS = """
     };
     Promise.all([
       get('/yethan/common/course-schedule/student-course-schedule'),
-      get('/yethan/common-config')
+      get('/yethan/common-config').catch(function(){ return '{}'; })
     ]).then(function(values){
       var schedule = JSON.parse(values[0]);
-      var config = JSON.parse(values[1]);
+      var config = {};
+      try { config = JSON.parse(values[1]); } catch(e) {}
       if (!schedule || (schedule.code !== '00000' && schedule.code !== 0)) {
         var code = schedule && schedule.code ? String(schedule.code) : 'unknown';
-        throw new Error('课表接口返回 ' + code + '（登录态可能已过期，请刷新重登）');
+        if (['401','A0230','A0422'].indexOf(code) >= 0) throw new Error(loginHint());
+        throw new Error('课表接口返回 ' + code);
       }
       window.__sleepyBridge.onWiseduResult(JSON.stringify({
         ok:true,
@@ -1488,6 +1501,18 @@ private const val EAMS5_FETCH_JS = """
       return;
     }
     var PREFIX = '__EAMS5_PREFIX__';
+    function extractSemesterId(source) {
+      // Only the semester selector may supply a selected option (not campus/biz type).
+      var block = (source.match(/<select\b[^>]*(?:id|name)\s*=\s*["'](?:allSemesters|semesterId)["'][^>]*>([\s\S]*?)<\/select>/i) || [])[1] || '';
+      var options = block.match(/<option\b[^>]*>/gi) || [];
+      for (var i = 0; i < options.length; i++) {
+        if (!/\sselected(?:\s*=\s*(?:["'][^"']*["']|[^\s>]+))?(?=\s|>)/i.test(options[i])) continue;
+        var value = options[i].match(/\bvalue\s*=\s*["']?(\d+)/i);
+        if (value) return value[1];
+      }
+      var explicit = source.match(/semesterId\s*[=:]\s*["']?(\d+)/i);
+      return explicit ? explicit[1] : '';
+    }
     // 1) GET course-table 拿 studentId (Cookie 已带)。
     //    fetch 默认跟随重定向: 已登录 → /for-std/course-table 重定向到
     //    /for-std/course-table/info/<studentId>, 页面 HTML <script> 段里有
@@ -1528,8 +1553,7 @@ private const val EAMS5_FETCH_JS = """
       }
       if (!sid) return null;
       // semesterId 若本页 script 段带就顺手拿 (get-data 查询参数), 拿不到留空由 info 页兜底
-      var sem = html.match(/semesterId\s*[=:]\s*['"]?(\d+)/);
-      return {studentId: sid, semesterId: sem ? sem[1] : ''};
+      return {studentId: sid, semesterId: extractSemesterId(html)};
     })
     .then(function(ctx){
       if (!ctx) {
@@ -1547,10 +1571,7 @@ private const val EAMS5_FETCH_JS = """
         if (infoHtml) {
           var bm = infoHtml.match(/bizTypeId\s*[=:]\s*['"]?(\d+)/);
           if (bm) biz = bm[1];
-          if (!sem) {
-            var sm = infoHtml.match(/semesterId\s*[=:]\s*['"]?(\d+)/);
-            if (sm) sem = sm[1];
-          }
+          if (!sem) sem = extractSemesterId(infoHtml);
         }
         // 3) get-data 拿 lessonIds[]; 任一环失败 → ids 留空数组 = v1 旧行为兜底
         var q = '/for-std/course-table/get-data?bizTypeId=' + biz + '&dataId=' + sid;

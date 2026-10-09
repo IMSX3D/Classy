@@ -7,6 +7,12 @@ import org.junit.Test
 
 class JwImportDraftTest {
 
+    @Test
+    fun `login draft without courses restores school and phase`() {
+        val login = snapshot.copy(courses = emptyList(), periods = emptyList(), phase = JwImportDraftPhase.WEBVIEW_LOGIN)
+        assertEquals(login, JwImportDraftCodec.fromJson(JwImportDraftCodec.toJson(login)))
+    }
+
     private val school = JwSchoolInfo(
         sortKey = "H",
         name = "哈尔滨工程大学",

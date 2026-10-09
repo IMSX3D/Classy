@@ -10,6 +10,12 @@ package com.imsx3d.classy.widget
  */
 internal object WidgetCompactWindowCore {
 
+    fun dates(today: java.time.LocalDate, targetDate: java.time.LocalDate?, todayFirst: Boolean): List<java.time.LocalDate> {
+        val anchor = targetDate ?: today
+        val first = if (todayFirst) anchor else anchor.minusDays(1)
+        return (0L..2L).map(first::plusDays)
+    }
+
     const val PREFS_NAME = "widget_compact_window_prefs"
 
     fun key(widgetId: Int): String = "compact_today_first_$widgetId"

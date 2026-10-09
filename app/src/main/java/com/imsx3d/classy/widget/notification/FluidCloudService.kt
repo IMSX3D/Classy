@@ -63,6 +63,8 @@ class FluidCloudService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // The service may be restarted independently from the scheduler.
+        com.imsx3d.classy.SleepyApp.get().notificationScheduler.createChannels()
         courseName = intent?.getStringExtra("courseName") ?: getString(R.string.default_course_name)
         room = intent?.getStringExtra("room").orEmpty().ifBlank { getString(R.string.default_room) }
         teacher = intent?.getStringExtra("teacher").orEmpty()

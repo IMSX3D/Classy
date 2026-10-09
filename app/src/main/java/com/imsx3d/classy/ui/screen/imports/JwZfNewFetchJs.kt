@@ -61,38 +61,17 @@ const val ZF_NEW_FETCH_JS = """(function(){
         fetch(idxPath, {credentials:'include', headers:{'X-Requested-With':'XMLHttpRequest'}})
           .then(function(r){ return r.text(); })
           .then(function(html){
-            var optRe = /<option[^>]*value=["']([^"']*)["'][^>]*(\bselected\b)?[^>]*>([^<]*)<\/option>/gi;
-            function parse(block){
-              var arr=[], defIdx=0, m;
-              while ((m = optRe.exec(block)) !== null) {
-                arr.push({value:m[1], text:m[3]||m[1]});
-                if (m[2]) defIdx = arr.length - 1;
-              }
-              return {options:arr, defaultIndex:defIdx};
+            function selectedTerm(id) {
+              var doc = new DOMParser().parseFromString(html, 'text/html');
+              var select = doc.getElementById(id);
+              if (!select) throw new Error('未找到学期，请先在教务页面选择学期');
+              var options = Array.prototype.filter.call(select.options, function(o){ return o.value.trim() !== ''; });
+              var chosen = options.filter(function(o){ return o.hasAttribute('selected'); });
+              if (chosen.length === 1) return chosen[0].value.trim();
+              if (options.length === 1) return options[0].value.trim();
+              throw new Error('无法确认默认学期，请先在教务页面选择学期后导入');
             }
-            var xBlock = (html.match(/<select[^>]*id=["']xnm["'][^>]*>([\s\S]*?)<\/select>/i)||[])[1]||'';
-            var qBlock = (html.match(/<select[^>]*id=["']xqm["'][^>]*>([\s\S]*?)<\/select>/i)||[])[1]||'';
-            var xData = parse(xBlock);
-            var qData = parse(qBlock);
-            function ask(data, defIdx){
-              return new Promise(function(res2, rej2){
-                window.__sleepyBridge.onNeedTermSelection(
-                  JSON.stringify(data.options),
-                  defIdx,
-                  function(pickedJson){
-                    if (pickedJson == null || pickedJson === 'null') rej2(new Error('用户取消'));
-                    else { try { res2(JSON.parse(pickedJson)); } catch(e){ rej2(e); } }
-                  });
-              });
-            }
-            return Promise.all([ask(xData, xData.defaultIndex), ask(qData, qData.defaultIndex)])
-              .then(function(picks){
-                if (!picks[0] || !picks[1]) throw new Error('学期选择结果无效');
-                var xnm = picks[0].value || '';
-                var xqm = picks[1].value || '';
-                if (!xnm || !xqm) throw new Error('学期选择结果无效');
-                resolve({xnm:xnm, xqm:xqm});
-              });
+            resolve({xnm:selectedTerm('xnm'), xqm:selectedTerm('xqm')});
           })
           .catch(function(e){ reject(e); });
       });

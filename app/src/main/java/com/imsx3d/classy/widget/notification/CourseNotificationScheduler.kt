@@ -40,7 +40,7 @@ import java.time.ZoneId
  * 课程通知调度器 — 支持每日提醒 + 每节课前提醒。
  *
  * 每日提醒：在用户指定时间发送今日课程摘要。
- * 课前提醒：每天凌晨调度当天每节课前 N 分钟的通知。
+ * 课前提醒：滚动安排七天内课程，每日和数据变更时刷新。
  */
 class CourseNotificationScheduler(private val context: Context) {
 
@@ -63,6 +63,14 @@ class CourseNotificationScheduler(private val context: Context) {
         const val NOTIFY_TOMORROW_DAILY = 1002
         const val NOTIFY_BEFORE_CLASS_BASE = 2000 // + courseId offset
     }
+
+    private val editDebouncer = ReminderDebouncer(schedulingScope) {
+        try { reschedule() }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { android.util.Log.e("CourseScheduler", "Deferred reschedule failed", e) }
+    }
+
+    fun requestReschedule() = editDebouncer.request()
 
     fun scheduleAll() = schedulingScope.launch {
         try { reschedule() }
@@ -102,11 +110,14 @@ class CourseNotificationScheduler(private val context: Context) {
         alarmManager.cancel(buildPendingIntent(RC_BEFORE_CLASS_SCHEDULER, BeforeClassScheduleReceiver::class.java))
 
         val prefs = alarmPrefs(context)
+        prefs.getStringSet("occurrences", emptySet()).orEmpty().forEach { key ->
+            alarmManager.cancel(occurrencePendingIntent(key))
+        }
         val recorded = prefs.getStringSet("ids", emptySet()).orEmpty().mapNotNull { it.toIntOrNull() }
         // Existing rows also cancel alarms from versions predating the registry.
         val current = SleepyApp.get().repository.getAllCourses().map { it.id.toInt() }
         cancelCourseAlarmIds(alarmManager, (recorded + current).distinct())
-        check(prefs.edit().putStringSet("ids", emptySet())
+        check(prefs.edit().putStringSet("occurrences", emptySet()).putStringSet("ids", emptySet())
             .putString("generation", java.util.UUID.randomUUID().toString()).commit())
         NotificationManagerCompat.from(context).cancel(NOTIFY_BEFORE_CLASS_BASE)
         context.stopService(Intent(context, FluidCloudService::class.java))
@@ -121,6 +132,10 @@ class CourseNotificationScheduler(private val context: Context) {
     fun cancelCourseAlarms(courseIds: List<Long>) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         cancelCourseAlarmIds(alarmManager, courseIds.map { it.toInt() })
+        val ids = courseIds.toSet()
+        alarmPrefs(context).getStringSet("occurrences", emptySet()).orEmpty()
+            .filter { ReminderWindow.courseId(it) in ids }
+            .forEach { alarmManager.cancel(occurrencePendingIntent(it)) }
     }
 
     private fun cancelCourseAlarmIds(alarmManager: AlarmManager, courseIds: List<Int>) {
@@ -129,6 +144,13 @@ class CourseNotificationScheduler(private val context: Context) {
                 alarmManager.cancel(buildPendingIntent(RC_BEFORE_CLASS_BASE + cid, BeforeClassNotifyReceiver::class.java))
             } catch (_: Exception) {}
         }
+    }
+
+    private fun occurrencePendingIntent(key: String, payload: Intent? = null): PendingIntent {
+        val intent = payload ?: Intent(context, BeforeClassNotifyReceiver::class.java)
+        intent.data = android.net.Uri.parse("classy-alarm://${context.packageName}/$key")
+        return PendingIntent.getBroadcast(context, RC_BEFORE_CLASS_BASE, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
     // ==================== Daily ====================
@@ -191,7 +213,7 @@ class CourseNotificationScheduler(private val context: Context) {
     }
 
     /**
-     * Queries today's courses and schedules individual before-class alarms.
+     * Schedules a rolling seven-day occurrence window, refreshed daily and on edits.
      * Called by [BeforeClassScheduleReceiver] at midnight and by [scheduleBeforeClassDaily].
      */
     suspend fun scheduleTodayBeforeClassAlarms() = reschedule()
@@ -201,73 +223,73 @@ class CourseNotificationScheduler(private val context: Context) {
         android.util.Log.d("CourseScheduler", "scheduleToday start enabled=${AppPrefs.isBeforeClassEnabled(app)} minutes=${AppPrefs.getBeforeClassMinutes(app)}")
         if (!AppPrefs.isBeforeClassEnabled(app)) return
         val minutes = AppPrefs.getBeforeClassMinutes(app)
-        val today = LocalDate.now()
+        val firstDate = LocalDate.now()
         val table = resolveCurrentTable() ?: return
-        val courses = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
-            app, table, today, SleepyApp.get().repository.getCourses(table.id)
-        )
-
-        // Parse time nodes
-        val nodes = TimeTableUtils.parseNodes(table.timeJson)
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val now = System.currentTimeMillis()
-
-        courses.forEachIndexed { index, course ->
-            // Get course start time
-            android.util.Log.d("CourseScheduler", "course index=$index id=${course.id} name=${course.courseName} ownTime=${course.ownTime} start=${course.startTime} node=${course.startNode}")
-            val startTimeStr = if (course.ownTime && course.startTime.isNotBlank()) {
-                course.startTime
-            } else {
-                nodes.find { it.node == course.startNode }?.let { String.format("%02d:%02d", it.start.hour, it.start.minute) }
-            } ?: run {
-                android.util.Log.w("CourseScheduler", "skip no start time course=${course.id}")
-                return@forEachIndexed
-            }
-            val parts = startTimeStr.split(":")
-            val h = parts.getOrNull(0)?.toIntOrNull()
-            val m = parts.getOrNull(1)?.toIntOrNull()
-            // 钳制：ownTime/startTime 可能是破损值（h≥24/m≥60），非法则跳过本节
-            if (h == null || m == null || h !in 0..23 || m !in 0..59) {
-                android.util.Log.w("CourseScheduler", "skip invalid time course=${course.id} time=$startTimeStr")
-                return@forEachIndexed
-            }
-
-            val classStart = today.atTime(h, m)
-            val notifyTime = classStart.minusMinutes(minutes.toLong())
-            val epoch = notifyTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-            android.util.Log.d("CourseScheduler", "course=${course.id} start=$classStart notify=$notifyTime epoch=$epoch now=$now")
-            if (epoch <= now) {
-                android.util.Log.d("CourseScheduler", "skip past alarm course=${course.id}")
-                return@forEachIndexed
-            }
-
-            val registry = alarmPrefs(context)
-            val ids = registry.getStringSet("ids", emptySet()).orEmpty() + course.id.toInt().toString()
-            // Persist before AlarmManager: a process death can at worst leave an extra cancel ID.
-            check(registry.edit().putStringSet("ids", ids).commit())
-            val intent = Intent(context, BeforeClassNotifyReceiver::class.java).apply {
-                putExtra("courseId", course.id)
-                putExtra("generation", registry.getString("generation", ""))
-                putExtra("courseName", course.courseName)
-                putExtra("room", course.room)
-                putExtra("teacher", course.teacher)
-                putExtra("startTime", String.format("%02d:%02d", h, m))
-                putExtra("notifyEpoch", epoch)
-                putExtra("classEpoch", classStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
-            }
-            val pending = PendingIntent.getBroadcast(
-                context, RC_BEFORE_CLASS_BASE + course.id.toInt(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val allCourses = SleepyApp.get().repository.getCourses(table.id)
+        for (today in ReminderWindow.dates(firstDate)) {
+            val courses = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
+                app, table, today, allCourses
             )
 
-            // Use exact alarm for precision, fall back to inexact on Android 12+ without grant
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, epoch, pending)
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pending)
+            // Parse time nodes
+            val nodes = TimeTableUtils.parseNodes(table.timeJson)
+
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val now = System.currentTimeMillis()
+
+            courses.forEachIndexed { index, course ->
+                // Get course start time
+                android.util.Log.d("CourseScheduler", "course index=$index id=${course.id} name=${course.courseName} ownTime=${course.ownTime} start=${course.startTime} node=${course.startNode}")
+                val startTimeStr = if (course.ownTime && course.startTime.isNotBlank()) {
+                    course.startTime
+                } else {
+                    nodes.find { it.node == course.startNode }?.let { String.format("%02d:%02d", it.start.hour, it.start.minute) }
+                } ?: run {
+                    android.util.Log.w("CourseScheduler", "skip no start time course=${course.id}")
+                    return@forEachIndexed
+                }
+                val parts = startTimeStr.split(":")
+                val h = parts.getOrNull(0)?.toIntOrNull()
+                val m = parts.getOrNull(1)?.toIntOrNull()
+                // 钳制：ownTime/startTime 可能是破损值（h≥24/m≥60），非法则跳过本节
+                if (h == null || m == null || h !in 0..23 || m !in 0..59) {
+                    android.util.Log.w("CourseScheduler", "skip invalid time course=${course.id} time=$startTimeStr")
+                    return@forEachIndexed
+                }
+
+                val classStart = today.atTime(h, m)
+                val notifyTime = classStart.minusMinutes(minutes.toLong())
+                val epoch = notifyTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+                android.util.Log.d("CourseScheduler", "course=${course.id} start=$classStart notify=$notifyTime epoch=$epoch now=$now")
+                if (epoch <= now) {
+                    android.util.Log.d("CourseScheduler", "skip past alarm course=${course.id}")
+                    return@forEachIndexed
+                }
+
+                val registry = alarmPrefs(context)
+                val key = ReminderWindow.key(course.id, today)
+                val ids = registry.getStringSet("occurrences", emptySet()).orEmpty() + key
+                // Persist before AlarmManager: a process death can at worst leave an extra cancel ID.
+                check(registry.edit().putStringSet("occurrences", ids).commit())
+                val intent = Intent(context, BeforeClassNotifyReceiver::class.java).apply {
+                    putExtra("courseId", course.id)
+                    putExtra("generation", registry.getString("generation", ""))
+                    putExtra("courseName", course.courseName)
+                    putExtra("room", course.room)
+                    putExtra("teacher", course.teacher)
+                    putExtra("startTime", String.format("%02d:%02d", h, m))
+                    putExtra("notifyEpoch", epoch)
+                    putExtra("classEpoch", classStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                }
+                val pending = occurrencePendingIntent(key, intent)
+
+                // Use exact alarm for precision, fall back to inexact on Android 12+ without grant
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, epoch, pending)
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pending)
+                }
             }
         }
     }
@@ -330,7 +352,7 @@ class CourseNotificationScheduler(private val context: Context) {
     }
     // ==================== Helpers ====================
 
-    private fun createChannels() {
+    internal fun createChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(
@@ -496,7 +518,10 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
                         val course = repo.getCourse(intent.getLongExtra("courseId", -1L)) ?: return@readConsistently
                         val table = com.imsx3d.classy.widget.WidgetTableResolver.resolveCurrentTable() ?: return@readConsistently
                         if (course.tableId != table.id) return@readConsistently
-                        val today = LocalDate.now()
+                        // A tomorrow class may notify before midnight today.
+                        val expectedEpoch = intent.getLongExtra("classEpoch", -1L)
+                        if (expectedEpoch <= 0) return@readConsistently
+                        val today = ReminderWindow.classDate(expectedEpoch, ZoneId.systemDefault())
                         val active = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(context, table, today, listOf(course))
                         if (active.isEmpty()) return@readConsistently
                         val start = runCatching { LocalTime.parse(getCourseStartTime(course, table)) }.getOrNull() ?: return@readConsistently
@@ -504,7 +529,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
                         val notifyEpoch = epoch - AppPrefs.getBeforeClassMinutes(context) * 60_000L
                         if (epoch != intent.getLongExtra("classEpoch", -1L) ||
                             notifyEpoch != intent.getLongExtra("notifyEpoch", -1L) ||
-                            System.currentTimeMillis() > epoch) return@readConsistently
+                            System.currentTimeMillis() < notifyEpoch || System.currentTimeMillis() > epoch) return@readConsistently
                         intent.putExtra("courseName", course.courseName)
                         intent.putExtra("room", course.room)
                         intent.putExtra("teacher", course.teacher)
