@@ -126,7 +126,7 @@ fun LicenseScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = stringResource(R.string.license_attribution_origin_note),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
                     }

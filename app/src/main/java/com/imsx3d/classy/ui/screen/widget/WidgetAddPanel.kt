@@ -13,6 +13,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.imsx3d.classy.ui.component.SettingsGroupCard
+import com.imsx3d.classy.ui.component.SettingsGroupFold
+import com.imsx3d.classy.ui.component.SupportingText
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,7 +39,8 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
     var status by remember { mutableStateOf("") }
     var lastRequest by remember { mutableStateOf("none") }
     var busy by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var choicesExpanded by rememberSaveable { mutableStateOf(false) }
     fun refresh() {
         scope.launch {
             snapshot = withContext(Dispatchers.IO) {
@@ -54,12 +59,15 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
         refresh()
         onDispose { lifecycle.removeObserver(observer) }
     }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.widget_add_title), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.widget_add_help), style = MaterialTheme.typography.bodyMedium)
+    SettingsGroupCard {
+        SettingsGroupFold(
+            title = stringResource(R.string.widget_add_title),
+            expanded = choicesExpanded,
+            onToggle = { choicesExpanded = !choicesExpanded }
+        ) {
+            SupportingText(stringResource(R.string.widget_add_help))
             ALL_WIDGET_VARIANTS.forEach { variant ->
-                OutlinedButton(
+                androidx.compose.material3.FilledTonalButton(
                     modifier = Modifier.fillMaxWidth(), enabled = !busy,
                     onClick = {
                         busy = true
@@ -76,18 +84,19 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
                     }
                 ) { Text(stringResource(variant.displayNameRes)) }
             }
-            if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = { expanded = !expanded; if (expanded) refresh() }) {
-                Text(stringResource(R.string.widget_diagnostics))
-            }
-            if (expanded) {
+        }
+        if (status.isNotEmpty()) SupportingText(status, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        SettingsGroupFold(
+            title = stringResource(R.string.widget_diagnostics),
+            expanded = expanded,
+            onToggle = { expanded = !expanded; if (expanded) refresh() }
+        ) {
+                SupportingText(stringResource(R.string.widget_manual_help))
                 Text(stringResource(when (snapshot?.state) {
                     WidgetDiscoveryState.REGISTERED -> R.string.widget_system_registered
                     WidgetDiscoveryState.MISSING -> R.string.widget_system_missing
                     else -> R.string.widget_system_unknown
                 }))
-                Text(snapshot?.report.orEmpty() + "\nlastPin=$lastRequest",
-                    style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Classy widget diagnostics",
@@ -95,7 +104,6 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
                     status = context.getString(R.string.widget_diagnostics_copied)
                 }, enabled = snapshot != null) { Text(stringResource(R.string.widget_copy_diagnostics)) }
                 TextButton(onClick = { refresh() }) { Text(stringResource(R.string.widget_refresh_diagnostics)) }
-            }
         }
     }
 }

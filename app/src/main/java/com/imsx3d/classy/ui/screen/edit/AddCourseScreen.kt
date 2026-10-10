@@ -677,7 +677,7 @@ fun AddCourseScreen(
                 )
                 Text(
                     text = stringResource(R.string.meeting_slots_sub),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
             }
@@ -1096,7 +1096,7 @@ private fun CardSection(
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
         }

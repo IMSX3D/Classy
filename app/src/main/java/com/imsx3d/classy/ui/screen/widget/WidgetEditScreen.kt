@@ -24,9 +24,8 @@ import com.imsx3d.classy.widget.WidgetEditViewModel
  * per-widget settings (e.g. "show week number", "dim past periods") can
  * be added as additional sections without changing this screen's shape.
  *
- * Currently two sections: [WidgetEditScheduleSection] (pick which schedule
- * this widget displays) and [WidgetEditAliasSection] (issue#26 — original
- * name vs alias). Toggling either writes
+ * Only [WidgetEditScheduleSection] changes this widget. Shared name display
+ * settings live on the management page. Selecting a table writes
  * [com.imsx3d.classy.widget.WidgetBindingStore] / AppPrefs and triggers
  * [com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged] so all 9
  * widget receivers re-read their binding and redraw.
@@ -46,7 +45,7 @@ fun WidgetEditScreen(
     // 一律由桌面原生滚动，"本实例是否可滚动"这个开关对它们已无意义；它只对仍在画位图的
     // WeekList / WeekView（不注册、用户拿不到）有意义，留在页面上就是骗人。
     val sections: List<WidgetEditSection> = remember {
-        listOf(WidgetEditScheduleSection, WidgetEditAliasSection)
+        listOf(WidgetEditScheduleSection)
     }
     val scope = remember(state.currentBinding, state.availableTables, state.useAlias) {
         WidgetEditScope(
@@ -62,7 +61,8 @@ fun WidgetEditScreen(
     // UI-7c: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
         title = stringResource(R.string.widget_edit_title),
-        onBack = onBack
+        onBack = onBack,
+        subtitle = stringResource(R.string.widget_single_hint)
     ) {
         items(sections.size) { idx ->
             sections[idx].Content(scope)

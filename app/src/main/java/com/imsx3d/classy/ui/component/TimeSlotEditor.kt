@@ -194,11 +194,11 @@ fun TimeSlotEditor(
         )
         Spacer(Modifier.height(8.dp))
         modeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (generatedNotice) Text("当前时间由自动安排生成，并非学校识别结果。请按学校作息调整开始时间、课间和时段后再确认。",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        if (generatedNotice) Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_generated_hint),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         else if (rows.any { it.start.isBlank() || it.end.isBlank() }) Text(
-            "尚未取得完整上下课时间。可选择自动安排批量设置，或使用已有作息表。",
-            style = MaterialTheme.typography.bodySmall)
+            androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_missing_hint),
+            style = MaterialTheme.typography.bodyMedium)
 
         when (mode) {
             Mode.Manual -> ManualTimeSlotEditor(

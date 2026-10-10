@@ -89,14 +89,14 @@ fun CourseMoveDialog(request: CourseMoveRequest, onDismiss: () -> Unit) {
                     OutlinedTextField(endText, { endText = it; clearError() }, Modifier.weight(1f), label = { Text("结束节次") },
                         singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
-                if (request.source.ownTime || request.source.isIrregularTime) Text("自定义时间课程将从目标节次开始，保持原上课时长。")
+                if (request.source.ownTime || request.source.isIrregularTime) Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.course_move_custom_hint))
                 CourseMoveScope.entries.forEach { option ->
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(scope == option, { scope = option; clearError() }, enabled = !saving)
                         Text(if (option == CourseMoveScope.THIS_WEEK) "仅本周这次课程" else "本周及以后的这个上课时段")
                     }
                 }
-                Text("其他上课时段保持不变；保存后可在课表顶部撤销。", style = MaterialTheme.typography.bodySmall)
+                Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.course_move_undo_hint), style = MaterialTheme.typography.bodyMedium)
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (conflictDetails.isNotEmpty()) {
                     Text("目标时间与以下课程重叠：", color = MaterialTheme.colorScheme.error)

@@ -51,6 +51,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
+    var style by remember { mutableStateOf(AppPrefs.getHolidayStyle(context)) }
     var displayMode by remember { mutableStateOf(AppPrefs.getDisplayMode(context)) }
     var gridSubInfo by remember { mutableStateOf(AppPrefs.getGridSubInfo(context)) }
     var startView by remember { mutableStateOf(AppPrefs.getStartView(context)) }
@@ -78,6 +79,20 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
         item {
             SettingsGroupCard {
                 SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_start_view),
+                    subtitle = stringResource(R.string.display_start_hint),
+                    options = listOf(
+                            stringResource(R.string.settings_start_view_full),
+                            stringResource(R.string.settings_start_view_cards)
+                        ),
+                    selectedKey = if (startView == "full") 0 else 1,
+                    onSelect = { i ->
+                            val v = if (i == 0) "full" else "cards"
+                            startView = v; AppPrefs.setStartView(context, v)
+                        },
+                )
+                SettingsRowDivider()
+                SettingsSegmentedRow(
                     title = stringResource(R.string.settings_display_mode),
                     options = listOf(
                             stringResource(R.string.settings_display_node),
@@ -89,9 +104,19 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                             displayMode = v; AppPrefs.setDisplayMode(context, v); refreshWidgets()
                         },
                 )
-                SettingsRowDivider()
+            }
+        }
+        item {
+            SectionHeader(
+                title = stringResource(R.string.display_grid_section),
+                topSpacing = 0.dp
+            )
+        }
+        item {
+            SettingsGroupCard {
                 SettingsSegmentedRow(
                     title = stringResource(R.string.settings_grid_sub_info),
+                    subtitle = stringResource(R.string.display_card_hint),
                     options = listOf(
                             stringResource(R.string.settings_grid_sub_room),
                             stringResource(R.string.settings_grid_sub_teacher),
@@ -108,43 +133,9 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                         },
                 )
                 SettingsRowDivider()
-                SettingsSegmentedRow(
-                    title = stringResource(R.string.settings_start_view),
-                    options = listOf(
-                            stringResource(R.string.settings_start_view_full),
-                            stringResource(R.string.settings_start_view_cards)
-                        ),
-                    selectedKey = if (startView == "full") 0 else 1,
-                    onSelect = { i ->
-                            val v = if (i == 0) "full" else "cards"
-                            startView = v; AppPrefs.setStartView(context, v)
-                        },
-                )
-                SettingsRowDivider()
-                SettingsGroupRow(
-                    title = stringResource(R.string.settings_holiday_title),
-                    onClick = onOpenHoliday,
-                    trailing = {
-                        Icon(
-                            Icons.Outlined.ChevronRight,
-                            contentDescription = null,
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                )
-            }
-        }
-        item {
-            SectionHeader(
-                title = stringResource(R.string.settings_pill),
-                topSpacing = 0.dp
-            )
-        }
-        item {
-            SettingsGroupCard {
             SettingsSegmentedRow(
                 title = stringResource(R.string.settings_grid_size),
+                    subtitle = stringResource(R.string.settings_grid_adaptive_height_sub),
                 options = listOf(stringResource(R.string.settings_grid_size_auto), stringResource(R.string.settings_grid_size_manual)),
                 selectedKey = if (gridAdaptiveHeight) 0 else 1,
                 onSelect = { gridAdaptiveHeight = it == 0; AppPrefs.setGridAdaptiveHeight(context, gridAdaptiveHeight) }
@@ -158,11 +149,14 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                 onValueChangeFinished = { AppPrefs.setGridScale(context, gridScale) },
                 valueRange = 0.7f..1.3f
             )
-                Text(stringResource(R.string.settings_grid_size_hint),
-                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
+                com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.settings_grid_size_hint),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
-            SettingsRowDivider()
+            }
+        }
+        item { SectionHeader(stringResource(R.string.display_week_section)) }
+        item {
+            SettingsGroupCard {
             SettingsSliderRow(
                 title = stringResource(R.string.settings_pill_week_scale),
                 valueText = "${(weekScale * 100).roundToInt()}%",
@@ -181,6 +175,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
             SettingsRowDivider()
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_week_hide_empty),
+                    subtitle = stringResource(R.string.display_empty_hint),
                 checked = weekHideEmptyDays,
                 onCheckedChange = { weekHideEmptyDays = it; AppPrefs.setWeekHideEmptyDays(context, it) }
             )
@@ -199,7 +194,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                 // 搬进普通卡后变成"卡片首行"，上间距为 0 → 文字顶到卡片上沿（用户报"显示不全"）。
                 Text(
                     text = stringResource(R.string.settings_visible_days_sub),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp)
                 )
@@ -226,6 +221,36 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                 }
             }
         }
+        item { SectionHeader(stringResource(R.string.display_holiday_section)) }
+        item {
+            SettingsGroupCard {
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_holiday_style),
+                    subtitle = stringResource(R.string.display_style_hint),
+                    options = listOf(stringResource(R.string.settings_holiday_style_grey), stringResource(R.string.settings_holiday_style_strikethrough)),
+                    selectedKey = if (style == "strikethrough") 1 else 0,
+                    onSelect = { index ->
+                        style = if (index == 1) "strikethrough" else "grey"
+                        AppPrefs.setHolidayStyle(context, style)
+                        refreshWidgets()
+                    }
+                )
+                SettingsRowDivider()
+                SettingsGroupRow(
+                    title = stringResource(R.string.settings_holiday_title),
+                    subtitle = stringResource(R.string.settings_holiday_entry_sub),
+                    onClick = onOpenHoliday,
+                    trailing = {
+                        Icon(
+                            Icons.Outlined.ChevronRight,
+                            contentDescription = null,
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                )
+            }
+        }
         // ── 分组⑤ 实验室 (2026-09-16 用户令): 实验性功能默认全关, 可能随版本调整 ──
         item {
             SectionHeader(
@@ -236,7 +261,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
         item {
             Text(
                 text = stringResource(R.string.settings_lab_sub),
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -255,7 +280,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                 if (autoHideEmptyEvening) {
                     SettingsRowDivider()
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {

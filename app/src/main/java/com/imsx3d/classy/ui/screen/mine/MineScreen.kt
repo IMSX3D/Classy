@@ -85,7 +85,7 @@ fun MineScreen(
                     VGap(4.dp)
                     Text(
                         text = stringResource(R.string.mine_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = g.contentVariant
                     )
                 }

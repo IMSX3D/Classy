@@ -386,7 +386,7 @@ private fun CustomUrlEntryRow(onClick: () -> Unit) {
             )
             Text(
                 text = stringResource(R.string.custom_url_entry_hint),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 maxLines = 1
             )

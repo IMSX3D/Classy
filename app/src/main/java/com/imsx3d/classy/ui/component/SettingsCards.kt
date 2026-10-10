@@ -111,7 +111,7 @@ fun SectionHeader(title: String, subtitle: String? = null, topSpacing: Dp = 20.d
         )
         if (subtitle != null) {
             Spacer(Modifier.height(2.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            SupportingText(subtitle)
         }
     }
 }
@@ -176,7 +176,7 @@ fun SettingsPageHeader(
         Text(text = title, style = g.type.largeTitleEmphasized, color = g.colors.content)
         if (subtitle != null) {
             Spacer(Modifier.height(4.dp))
-            Text(text = subtitle, style = g.type.footnote, color = g.colors.contentVariant)
+            SupportingText(text = subtitle)
         }
     }
 }
@@ -362,7 +362,8 @@ fun SettingsGroupRow(
                 }
             }
             if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                SupportingText(text = subtitle)
             }
         }
         trailing?.invoke(this)
@@ -476,10 +477,8 @@ fun SettingsRowDivider() {
  */
 @Composable
 fun SettingsNoteRow(text: String, topPadding: Dp = 0.dp, bottomPadding: Dp = 12.dp) {
-    Text(
+    SupportingText(
         text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = topPadding, bottom = bottomPadding)
@@ -532,9 +531,13 @@ fun SettingsSegmentedRow(
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         // 行内左右各 16dp；标题与控件之间留 8dp
         val available = maxWidth - 32.dp
-        if (titleWidth + 8.dp + controlWidth > available) {
+        if (subtitle != null || titleWidth + 8.dp + controlWidth > available) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-                SettingsGroupRow(title = title, subtitle = subtitle)
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                if (subtitle != null) {
+                    Spacer(Modifier.height(4.dp))
+                    SupportingText(subtitle)
+                }
                 Spacer(Modifier.height(6.dp))
                 SettingsRowSegmented(
                     options = options, selectedKey = selectedKey, onSelect = onSelect,
@@ -760,11 +763,8 @@ fun SettingsSliderRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.bodyLarge, color = colors.onSurface)
                 if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
+                    Spacer(Modifier.height(4.dp))
+                    SupportingText(text = subtitle)
                 }
             }
             Text(

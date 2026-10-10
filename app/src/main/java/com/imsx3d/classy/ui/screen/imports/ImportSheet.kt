@@ -886,7 +886,7 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
                         )
                         Text(
                             text = stringResource(R.string.ai_prompt_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = colors.onPrimaryContainer
                         )
                         Text(
@@ -995,7 +995,7 @@ private fun ImportPreviewDialog(
                 if (preview.targetTableId == 0L) {
                     Text(
                         text = stringResource(R.string.import_new_table_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = colors.primary
                     )
                 } else {
@@ -1136,7 +1136,7 @@ private fun ImportPreviewDialog(
                         )
                         Text(
                             text = stringResource(R.string.import_dropped_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = colors.onErrorContainer
                         )
                         dropped.take(3).forEach { line ->

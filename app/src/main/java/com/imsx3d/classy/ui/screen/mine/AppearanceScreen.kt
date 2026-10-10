@@ -291,7 +291,7 @@ private fun SystemThemeCard(selected: Boolean, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.theme_system), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 Spacer(Modifier.height(2.dp))
-                Text(stringResource(R.string.theme_system_desc), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.theme_system_desc))
             }
             if (selected) Icon(Icons.Outlined.Check, stringResource(R.string.selected), tint = colors.primary, modifier = Modifier.size(24.dp))
         }
@@ -481,7 +481,6 @@ private fun CourseAppearanceChoices(selected: CourseAppearance, onSelect: (Cours
                 if (selected == mode) Icon(Icons.Outlined.Check, contentDescription = null, tint = colors.primary)
             }
         }
-        Text(stringResource(R.string.settings_course_palette_hint), style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant)
+        com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.settings_course_palette_hint))
     }
 }

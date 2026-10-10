@@ -85,6 +85,7 @@ fun GeneralSettingsScreen(onBack: () -> Unit) {
                 var highRefresh by remember { mutableStateOf(AppPrefs.isHighRefresh(context)) }
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_high_refresh),
+                    subtitle = stringResource(R.string.settings_high_refresh_hint),
                     checked = highRefresh,
                     onCheckedChange = { on ->
                         highRefresh = on

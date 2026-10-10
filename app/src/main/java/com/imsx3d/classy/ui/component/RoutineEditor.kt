@@ -37,13 +37,13 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
     val current = plan
     if (current == null) {
         Column(modifier) {
-            Text("此作息包含特殊时间，已保留原设置，可继续使用详细编辑。")
+            Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_special_hint))
             AdvancedSmartPeriodEditor(config, onConfigChange)
         }
         return
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("填写上课时长和各时段的开始时间，自动排好每一节。", style = MaterialTheme.typography.bodyMedium)
+        Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_auto_hint), style = MaterialTheme.typography.bodyMedium)
         error?.let { Text("未应用这次修改：$it", color = MaterialTheme.colorScheme.error) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RoutineNumber("每节课 / 分钟", current.minutes, Modifier.weight(1f)) { update(current.copy(minutes = it)) }
@@ -51,7 +51,7 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
         }
         TextButton(onClick = { focus.clearFocus(); templateConfirm = true }) { Text("使用常见作息示例") }
         Text("分段安排", style = MaterialTheme.typography.titleMedium)
-        Text("各时段按固定时间开始；修改上午课时不会推迟下午。", style = MaterialTheme.typography.bodySmall)
+        Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_sections_hint), style = MaterialTheme.typography.bodyMedium)
         current.sections.forEachIndexed { index, section ->
             val firstNode = current.sections.take(index).sumOf { it.count } + 1
             fun change(next: RoutineSection) = update(current.copy(sections = current.sections.toMutableList().also { it[index] = next }))
@@ -86,8 +86,8 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
             Text("${if (special) "收起" else "展开"}特殊调整 · $exceptionCount 项")
         }
         if (special) {
-            Text("仅修改不同的课时或课间。0 分钟课间表示连堂；时段之间的休息自动计算。",
-                style = MaterialTheme.typography.bodySmall)
+            Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_exceptions_hint),
+                style = MaterialTheme.typography.bodyMedium)
             if (exceptionCount > 0) TextButton(onClick = {
                 update(current.copy(sections = current.sections.map { it.copy(durations = emptyMap(), gaps = emptyMap()) }))
             }) { Text("全部恢复普通规则") }

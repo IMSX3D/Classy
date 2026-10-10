@@ -369,7 +369,6 @@ fun ReminderScreen(onBack: () -> Unit) {
                         SettingsRowDivider()
                         SettingsSwitchRow(
                             title = stringResource(R.string.reminder_daily_today_toggle_title),
-                            subtitle = stringResource(R.string.reminder_daily_today_toggle_sub),
                             checked = todayEnabled,
                             onCheckedChange = { enabled ->
                                 todayEnabled = enabled
@@ -388,7 +387,6 @@ fun ReminderScreen(onBack: () -> Unit) {
                         SettingsRowDivider()
                         SettingsSwitchRow(
                             title = stringResource(R.string.reminder_tomorrow_toggle_title),
-                            subtitle = stringResource(R.string.reminder_tomorrow_toggle_sub),
                             checked = tomorrowEnabled,
                             onCheckedChange = { enabled ->
                                 tomorrowEnabled = enabled
@@ -412,7 +410,6 @@ fun ReminderScreen(onBack: () -> Unit) {
                 SettingsGroupCard {
                     SettingsSwitchRow(
                         title = stringResource(R.string.reminder_before_class_title),
-                        subtitle = stringResource(R.string.reminder_before_class_sub),
                         checked = beforeClassEnabled,
                         onCheckedChange = { on ->
                             beforeClassEnabled = on

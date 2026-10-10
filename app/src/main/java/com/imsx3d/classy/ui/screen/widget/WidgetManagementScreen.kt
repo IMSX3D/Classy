@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.screen.widget
 
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,7 @@ fun WidgetManagementScreen(
         }
     }
     var widgetColorless by remember { mutableStateOf(AppPrefs.isWidgetColorless(context)) }
+    var useAlias by remember { mutableStateOf(AppPrefs.isWidgetUseAlias(context)) }
     var nearestBusyDay by remember { mutableStateOf(AppPrefs.isNearestBusyDay(context)) }
     val vm = remember { WidgetManagementViewModel() }
     val items by vm.state.collectAsState()
@@ -74,8 +76,44 @@ fun WidgetManagementScreen(
         verticalSpacing = 8.dp
     ) {
 
+        item { SectionHeader(stringResource(R.string.widget_placed_title), subtitle = stringResource(R.string.widget_placed_hint), topSpacing = 0.dp) }
+        if (items.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.widget_manage_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            items(items, key = { it.widgetId }) { item ->
+                PlacedWidgetRow(item = item, onClick = { onSelect(item.widgetId) })
+            }
+        }
+        item { WidgetAddPanel(onRefresh = { vm.reload() }) }
+        item { SectionHeader(stringResource(R.string.widget_shared_title), subtitle = stringResource(R.string.widget_shared_hint)) }
         item {
             SettingsGroupCard {
+                com.imsx3d.classy.ui.component.SettingsSegmentedRow(
+                    title = stringResource(R.string.widget_edit_section_alias),
+                    subtitle = stringResource(R.string.widget_alias_hint),
+                    options = listOf(stringResource(R.string.settings_name_original), stringResource(R.string.settings_name_alias)),
+                    selectedKey = if (useAlias) 1 else 0,
+                    onSelect = {
+                        useAlias = it == 1
+                        AppPrefs.setWidgetUseAlias(context, useAlias)
+                        refreshWidgets()
+                    }
+                )
+                SettingsRowDivider()
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_widget_colorless),
                     subtitle = stringResource(R.string.settings_widget_colorless_sub),
@@ -99,28 +137,7 @@ fun WidgetManagementScreen(
                 )
             }
         }
-        item { WidgetAddPanel(onRefresh = { vm.reload() }) }
-        if (items.isEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(R.string.widget_manage_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            items(items, key = { it.widgetId }) { item ->
-                PlacedWidgetRow(item = item, onClick = { onSelect(item.widgetId) })
-            }
-        }
+        item { SectionHeader(stringResource(R.string.widget_refresh_section)) }
         item {
             androidx.compose.material3.TextButton(
                 enabled = !refreshing,
@@ -137,32 +154,17 @@ fun WidgetManagementScreen(
 
 @Composable
 private fun PlacedWidgetRow(item: PlacedWidgetItem, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(item.variant.displayNameRes),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = colors.onSurface
-                )
-                val tableLabel = item.tableName
-                    ?: stringResource(R.string.widget_edit_default_label)
-                Text(
-                    text = tableLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
+    SettingsGroupCard {
+        com.imsx3d.classy.ui.component.SettingsGroupRow(
+            title = stringResource(item.variant.displayNameRes),
+            subtitle = item.tableName ?: stringResource(R.string.widget_edit_default_label),
+            onClick = onClick,
+            trailing = {
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null
                 )
             }
-        }
+        )
     }
 }

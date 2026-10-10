@@ -108,17 +108,17 @@ fun HolidaySettingsScreen(
     val scope = rememberCoroutineScope()
 
     var year by rememberSaveable { mutableStateOf(LocalDate.now().year) }
+    var helpExpanded by rememberSaveable { mutableStateOf(false) }
     var holidayGrey by remember { mutableStateOf(AppPrefs.isHolidayGreyHoliday(context)) }
     var weekendGrey by remember { mutableStateOf(AppPrefs.isHolidayGreyWeekend(context)) }
     var ignoreWorkday by remember { mutableStateOf(AppPrefs.isHolidayIgnoreWorkday(context)) }
-    var style by remember { mutableStateOf(AppPrefs.getHolidayStyle(context)) }
     var state by remember { mutableStateOf<HolidayUiState>(HolidayUiState.Loading) }
     var loadJob by remember { mutableStateOf<Job?>(null) }
     var overrides by remember { mutableStateOf(AppPrefs.getHolidayRanges(context)) }
     var editing by remember { mutableStateOf<EditingTarget?>(null) }
     // issue#44 调休映射(按课表, 放假日→补班日): 空 = 该放假日按自然星期取课。
     // 卡内课表切换用局部 activeTableId — 只切"正在编辑哪张表", 不动全局选中课表。
-    var activeTableId by remember(tableId) { mutableStateOf(tableId) }
+    var activeTableId by rememberSaveable(tableId) { mutableStateOf(tableId) }
     var transfers by remember(activeTableId) {
         mutableStateOf(activeTableId?.let { getHolidayTransfers(context, it) } ?: emptyList())
     }
@@ -229,58 +229,7 @@ fun HolidaySettingsScreen(
             }
         }
 
-        item {
-            // UI-29a：卡内加粗小标题 → 分组标题（与导出页「数据源」同一写法）。
-            // 判据：**它是"这一组"的标签**，不是"这张卡自己的名字" —— 后者（如每段假期一张的节卡）才留在卡内。
-            SectionHeader(stringResource(R.string.holiday_data_source))
-        }
-
-        item {
-            // 单行卡(用户 2026-09-04): URL + 刷新=图标(语言无关, 不随文案伸缩)。
-            // Loading 态图标位转圈占位(行高稳定); Failed 提示行单独挂卡底(信息行不可省)。
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth().settingsCard(colors.surfaceContainer)
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.holiday_source_label),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    when (state) {
-                        HolidayUiState.Loading -> com.imsx3d.classy.ui.component.GlasenseSpinner(
-                            modifier = Modifier.padding(2.dp)
-                        )
-                        else -> GlasenseIconButton(
-                            icon = Icons.Outlined.Refresh,
-                            contentDescription = stringResource(R.string.holiday_data_refresh),
-                            onClick = { load(year, force = true) },
-                            tint = colors.onSurfaceVariant
-                        )
-                    }
-                }
-                if (state is HolidayUiState.Failed) {
-                    Text(
-                        stringResource(R.string.holiday_data_failed),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.error,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-                    )
-                } else if (state is HolidayUiState.Empty) {
-                    Text(
-                        stringResource(R.string.holiday_data_empty),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-                    )
-                }
-            }
-        }
+        item { SectionHeader(stringResource(R.string.holiday_rules_title)) }
 
         item {
             // UI-28a：原来卡壳自己 padding(16) + 行内又 16 → 文字落在 48dp（别的设置页是 32dp），
@@ -337,24 +286,13 @@ fun HolidaySettingsScreen(
                         containerColor = colors.surfaceContainerHighest
                     )
                 }
-            }
-        }
-
-        item {
-            // UI-28a：`SettingsFlatCard` 的最后一处调用 → 普通分组行 + 分段控件（多选一仍走 C8 那一套）
-            SettingsGroupCard {
-                SettingsSegmentedRow(
-                    title = stringResource(R.string.settings_holiday_style),
-                    options = listOf(
-                            stringResource(R.string.settings_holiday_style_grey),
-                            stringResource(R.string.settings_holiday_style_strikethrough)
-                        ),
-                    selectedKey = if (style == "strikethrough") 1 else 0,
-                    onSelect = { idx ->
-                            val next = if (idx == 1) "strikethrough" else "grey"
-                            if (style != next) { style = next; AppPrefs.setHolidayStyle(context, next) }
-                        },
-                )
+                com.imsx3d.classy.ui.component.SettingsGroupFold(
+                    title = stringResource(R.string.holiday_transfer_help_title),
+                    expanded = helpExpanded,
+                    onToggle = { helpExpanded = !helpExpanded }
+                ) {
+                    com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.holiday_transfer_help))
+                }
             }
         }
 
@@ -367,13 +305,13 @@ fun HolidaySettingsScreen(
             val workdaySegments = merged.active.filter { it.type == HolidayManager.TYPE_TRANSFER_WORKDAY }
 
             if (holidaySegments.isNotEmpty()) {
-                // issue#44 第二轮: 节卡树状视图 — 每个放假日一行, 行尾右格选补班日。
-                // 段编辑是次要路径, 折叠到下方"可编辑假期段"卡(默认收起)。
+                // 默认只展示假期摘要，展开后逐日安排补课；编辑入口始终可见。
                 holidaySegments.forEach { seg ->
-                    item {
+                    item(key = "holiday:${seg.id}") {
                         HolidayTransferCard(
                             segment = seg,
                             transfers = transfers,
+                            canSetTransfer = activeTableId != null,
                             workdayDates = workdaySegments
                                 .flatMap { s -> generateSequence(s.startDate) { if (it < s.endDate) it.plusDays(1) else null } }
                                 .distinct()
@@ -430,6 +368,55 @@ fun HolidaySettingsScreen(
                 )
             }
         }
+        item {
+            // 单行卡(用户 2026-09-04): URL + 刷新=图标(语言无关, 不随文案伸缩)。
+            // Loading 态图标位转圈占位(行高稳定); Failed 提示行单独挂卡底(信息行不可省)。
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth().settingsCard(colors.surfaceContainer)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.holiday_source_label),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    when (state) {
+                        HolidayUiState.Loading -> com.imsx3d.classy.ui.component.GlasenseSpinner(
+                            modifier = Modifier.padding(2.dp)
+                        )
+                        else -> GlasenseIconButton(
+                            icon = Icons.Outlined.Refresh,
+                            contentDescription = stringResource(R.string.holiday_data_refresh),
+                            onClick = { load(year, force = true) },
+                            tint = colors.onSurfaceVariant
+                        )
+                    }
+                }
+                if (state is HolidayUiState.Failed) {
+                    Text(
+                        stringResource(R.string.holiday_data_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.error,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                    )
+                } else if (state is HolidayUiState.Empty ||
+                    (state as? HolidayUiState.Loaded)?.entries?.isEmpty() == true) {
+                    Text(
+                        stringResource(R.string.holiday_data_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                    )
+                }
+            }
+        }
+
+
     }
 
     editing?.let { t ->
@@ -488,6 +475,7 @@ private fun segmentDateLabel(seg: HolidayRange): String =
 private fun HolidayTransferCard(
     segment: HolidayRange,
     transfers: List<com.imsx3d.classy.util.HolidayTransferEntry>,
+    canSetTransfer: Boolean,
     workdayDates: List<LocalDate>,
     dayNames: Array<String>,
     onPick: (LocalDate, LocalDate?) -> Unit,
@@ -500,34 +488,41 @@ private fun HolidayTransferCard(
         generateSequence(segment.startDate) { if (it < segment.endDate) it.plusDays(1) else null }
             .toList()
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth().settingsCard(colors.surfaceContainer)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+    var expanded by rememberSaveable(segment.id) { mutableStateOf(false) }
+    val mappedCount = dates.count { date -> transfers.any { it.sourceDate == date } }
+    SettingsGroupCard {
+        SettingsGroupRow(
+            title = title,
+            subtitle = subtitle,
+            onClick = { expanded = !expanded },
+            trailing = {
+                GlasenseIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.holiday_transfer_edit_segment),
+                    onClick = onEditSegment,
+                    tint = colors.onSurfaceVariant
+                )
             }
-            // 标题行最右编辑按钮: 编辑该段的持续时间(起止日期) — 国务院数据段同样开放,
-            // 底部"+"按钮才是新增自定义补班日/自定义假期的入口
-            GlasenseIconButton(
-                icon = Icons.Outlined.Edit,
-                contentDescription = stringResource(R.string.holiday_transfer_edit_segment),
-                onClick = onEditSegment,
-                tint = colors.onSurfaceVariant
-                                )
-        }
-        dates.forEach { date ->
-            HolidayTransferRow(
-                date = date,
-                targetDate = transfers.lastOrNull { it.sourceDate == date }?.targetDate,
-                workdayDates = workdayDates,
-                dayNames = dayNames,
-                onPick = { picked -> onPick(date, picked) }
-            )
+        )
+        com.imsx3d.classy.ui.component.SettingsGroupFold(
+            title = if (canSetTransfer) stringResource(R.string.holiday_transfer_summary, mappedCount)
+                else stringResource(R.string.holiday_makeup_no_table),
+            expanded = expanded,
+            onToggle = { expanded = !expanded }
+        ) {
+            if (canSetTransfer) {
+                Text(stringResource(R.string.holiday_transfer_columns),
+                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                dates.forEach { date ->
+                    HolidayTransferRow(
+                        date = date,
+                        targetDate = transfers.lastOrNull { it.sourceDate == date }?.targetDate,
+                        workdayDates = workdayDates,
+                        dayNames = dayNames,
+                        onPick = { picked -> onPick(date, picked) }
+                    )
+                }
+            }
         }
     }
 }
@@ -556,7 +551,7 @@ private fun HolidayOrphanCard(
         )
         Text(
             text = stringResource(R.string.holiday_transfer_orphan_hint),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant
         )
         entries.forEach { entry ->
@@ -601,8 +596,9 @@ private fun HolidayTransferRow(
     val leftLabel = remember(date, dayNames) {
         "${DateUtils.shortDateSlash(date)} (${dayNames[date.dayOfWeek.value - 1]})"
     }
-    val rightLabel = remember(targetDate, dayNames) {
-        if (targetDate == null) "—"
+    val unsetLabel = stringResource(R.string.holiday_transfer_not_set)
+    val rightLabel = remember(targetDate, dayNames, unsetLabel) {
+        if (targetDate == null) unsetLabel
         else "${DateUtils.shortDateSlash(targetDate)} (${dayNames[targetDate.dayOfWeek.value - 1]})"
     }
     val pickOtherLabel = stringResource(R.string.holiday_transfer_pick_other)
