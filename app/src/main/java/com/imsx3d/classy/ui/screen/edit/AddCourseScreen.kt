@@ -269,6 +269,10 @@ fun AddCourseScreen(
     val editListState = androidx.compose.foundation.lazy.rememberLazyListState()
     var blocksLoaded by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
     var positioned by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
+    fun draftFingerprint() = courseDraftFingerprint(courseName, courseAlias, startWeek, endWeek,
+        meetingBlocks, pendingEdgeInserts, pendingEdgeEdits)
+    var originalDraft by rememberSaveable(editingCourse?.id) { mutableStateOf(draftFingerprint()) }
+    var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
 
     // 编辑模式：查同 groupId 全部课程，按时段分组回填多个 block (issue#22 分组规则不变)
     LaunchedEffect(editingCourse?.id, state.selectedTableId) {
@@ -322,13 +326,22 @@ fun AddCourseScreen(
             }
         }
         nextBlockId = (meetingBlocks.maxOfOrNull { it.id } ?: 0) + 1
+        // Only asynchronous edit loading replaces the initial baseline; new-form input is user data.
+        if (editingCourse != null) originalDraft = courseDraftFingerprint(
+            editingCourse.courseName, editingCourse.alias, editingCourse.startWeek, editingCourse.endWeek,
+            meetingBlocks, emptyList(), emptyList())
         blocksLoaded = true
     }
 
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
+    fun requestBack() {
+        if (saving) return
+        if (draftFingerprint() != originalDraft) showDiscardConfirm = true else onBack()
+    }
+    androidx.activity.compose.BackHandler { requestBack() }
     val prefillReady = validPrefill == null || currentTable?.id == validPrefill.tableId
-    val canSave = !saving && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    val canSave = !saving && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -570,10 +583,17 @@ fun AddCourseScreen(
         }
     }
 
+    if (showDiscardConfirm) {
+        com.imsx3d.classy.ui.component.DiscardChangesDialog(
+            onKeepEditing = { showDiscardConfirm = false },
+            onDiscard = { showDiscardConfirm = false; onBack() }
+        )
+    }
+
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
         title = stringResource(if (editingCourse != null) R.string.edit_course else R.string.create_course),
-        onBack = onBack,
+        onBack = { requestBack() },
         listState = editListState,
         verticalSpacing = 14.dp
     ) {

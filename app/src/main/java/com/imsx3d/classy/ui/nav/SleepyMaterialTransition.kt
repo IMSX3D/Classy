@@ -94,20 +94,17 @@ internal val sleepyForwardTransform: ContentTransform = ContentTransform(
 internal val sleepyPopTransform: ContentTransform = ContentTransform(
     targetContentEnter = sleepyPopEnter(),
     initialContentExit = sleepyPopExit(),
-    targetContentZIndex = 1f,
+    targetContentZIndex = -1f,
 )
 
 /** Seekable template; NavDisplay controls progress and cancellation. */
 internal val sleepyPredictivePopTransform: ContentTransform = ContentTransform(
-    targetContentEnter = scaleIn(
-        animationSpec = predictiveCommitTween,
-        initialScale = 0.92f,
-        transformOrigin = TransformOrigin.Center,
-    ) + fadeIn(predictiveCommitTween),
+    // Same spatial relationship as the toolbar back: reveal the stationary parent underneath.
+    targetContentEnter = sleepyPopEnter(),
     initialContentExit = scaleOut(
         animationSpec = predictiveCommitTween,
         targetScale = 0.92f,
         transformOrigin = TransformOrigin.Center,
     ) + fadeOut(predictiveCommitTween),
-    targetContentZIndex = 1f,
+    targetContentZIndex = -1f,
 )

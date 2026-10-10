@@ -1013,4 +1013,22 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="widget_refresh_section">Refresh</string>
     <string name="widget_manual_help">Hold an empty area of your home screen, open Widgets and find Classy. Some OPPO, OnePlus or realme phones place Plugins at the bottom of Cards. If needed, copy diagnostics for feedback; timetable content is not included.</string>
     <string name="glass_sample_entry">Dock material preview (test)</string>
+    <string name="unsaved_title">Discard unsaved changes?</string>
+    <string name="unsaved_body">Leaving will discard your unsaved changes.</string>
+    <string name="unsaved_discard">Discard changes</string>
+    <string name="unsaved_keep">Keep editing</string>
+    <string name="move_title">Reschedule class</string>
+    <string name="move_week">Target week (1–%1$d)</string>
+    <string name="move_start">First period</string>
+    <string name="move_end">Last period</string>
+    <string name="move_this_week">This week only</string>
+    <string name="move_future">This slot from this week onward</string>
+    <string name="move_conflicts">Overlaps these classes:</string>
+    <string name="move_invalid">Enter a valid week and period range</string>
+    <string name="move_transferred">Classes on this date have moved. Choose another date.</string>
+    <string name="move_failed">Could not reschedule. Try again.</string>
+    <string name="move_saving">Saving…</string>
+    <string name="move_force">Move anyway</string>
+    <string name="move_confirm">Reschedule</string>
+    <string name="move_original">Original: week %1$d · %2$s · periods %3$d–%4$d</string>
 </resources>

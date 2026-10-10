@@ -1043,4 +1043,22 @@
     <string name="widget_refresh_section">刷新</string>
     <string name="widget_manual_help">长按桌面空白处，进入“小组件”并找到 Classy。部分 OPPO、一加或 realme 手机需在“卡片”页底部进入“插件”。仍找不到时，可复制诊断信息用于反馈，不包含课表内容。</string>
     <string name="glass_sample_entry">底栏材质预览（测试）</string>
+    <string name="unsaved_title">放弃未保存的修改？</string>
+    <string name="unsaved_body">离开后，本次未保存的修改将丢失。</string>
+    <string name="unsaved_discard">放弃修改</string>
+    <string name="unsaved_keep">继续编辑</string>
+    <string name="move_title">调整课程时间</string>
+    <string name="move_week">目标周次（1–%1$d）</string>
+    <string name="move_start">开始节次</string>
+    <string name="move_end">结束节次</string>
+    <string name="move_this_week">仅本周这次课程</string>
+    <string name="move_future">本周及以后的这个上课时段</string>
+    <string name="move_conflicts">与以下课程时间重叠：</string>
+    <string name="move_invalid">请填写有效的目标周次和起止节次</string>
+    <string name="move_transferred">目标日期的课程已调走，请选择其他日期</string>
+    <string name="move_failed">调课失败，请重试</string>
+    <string name="move_saving">正在保存…</string>
+    <string name="move_force">仍然调课</string>
+    <string name="move_confirm">确认调课</string>
+    <string name="move_original">原安排：第 %1$d 周 · %2$s · %3$d–%4$d 节</string>
 </resources>

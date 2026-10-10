@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ fun DialogActionButtons(
     destructive: Boolean = false,
     thirdDestructive: Boolean = false,
     confirmEnabled: Boolean = true,
+    dismissEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -85,6 +87,7 @@ fun DialogActionButtons(
                     BlockButton(
                         text = dismissText,
                         onClick = onDismiss,
+                        enabled = dismissEnabled,
                         container = colors.secondaryContainer,
                         content = colors.onSecondaryContainer,
                         modifier = Modifier.weight(weights[wi++])
@@ -121,6 +124,7 @@ fun DialogActionButtons(
                         text = dismissText,
                         onClick = onDismiss,
                         container = colors.secondaryContainer,
+                        enabled = dismissEnabled,
                         content = colors.onSecondaryContainer,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -138,8 +142,8 @@ fun DialogActionButtons(
                     text = confirmText,
                     onClick = onConfirm,
                     enabled = confirmEnabled,
-                    container = if (destructive) colors.errorContainer else colors.primary,
-                    content = if (destructive) colors.onErrorContainer else colors.onPrimary,
+                    container = if (destructive) colors.errorContainer else selButton.container,
+                    content = if (destructive) colors.onErrorContainer else selButton.content,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -159,21 +163,18 @@ private fun BlockButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(SleepyTheme.Buttons.regularHeight),
+        modifier = modifier.heightIn(min = SleepyTheme.Buttons.regularHeight),
         shape = SleepyTheme.Buttons.shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = container,
             contentColor = content
         )
     ) {
-        // 2026-09-16 用户: 文字必须完整展示 — 竖排降级保证宽度, 不设 maxLines 截断
-        // 2026-09-18 用户: "一行能搞定的就一行" — softWrap=false 强制单行; 横排已按
-        // 必需宽比例分配权重(每键 ≥ 文字宽), 竖排全宽更装得下, 两者都不会截断。
+        // Font scaling and long translations may need more than one line even in a column.
         Text(
             text,
             style = MaterialTheme.typography.labelLarge,
-            softWrap = false,
-            maxLines = 1
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }

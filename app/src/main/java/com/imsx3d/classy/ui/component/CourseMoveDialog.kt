@@ -7,6 +7,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.imsx3d.classy.R
+import com.imsx3d.classy.ui.theme.SleepyTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,16 +34,24 @@ data class CourseMoveRequest(
 
 @Composable
 fun CourseMoveDialog(request: CourseMoveRequest, onDismiss: () -> Unit) {
-    var weekText by remember { mutableStateOf(request.displayWeek.toString()) }
-    var day by remember { mutableIntStateOf(request.target.day) }
-    var startText by remember { mutableStateOf(request.target.startNode.toString()) }
-    var endText by remember { mutableStateOf(request.target.endNode.toString()) }
-    var scope by remember { mutableStateOf(CourseMoveScope.THIS_WEEK) }
+    var weekText by rememberSaveable(request.source.id, request.sourceWeek, request.target) { mutableStateOf(request.displayWeek.toString()) }
+    var day by rememberSaveable(request.source.id, request.sourceWeek, request.target) { mutableIntStateOf(request.target.day) }
+    var startText by rememberSaveable(request.source.id, request.sourceWeek, request.target) { mutableStateOf(request.target.startNode.toString()) }
+    var endText by rememberSaveable(request.source.id, request.sourceWeek, request.target) { mutableStateOf(request.target.endNode.toString()) }
+    var scope by rememberSaveable(request.source.id, request.sourceWeek, request.target) { mutableStateOf(CourseMoveScope.THIS_WEEK) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var conflictDetails by remember { mutableStateOf<List<String>>(emptyList()) }
     val coroutine = rememberCoroutineScope()
-    val days = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+    val context = LocalContext.current
+    val days = context.resources.getStringArray(R.array.day_names).toList()
+    var showDiscard by rememberSaveable { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        val changed = weekText != request.displayWeek.toString() || day != request.target.day ||
+            startText != request.target.startNode.toString() || endText != request.target.endNode.toString() || scope != CourseMoveScope.THIS_WEEK
+        if (changed) showDiscard = true else onDismiss()
+    }
     fun clearError() { error = null; conflictDetails = emptyList() }
     fun save(force: Boolean) {
         if (saving) return
@@ -46,14 +59,14 @@ fun CourseMoveDialog(request: CourseMoveRequest, onDismiss: () -> Unit) {
         val first = startText.toIntOrNull()
         val last = endText.toIntOrNull()
         if (targetWeek == null || targetWeek !in 1..request.table.maxWeek || first == null || last == null || last < first) {
-            error = "请填写有效的目标周次和起止节次"; return
+            error = context.getString(R.string.move_invalid); return
         }
         saving = true
         coroutine.launch {
             try {
                 val date = DateUtils.dateOfWeek(request.table.startDate, targetWeek, day)
                 val teaching = requireNotNull(CourseDateResolver.teachingDate(date, request.transfers)) {
-                    "目标日期的课程已整体调走，请选择其他日期"
+                    context.getString(R.string.move_transferred)
                 }
                 SleepyApp.get().repository.moveCourseMeeting(request.source, request.sourceWeek,
                     DateUtils.currentWeek(request.table.startDate, teaching),
@@ -64,19 +77,19 @@ fun CourseMoveDialog(request: CourseMoveRequest, onDismiss: () -> Unit) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                error = e.message ?: "调课失败，请重试"
+                error = e.message ?: context.getString(R.string.move_failed)
             } finally { saving = false }
         }
     }
     AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("调整课程时间") },
+        onDismissRequest = { requestDismiss() },
+        title = { Text(stringResource(R.string.move_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(request.source.courseName, style = MaterialTheme.typography.titleMedium)
-                Text("原安排：第 ${request.sourceWeek} 周 · ${days[request.source.day - 1]} · ${request.source.startNode}–${request.source.startNode + request.source.step - 1} 节")
-                OutlinedTextField(weekText, { weekText = it; clearError() }, label = { Text("目标周次（1–${request.table.maxWeek}）") },
-                    singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                Text(stringResource(R.string.move_original, request.sourceWeek, days[request.source.day - 1], request.source.startNode, request.source.startNode + request.source.step - 1))
+                TextField(weekText, { weekText = it; clearError() }, label = { Text(stringResource(R.string.move_week, request.table.maxWeek)) },
+                    shape = SleepyTheme.fieldShape, colors = SleepyTheme.fieldColors(), singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     days.forEachIndexed { index, name ->
                         FilterChip(selected = day == index + 1, onClick = { day = index + 1; clearError() },
@@ -84,29 +97,38 @@ fun CourseMoveDialog(request: CourseMoveRequest, onDismiss: () -> Unit) {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(startText, { startText = it; clearError() }, Modifier.weight(1f), label = { Text("开始节次") },
-                        singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                    OutlinedTextField(endText, { endText = it; clearError() }, Modifier.weight(1f), label = { Text("结束节次") },
-                        singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    TextField(startText, { startText = it; clearError() }, Modifier.weight(1f), label = { Text(stringResource(R.string.move_start)) },
+                        shape = SleepyTheme.fieldShape, colors = SleepyTheme.fieldColors(), singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    TextField(endText, { endText = it; clearError() }, Modifier.weight(1f), label = { Text(stringResource(R.string.move_end)) },
+                        shape = SleepyTheme.fieldShape, colors = SleepyTheme.fieldColors(), singleLine = true, enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
                 if (request.source.ownTime || request.source.isIrregularTime) Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.course_move_custom_hint))
                 CourseMoveScope.entries.forEach { option ->
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(scope == option, { scope = option; clearError() }, enabled = !saving)
-                        Text(if (option == CourseMoveScope.THIS_WEEK) "仅本周这次课程" else "本周及以后的这个上课时段")
+                        Text(if (option == CourseMoveScope.THIS_WEEK) stringResource(R.string.move_this_week) else stringResource(R.string.move_future))
                     }
                 }
                 Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.course_move_undo_hint), style = MaterialTheme.typography.bodyMedium)
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (conflictDetails.isNotEmpty()) {
-                    Text("目标时间与以下课程重叠：", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.move_conflicts), color = MaterialTheme.colorScheme.error)
                     conflictDetails.forEach { Text(it) }
                 }
+                DialogActionButtons(
+                    confirmText = stringResource(if (saving) R.string.move_saving else if (conflictDetails.isNotEmpty()) R.string.move_force else R.string.move_confirm),
+                    onConfirm = { save(conflictDetails.isNotEmpty()) },
+                    confirmEnabled = !saving,
+                    dismissText = stringResource(R.string.cancel),
+                    onDismiss = { requestDismiss() },
+                    dismissEnabled = !saving
+                )
             }
         },
-        confirmButton = { TextButton(onClick = { save(conflictDetails.isNotEmpty()) }, enabled = !saving) {
-            Text(if (saving) "正在保存…" else if (conflictDetails.isNotEmpty()) "仍然调课" else "确认调课")
-        } },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("取消") } }
+        confirmButton = {}
+    )
+    if (showDiscard) DiscardChangesDialog(
+        onKeepEditing = { showDiscard = false },
+        onDiscard = { showDiscard = false; onDismiss() }
     )
 }

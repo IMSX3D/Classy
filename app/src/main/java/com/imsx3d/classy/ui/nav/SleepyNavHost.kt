@@ -193,7 +193,7 @@ internal fun SleepyNavHost(
                 onSaved = {
                     session.clearEditCourse()
                     if (!navigator.pop()) { /* 同上 */ }
-                    setCurrentTab(Tab.Schedule)
+                    // Return to the initiating tab/list rather than redirecting every save.
                 },
                 editingCourse = editingCourse,
                 prefill = key.prefill,

@@ -1,7 +1,11 @@
 package com.imsx3d.classy.ui.screen.widget
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import com.imsx3d.classy.ui.theme.noRippleClickable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,7 +75,8 @@ object WidgetEditAliasSection : WidgetEditSection {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .noRippleClickable(onClick = onClick)
+                .semantics { this.selected = selected; role = Role.RadioButton }
                 .background(
                     if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceContainer

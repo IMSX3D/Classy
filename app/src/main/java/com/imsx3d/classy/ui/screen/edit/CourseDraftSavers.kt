@@ -81,3 +81,20 @@ internal val EdgeEditsSaver = draftListSaver<EdgeSlotEdit>(
     encode = { JSONObject().put("node", it.node).put("start", it.start).put("end", it.end) },
     decode = { EdgeSlotEdit(it.getInt("node"), it.getString("start"), it.getString("end")) }
 )
+
+/** Compare editable data, not disclosure/validation UI state. No writes or normalization. */
+internal fun courseDraftFingerprint(
+    name: String, alias: String, startWeek: Int, endWeek: Int,
+    blocks: List<MeetingBlockDraft>, inserts: List<PendingEdgeInsert>, edits: List<EdgeSlotEdit>
+): String = JSONArray().apply {
+    put(name); put(alias); put(startWeek); put(endWeek)
+    put(JSONArray().apply { blocks.forEach { b ->
+        put(JSONArray(listOf(b.startNode, b.step, b.startTime, b.endTime,
+            b.isIrregularNode, b.selectedEdgeNode, b.isIrregularTime,
+            b.startWeek, b.endWeek, b.weekType, b.roomState, b.teacherState,
+            b.noteState, b.colorState, b.colorModeState, b.durationText,
+            JSONArray(b.days.sorted()))))
+    } })
+    put(JSONArray().apply { inserts.forEach { put(JSONArray(listOf(it.edgeClass.name, it.node, it.start, it.end, it.ownerBlockId))) } })
+    put(JSONArray().apply { edits.forEach { put(JSONArray(listOf(it.node, it.start, it.end))) } })
+}.toString()

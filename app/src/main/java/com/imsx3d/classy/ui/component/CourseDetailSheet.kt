@@ -22,6 +22,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +79,18 @@ fun CourseDetailSheet(
     timeJson: String? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var closing by remember(course?.id) { mutableStateOf(false) }
+    fun closeThen(action: () -> Unit) {
+        if (closing) return
+        closing = true
+        scope.launch {
+            try {
+                sheetState.hide()
+                if (!sheetState.isVisible) action()
+            } finally { closing = false }
+        }
+    }
 
     // UI-4t: 实心主色按钮共享取色（深色下不再实心亮主色，见 ui/theme/SelectedSurface.kt）
     val selButton = com.imsx3d.classy.ui.theme.selectedSurfaceColors()
@@ -91,7 +109,7 @@ fun CourseDetailSheet(
         }
 
         ModalBottomSheet(
-            onDismissRequest = onDismiss,
+            onDismissRequest = { if (!closing) onDismiss() },
             sheetState = sheetState,
             // UI-3b: 圆角改用 Glasense dialog 规范（24dp），与卡片 12dp 同一套比例
             shape = RoundedCornerShape(
@@ -102,7 +120,9 @@ fun CourseDetailSheet(
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
                 // Header
                 SheetHeader(
-                    title = course.courseName.ifBlank { stringResource(R.string.course_detail_title) }
+                    title = course.courseName.ifBlank { stringResource(R.string.course_detail_title) },
+                    onClose = { closeThen(onDismiss) },
+                    enabled = !closing
                 )
 
                 // Body
@@ -137,23 +157,11 @@ fun CourseDetailSheet(
                     }
 
                     if (onEdit != null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                // UI-4t: 深色下不再实心亮主色
-                                .background(selButton.container)
-                                .noRippleClickable { onEdit(course) },
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.course_detail_edit_course),
-                                style = com.nevoit.glasense.theme.GlasenseTheme.type.bodyEmphasized,
-                                color = selButton.content
-                            )
-                        }
+                        GlasenseButton(
+                            text = stringResource(R.string.course_detail_edit_course),
+                            enabled = !closing,
+                            onClick = { closeThen { onEdit(course) } }
+                        )
                     }
                 }
             }
@@ -247,7 +255,7 @@ private fun DefaultTopPickerSection(
 }
 
 @Composable
-private fun SheetHeader(title: String) {
+private fun SheetHeader(title: String, onClose: () -> Unit, enabled: Boolean) {
     val g = com.nevoit.glasense.theme.GlasenseTheme.colors
     Row(
         modifier = Modifier
@@ -264,6 +272,12 @@ private fun SheetHeader(title: String) {
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
+        )
+        GlasenseIconButton(
+            icon = Icons.Outlined.Close,
+            contentDescription = stringResource(R.string.action_close),
+            enabled = enabled,
+            onClick = onClose
         )
     }
 }
