@@ -25,6 +25,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.graphics.Shape
+import com.imsx3d.classy.ui.theme.ClassyLayout
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -41,7 +44,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
@@ -146,6 +148,7 @@ fun SettingsPageHeader(
                 modifier = Modifier
                     .clip(SleepyTheme.shapes.medium)
                     .noRippleClickable(onClick = onBack)
+                    .heightIn(min = ClassyLayout.minimumTouchTarget)
                     // UI-24a：左右 4dp → 0 —— 返回箭头与大标题、分组标题同一条左线（16dp）
                     .padding(horizontal = 0.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -200,12 +203,13 @@ fun SettingsScaffold(
     title: String,
     onBack: () -> Unit,
     subtitle: String? = null,
-    verticalSpacing: Dp = 16.dp,
+    verticalSpacing: Dp = ClassyLayout.sectionSpacing,
     actions: @Composable RowScope.() -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     bottomCTA: (@Composable () -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.background,
-    horizontalPadding: Dp = 16.dp,
+    horizontalPadding: Dp = ClassyLayout.pagePadding,
+    maxContentWidth: Dp = Dp.Infinity,
     listState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     content: LazyListScope.() -> Unit
 ) {
@@ -224,10 +228,18 @@ fun SettingsScaffold(
             }
         }
     ) { padding ->
+        Box(
+            modifier = Modifier.fillMaxSize().padding(
+                start = padding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                end = padding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                bottom = padding.calculateBottomPadding()
+            ),
+            contentAlignment = Alignment.TopCenter
+        ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
-            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = 16.dp),
+            modifier = Modifier.widthIn(max = maxContentWidth).fillMaxSize(),
+            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = ClassyLayout.pagePadding),
             verticalArrangement = Arrangement.spacedBy(verticalSpacing)
         ) {
             item {
@@ -245,6 +257,7 @@ fun SettingsScaffold(
             }
             content()
         }
+        }
     }
         StatusBarScrim(containerColor)
     }
@@ -256,7 +269,7 @@ fun SettingsScaffold(
  * 只影响 `SettingsGroupRow` 与 `SettingsGroupFold`（目前只有「通用」页在用），
  * 所以改这一个数就能出对比版；定档后这里就是全局值。
  */
-private val GroupRowMinHeight = 48.dp
+private val GroupRowMinHeight = ClassyLayout.minimumTouchTarget
 
 /**
  * 分组行版式（UI-9a 试点，Glasense inset-grouped）——和上游「一项一张卡」的区别：
@@ -285,7 +298,7 @@ fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 fun Modifier.settingsCard(
     containerColor: Color,
-    shape: CornerBasedShape = SleepyTheme.shapes.large
+    shape: Shape = com.nevoit.glasense.theme.GlasenseTheme.specs.cardShape
 ): Modifier = this.clip(shape).background(containerColor)
 
 /**

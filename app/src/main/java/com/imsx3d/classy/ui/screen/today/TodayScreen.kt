@@ -4,6 +4,13 @@ import androidx.compose.ui.draw.alpha
 import com.imsx3d.classy.ui.component.rememberCourseClock
 import com.imsx3d.classy.util.CourseCompletion
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.imsx3d.classy.ui.theme.ClassyLayout
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,14 +61,15 @@ import java.time.LocalDate
 /**
  * 今日页 —— Glasense 视觉层（UI-1，2026-09-25）。
  *
- * 本次只替换**展示层**：数据来源、周次/调休/学期状态判定、冲突分栏（weekLaneRows）
- * 与详情弹层的行为与之前逐字一致，改的是版式与配色语言：
+ * 数据来源、周次/调休/学期判定与冲突引擎保持一致。
+ * P1：阅读限宽；冲突栏按可用宽度/字体换行；详情选择保存 ID。
  *   · 页面底色走 Glasense pageBackground（中性）
  *   · 头部由「大圆角卡片」改为 Glasense 的「大标题 + 日期 + 状态胶囊」
  *   · 课程卡由「高饱和满铺色块」改为「中性卡 + 课程色色条 + 中性时间字」，
  *     信息层级靠字号与颜色深浅区分（不再靠大色块压过内容）
  *   · 圆角统一由 Glasense specs 提供（卡片 12dp）
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TodayScreen(
     onEditCourse: (CourseEntity) -> Unit = {},
@@ -85,83 +93,118 @@ fun TodayScreen(
         if (tj == null) list else list.map { c -> c.normalizeNode(tj) }
     }.sortedBy { it.startNode }
 
+    var selectedCourseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val selectedCourse = todayCourses.firstOrNull { it.id == selectedCourseId }
+
+    TodayContent(today, actualWeek, semesterStatus, todayCourses,
+        state.effectiveCurrentTable?.timeJson, now, onSelectCourse = { selectedCourseId = it.id })
+
+    // 详情 Bottom Sheet — 与课表页同一组件同一交互（视觉换装留待 UI-3）
+    CourseDetailSheet(
+        course = selectedCourse,
+        timeString = selectedCourse?.let { it.nodeString(LocalContext.current) },
+        allCourses = todayCourses,
+        timeJson = state.effectiveCurrentTable?.timeJson,
+        onDismiss = { selectedCourseId = null },
+        onEdit = { course ->
+            selectedCourseId = null
+            onEditCourse(course)
+        }
+    )
+}
+
+/** Stateless sample surface; production and debug fixtures use the same layout. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun TodayContent(
+    today: LocalDate,
+    actualWeek: Int,
+    semesterStatus: DateUtils.SemesterStatus,
+    todayCourses: List<CourseEntity>,
+    timeJson: String?,
+    now: java.time.LocalDateTime,
+    onSelectCourse: (CourseEntity) -> Unit
+) {
     // v7.10.10 今日页冲突分栏 — 与周视图同一引擎同一分组(weekLaneRows):
-    // 冲突区域一行内并排分栏(栏间浅细竖线), 无冲突课整宽单行。
+    // 同一冲突区域保持一组，宽度不足时各栏纵向排列，不改变引擎分组。
     // 分组在 LazyColumn 外 remember(LazyListScope 非 composable 上下文)。
-    val laneRows = remember(todayCourses, state.effectiveCurrentTable?.timeJson) {
+    val laneRows = remember(todayCourses, timeJson) {
         com.imsx3d.classy.util.ConflictLayoutEngine.weekLaneRows(
-            todayCourses, state.effectiveCurrentTable?.timeJson
+            todayCourses, timeJson
         )
     }
-
-    var selectedCourse by remember { mutableStateOf<CourseEntity?>(null) }
 
     // Dock 悬浮底栏: 滚动尾部多留 Dock 总高, 最后一项能滚到 Dock 上方(FAB 语义)
     val navExtra = LocalNavExtraBottomPadding.current
     val g = GlasenseTheme.colors
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(g.pageBackground),
-        contentPadding = PaddingValues(
-            // UI-25a：20dp → 16dp（同"我的"页：全 App 统一 16dp 左线）
-            start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp + navExtra
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            TodayHeroHeader(
-                date = today, week = actualWeek,
-                count = todayCourses.size, semesterStatus = semesterStatus
-            )
-        }
+    Box(Modifier.fillMaxSize().background(g.pageBackground), contentAlignment = Alignment.TopCenter) {
+        LazyColumn(
+            modifier = Modifier
+                .widthIn(max = ClassyLayout.readingWidth)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(
+                // UI-25a：20dp → 16dp（同"我的"页：全 App 统一 16dp 左线）
+                start = ClassyLayout.pagePadding, end = ClassyLayout.pagePadding, top = 4.dp, bottom = ClassyLayout.pagePadding + navExtra
+            ),
+            verticalArrangement = Arrangement.spacedBy(ClassyLayout.itemSpacing)
+        ) {
+            item {
+                TodayHeroHeader(
+                    date = today, week = actualWeek,
+                    count = todayCourses.size, semesterStatus = semesterStatus
+                )
+            }
 
-        if (todayCourses.isEmpty()) {
-            item { EmptyToday(semesterStatus = semesterStatus) }
-        } else {
-            item { SectionLabel(title = stringResource(R.string.widget_today_label), trailing = stringResource(R.string.n_periods, todayCourses.size)) }
-            // v7.10.10 今日页冲突分栏 — 分组已提至 LazyColumn 外
-            laneRows.forEach { row ->
-                if (row.laneCount == 1) {
-                    item(key = row.courses[0].id) {
-                        TodayCourseCard(
-                            course = row.courses[0],
-                            timeJson = state.effectiveCurrentTable?.timeJson,
-                            now = now,
-                            onClick = { selectedCourse = row.courses[0] },
-                            groupRows = todayCourses.filter { it.groupId == row.courses[0].groupId }
-                        )
-                    }
-                } else {
-                    item(key = "conflict-${row.courses.first().id}") {
-                        val laneGap = 10.dp
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                            horizontalArrangement = Arrangement.spacedBy(laneGap)
-                        ) {
-                            repeat(row.laneCount) { li ->
-                                if (li > 0) {
-                                    // 栏间浅细竖线 — 与周视图分栏同款
-                                    Box(
-                                        modifier = Modifier
-                                            .width(0.5.dp)
-                                            .fillMaxHeight()
-                                            .background(g.scrimBold)
-                                    )
-                                }
-                                val laneCourses = row.courses.filter { row.laneOf[it.id] == li }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    laneCourses.forEach { laneCourse ->
-                                        TodayCourseCard(
-                                            course = laneCourse,
-                                            timeJson = state.effectiveCurrentTable?.timeJson,
-                                            now = now,
-                                            onClick = { selectedCourse = laneCourse },
-                                            groupRows = todayCourses.filter { it.groupId == laneCourse.groupId }
-                                        )
+            if (todayCourses.isEmpty()) {
+                item { EmptyToday(semesterStatus = semesterStatus) }
+            } else {
+                item { SectionLabel(title = stringResource(R.string.widget_today_label), trailing = stringResource(R.string.n_periods, todayCourses.size)) }
+                // v7.10.10 今日页冲突分栏 — 分组已提至 LazyColumn 外
+                laneRows.forEach { row ->
+                    if (row.laneCount == 1) {
+                        item(key = row.courses[0].id) {
+                            TodayCourseCard(
+                                course = row.courses[0],
+                                timeJson = timeJson,
+                                now = now,
+                                onClick = { onSelectCourse(row.courses[0]) },
+                                groupRows = todayCourses.filter { it.groupId == row.courses[0].groupId }
+                            )
+                        }
+                    } else {
+                        item(key = "conflict-${row.courses.first().id}") {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = stringResource(R.string.import_conflicts),
+                                    style = GlasenseTheme.type.footnoteEmphasized,
+                                    color = g.contentVariant
+                                )
+                                val laneGap = 10.dp
+                                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                    val laneWidth = (maxWidth - laneGap * (row.laneCount - 1)) / row.laneCount
+                                    val stackLanes = laneWidth < 156.dp * androidx.compose.ui.platform.LocalDensity.current.fontScale
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(laneGap),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        repeat(row.laneCount) { li ->
+                                            val laneCourses = row.courses.filter { row.laneOf[it.id] == li }
+                                            Column(
+                                                modifier = if (stackLanes) Modifier.fillMaxWidth() else Modifier.width(laneWidth),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                laneCourses.forEach { laneCourse ->
+                                                    TodayCourseCard(
+                                                        course = laneCourse,
+                                                        timeJson = timeJson,
+                                                        now = now,
+                                                        onClick = { onSelectCourse(laneCourse) },
+                                                        groupRows = todayCourses.filter { it.groupId == laneCourse.groupId }
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -170,23 +213,13 @@ fun TodayScreen(
                 }
             }
         }
+
     }
 
-    // 详情 Bottom Sheet — 与课表页同一组件同一交互（视觉换装留待 UI-3）
-    CourseDetailSheet(
-        course = selectedCourse,
-        timeString = selectedCourse?.let { it.nodeString(LocalContext.current) },
-        allCourses = todayCourses,
-        timeJson = state.effectiveCurrentTable?.timeJson,
-        onDismiss = { selectedCourse = null },
-        onEdit = { course ->
-            selectedCourse = null
-            onEditCourse(course)
-        }
-    )
 }
 
 /** 大标题 + 日期 + 状态胶囊 —— Glasense 的「大标题头」版式（替代原大圆角卡片）。 */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TodayHeroHeader(
     date: LocalDate,
@@ -204,22 +237,21 @@ private fun TodayHeroHeader(
         )
         VGap(4.dp)
         /** 标题行：日期用 largeTitleEmphasized(32sp 半粗)，星期紧随其后、基线略上抬 */
-        Row(verticalAlignment = Alignment.Bottom) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = stringResource(R.string.date_long_format, date.monthValue, date.dayOfMonth),
                 style = GlasenseTheme.type.largeTitleEmphasized,
                 color = g.content
             )
-            HGap(8.dp)
             Text(
                 text = DateUtils.localizedDay(date.dayOfWeek.value, context),
                 style = GlasenseTheme.type.title3Emphasized,
                 color = g.contentVariant,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.align(Alignment.Bottom).padding(bottom = 4.dp)
             )
         }
         VGap(10.dp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // 学期外: 周次 chip 换学期状态, 不再显示误导性的"第 1 周"
             when (semesterStatus) {
                 DateUtils.SemesterStatus.BEFORE_START ->
@@ -261,8 +293,8 @@ private fun SectionLabel(title: String, trailing: String) {
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, style = GlasenseTheme.type.subHeadlineEmphasized, color = g.content)
-        Box(modifier = Modifier.weight(1f))
+        Text(text = title, modifier = Modifier.weight(1f), style = GlasenseTheme.type.subHeadlineEmphasized, color = g.content)
+        HGap(8.dp)
         Text(text = trailing, style = GlasenseTheme.type.footnote, color = g.contentVariant)
     }
 }
@@ -336,6 +368,7 @@ private fun TodayCourseCard(
         modifier = Modifier
             .alpha(if (CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now)) CourseCompletion.DIM_ALPHA else 1f)
             .fillMaxWidth()
+            .heightIn(min = ClassyLayout.minimumTouchTarget)
             .height(IntrinsicSize.Min)
             .clip(GlasenseTheme.specs.cardShape)
             .background(g.cardBackground)
@@ -352,31 +385,17 @@ private fun TodayCourseCard(
                 .background(CourseColorUtil.softenedIndicator(accent, g.cardBackground))
         )
         HGap(12.dp)
-        // 时间槽 — 固定宽度避免 "10:20-12:45" 被截断
-        Column(modifier = Modifier.width(74.dp)) {
-            Text(
-                text = course.shortNodeString(context),
-                style = GlasenseTheme.type.subHeadlineEmphasized,
-                color = g.contentVariant
-            )
-            if (time != null) {
-                VGap(2.dp)
-                Text(
-                    text = time,
-                    style = GlasenseTheme.type.footnote,
-                    color = g.contentVariant,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
-        HGap(12.dp)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = course.courseName,
                 style = GlasenseTheme.type.headline,
                 color = g.content,
-                maxLines = 2
+            )
+            VGap(4.dp)
+            Text(
+                text = listOfNotNull(course.shortNodeString(context), time).joinToString(" · "),
+                style = GlasenseTheme.type.footnote,
+                color = g.contentVariant
             )
             if (course.teacher.isNotBlank() || course.room.isNotBlank()) {
                 VGap(4.dp)
@@ -391,7 +410,6 @@ private fun TodayCourseCard(
                     text = meta,
                     style = GlasenseTheme.type.footnote,
                     color = g.contentVariant,
-                    maxLines = 2
                 )
             }
         }

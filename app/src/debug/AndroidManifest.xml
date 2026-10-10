@@ -11,6 +11,11 @@
     <uses-permission android:name="${applicationId}.permission.DEBUG_TOOL" />
 
     <application>
+        <activity
+            android:name=".debug.DesignSampleActivity"
+            android:exported="true"
+            android:label="Classy Design Sample"
+            android:theme="@style/Theme.Sleepy" />
         <!-- Debug: 注入课表 / 触发流体云 / 清理测试数据（走 ScheduleParser + repository 真实链路） -->
         <activity
             android:name=".debug.DebugImportReceiver"
