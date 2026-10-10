@@ -58,7 +58,6 @@ import com.imsx3d.classy.ui.component.TimeSlotEditor
 import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
 import com.imsx3d.classy.ui.theme.SleepyTheme
 import com.imsx3d.classy.ui.theme.noRippleClickable
-import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.imsx3d.classy.ui.component.sleepyExpandEnter
@@ -147,11 +146,24 @@ fun EditTableScreen(
         )
     }
 
+    val failureMessage = stringResource(R.string.editor_action_failed)
+    val actions = remember(table.id) { com.imsx3d.classy.ui.component.EditorActionState(failureMessage) }
+    val draft = Json.encodeToString(listOf(name, startDate, maxWeekText, pendingBind.toString(), TimeTableUtils.buildTimeJsonFromRows(slotRows.toList()), Json.encodeToString(smartConfig.value)))
+    val originalDraft = rememberSaveable(table.id) { draft }
+    var showDiscard by rememberSaveable(table.id) { mutableStateOf(false) }
     val fieldColors = SleepyTheme.fieldColors()
 
-    val handleBack = {
-        if (pendingNewTableId != null) onDiscardPending() else onBack()
+    val handleBack: () -> Unit = {
+        if (!actions.busy) {
+            if (draft != originalDraft) showDiscard = true
+            else if (pendingNewTableId != null) onDiscardPending() else onBack()
+        }
     }
+    androidx.activity.compose.BackHandler(onBack = handleBack)
+    if (showDiscard) com.imsx3d.classy.ui.component.DiscardChangesDialog(
+        onKeepEditing = { showDiscard = false },
+        onDiscard = { showDiscard = false; if (pendingNewTableId != null) onDiscardPending() else onBack() }
+    )
 
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
@@ -277,9 +289,15 @@ fun EditTableScreen(
         }
 
         // 保存
+        if (actions.busy || actions.error != null) item {
+            if (actions.busy) com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.editor_working))
+            actions.error?.let { Text(it, color = colors.error) }
+        }
+
         item {
             Button(
             colors = primaryFilledButtonColors(),
+                enabled = !actions.busy,
                 onClick = {
                     val maxWeek = maxWeekText.toIntOrNull() ?: 20
                     val valid = startDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) &&
@@ -301,7 +319,8 @@ fun EditTableScreen(
                         startDate = DateUtils.normalizeStartDate(startDate),
                         maxWeek = maxWeek,
                         timeJson = newTimeJson,
-                        smartConfigJson = smartConfigJson
+                        smartConfigJson = smartConfigJson,
+                        nodesPerDay = slotRows.size.coerceAtLeast(1)
                     )
                     val bindChanged = pendingBind != table.periodTableId
                     if (bindChanged && pendingBind != null) {
@@ -309,25 +328,8 @@ fun EditTableScreen(
                         pendingRebind = pendingBind
                         return@Button
                     }
-                    scope.launch {
-                        if (bindChanged) {
-                            // issue#40 §5.3: 解绑 — 只写 periodTableId=null, 课程行零改动
-                            viewModel.bindPeriodTable(table.id, null)
-                        } else if (effectivePeriodTable != null) {
-                            // issue#40: 节次编辑区改的是共享时间节次表 — 写回 period_tables +
-                            // 同步全部绑定课表兼容列(§5.2); 课程行零改动(§9.1)
-                            viewModel.updatePeriodTableContent(
-                                effectivePeriodTable.copy(
-                                    timeJson = newTimeJson,
-                                    smartConfigJson = smartConfigJson,
-                                    nodesPerDay = slotRows.size.coerceAtLeast(1)
-                                )
-                            )
-                        } else {
-                            // issue#28 P3: timeJson 变了课程节次必须自适应(16→12 节后
-                            // 课程不能再停在 13-16 节)
-                            viewModel.updateTableRemappingCourses(updated)
-                        }
+                    actions.launch(scope) {
+                        viewModel.saveTableEditor(updated, pendingBind)
                         onSaved()
                     }
                 },
@@ -348,6 +350,7 @@ fun EditTableScreen(
                 // 色块 = Sleepy 视觉语言(同 AddCourseScreen 删除键)。
                 Button(
                     onClick = { showDeleteConfirm = true },
+                    enabled = !actions.busy,
                     modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
                     shape = SleepyTheme.Buttons.shape,
                     colors = ButtonDefaults.buttonColors(containerColor = colors.errorContainer)
@@ -381,12 +384,15 @@ fun EditTableScreen(
                         color = colors.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.delete),
                         onConfirm = {
                             showDeleteConfirm = false
-                            scope.launch {
-                                viewModel.deleteTable(table.id)
+                            actions.launch(scope) {
+                                viewModel.awaitDeleteTable(table.id)
                                 onDeleted()
                             }
                         },
@@ -412,12 +418,19 @@ fun EditTableScreen(
                         color = colors.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.period_table_preview_confirm),
                         onConfirm = {
                             pendingRebind = null
-                            scope.launch {
-                                viewModel.bindPeriodTable(table.id, targetId)
+                            actions.launch(scope) {
+                                viewModel.saveTableEditor(table.copy(
+                                    name = name.ifBlank { table.name },
+                                    startDate = DateUtils.normalizeStartDate(startDate),
+                                    maxWeek = maxWeekText.toIntOrNull() ?: 20
+                                ), targetId)
                                 onSaved()
                             }
                         },

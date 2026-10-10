@@ -295,6 +295,17 @@ class ScheduleViewModel : ViewModel() {
         }
     }
 
+    suspend fun awaitUpdatePeriodTableContent(table: com.imsx3d.classy.data.entity.PeriodTableEntity) =
+        repo.savePeriodTable(table)
+
+    suspend fun saveTableEditor(draft: TimeTableEntity, targetPeriodId: Long?) =
+        repo.saveTableEditor(draft, targetPeriodId)
+
+    suspend fun awaitDeleteTable(id: Long) {
+        repo.deleteTable(id)
+        manualSelectDone = false
+    }
+
     /** issue#40: 换绑课程表的时间节次表(只写 periodTableId, 课程行零改动) */
     fun bindPeriodTable(timeTableId: Long, periodTableId: Long?) {
         viewModelScope.launch { repo.bindPeriodTable(timeTableId, periodTableId) }

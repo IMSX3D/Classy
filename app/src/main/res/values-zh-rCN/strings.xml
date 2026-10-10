@@ -1049,4 +1049,7 @@
     <string name="move_force">仍然调课</string>
     <string name="move_confirm">确认调课</string>
     <string name="move_original">原安排：第 %1$d 周 · %2$s · %3$d–%4$d 节</string>
+    <string name="editor_action_failed">操作未完成，请重试。当前编辑内容仍保留。</string>
+    <string name="editor_working">正在处理，请稍候…</string>
+    <string name="editor_save_before_export">保存后即可复制或分享。</string>
 </resources>

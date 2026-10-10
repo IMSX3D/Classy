@@ -1031,4 +1031,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="move_force">Move anyway</string>
     <string name="move_confirm">Reschedule</string>
     <string name="move_original">Original: week %1$d · %2$s · periods %3$d–%4$d</string>
+    <string name="editor_action_failed">Could not complete the action. Your edits are kept; please try again.</string>
+    <string name="editor_working">Working, please wait…</string>
+    <string name="editor_save_before_export">Save your changes before copying or sharing.</string>
 </resources>

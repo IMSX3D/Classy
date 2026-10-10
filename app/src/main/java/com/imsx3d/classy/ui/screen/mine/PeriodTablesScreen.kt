@@ -14,7 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import com.imsx3d.classy.ui.theme.noRippleClickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -42,7 +43,6 @@ import com.imsx3d.classy.ui.component.SettingsScaffold
 import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
 import com.imsx3d.classy.ui.theme.SleepyTheme
 import com.imsx3d.classy.util.TimeTableUtils
-import kotlinx.coroutines.launch
 import com.imsx3d.classy.ui.component.settingsCard
 import com.imsx3d.classy.ui.theme.primaryFilledButtonColors
 import com.imsx3d.classy.ui.component.GlasenseIconButton
@@ -64,6 +64,9 @@ fun PeriodTablesScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val colors = MaterialTheme.colorScheme
+    val failureMessage = stringResource(R.string.editor_action_failed)
+    val actions = remember { com.imsx3d.classy.ui.component.EditorActionState(failureMessage) }
+    androidx.activity.compose.BackHandler(enabled = actions.busy) { }
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val newPeriodTableName = stringResource(R.string.period_table_new)
@@ -79,19 +82,21 @@ fun PeriodTablesScreen(
     // 它原本靠 innerPadding 抬在手势条之上 → 由 SettingsScaffold 内部补 navigationBarsPadding。
     SettingsScaffold(
         title = stringResource(R.string.period_tables_title),
-        onBack = onBack,
+        onBack = { if (!actions.busy) onBack() },
         verticalSpacing = 10.dp,
         bottomCTA = {
             Button(
                 colors = primaryFilledButtonColors(),
+                enabled = !actions.busy,
                 onClick = {
-                    scope.launch {
+                    actions.launch(scope) {
                         val newId = viewModel.insertPeriodTable(
                             name = newPeriodTableName
                         )
                         // issue#40: 创建即落库(自增 id), 编辑页把它当"未保存新表" —
                         // 未保存返回时由 onCreateNew 调用方/编辑页清掉残留行
-                        if (newId > 0) onCreateNew(newId)
+                        check(newId > 0)
+                        onCreateNew(newId)
                     }
                 },
                 modifier = Modifier
@@ -106,12 +111,16 @@ fun PeriodTablesScreen(
             }
         }
     ) {
-        item { Spacer(modifier = Modifier.height(2.dp)) }
+        if (actions.busy || actions.error != null) item {
+            if (actions.busy) com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.editor_working))
+            actions.error?.let { Text(it, color = colors.error) }
+        }
         items(periodTables, key = { it.id }) { pt ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .settingsCard(colors.surfaceContainer)
+                    .noRippleClickable { if (!actions.busy) onOpenEdit(pt.id) }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -128,25 +137,18 @@ fun PeriodTablesScreen(
                     )
                 }
                 GlasenseIconButton(
-                    icon = Icons.Outlined.Edit,
-                    contentDescription = stringResource(R.string.edit_table_title),
-                    onClick = { onOpenEdit(pt.id) },
-                    tint = colors.onSurfaceVariant)
-                GlasenseIconButton(
                     icon = Icons.Outlined.ContentCopy,
+                    enabled = !actions.busy,
                     contentDescription = stringResource(R.string.period_table_copy),
                     onClick = {
-                                        scope.launch {
-                                            val suggested = viewModel.suggestPeriodTableCopyName(pt.id)
-                                            if (suggested != null) {
-                                                copyTarget = pt
-                                                copyName = suggested
-                                            }
-                                        }
-                                    },
+                        actions.launch(scope) {
+                            copyName = checkNotNull(viewModel.suggestPeriodTableCopyName(pt.id))
+                            copyTarget = pt
+                        }
+                    },
                     tint = colors.onSurfaceVariant)
-                // v1.0.56 T7: 删除键从列表行挪到编辑页底部(用户 2026-09-16);
-                // 行内只留 编辑+复制, 删除弹窗与绑定拦截逻辑整体迁至 PeriodTableEditScreen
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null,
+                    tint = colors.onSurfaceVariant)
             }
         }
     }
@@ -159,7 +161,7 @@ fun PeriodTablesScreen(
             periodTables.map { it.name }
         )
         AlertDialog(
-            onDismissRequest = { copyTarget = null },
+            onDismissRequest = { if (!actions.busy) copyTarget = null },
             title = { Text(stringResource(R.string.period_table_copy_dialog_title), color = colors.onSurface) },
             confirmButton = {},
             dismissButton = {},
@@ -181,18 +183,21 @@ fun PeriodTablesScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
                         confirmText = stringResource(R.string.ok),
                         onConfirm = {
-                            scope.launch {
+                            actions.launch(scope) {
                                 // 二次查重: 列表可能在弹窗打开期间发生变化, 不能只信预览态。
                                 val newId = viewModel.copyPeriodTableAs(target.id, candidate)
-                                if (newId > 0) copyTarget = null
+                                check(newId > 0)
+                                copyTarget = null
                             }
                         },
                         dismissText = stringResource(R.string.cancel),
-                        onDismiss = { copyTarget = null },
-                        confirmEnabled = candidate.isNotBlank() && !nameTaken
+                        onDismiss = { if (!actions.busy) copyTarget = null },
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy && candidate.isNotBlank() && !nameTaken
                     )
                 }
             }

@@ -56,7 +56,6 @@ import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
 import com.imsx3d.classy.ui.theme.SleepyTheme
 import com.imsx3d.classy.ui.theme.noRippleClickable
 import com.imsx3d.classy.util.TimeTableUtils
-import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.imsx3d.classy.ui.component.sleepyExpandEnter
@@ -143,18 +142,36 @@ fun PeriodTableEditScreen(
         )
     }
 
+    val failureMessage = stringResource(R.string.editor_action_failed)
+    val actions = remember(periodTable.id) { com.imsx3d.classy.ui.component.EditorActionState(failureMessage) }
+    val draft = Json.encodeToString(listOf(name, TimeTableUtils.buildTimeJsonFromRows(slotRows.toList()), Json.encodeToString(smartConfig.value)))
+    val originalDraft = rememberSaveable(periodTable.id) { draft }
+    var showDiscard by rememberSaveable(periodTable.id) { mutableStateOf(false) }
     val fieldColors = SleepyTheme.fieldColors()
+    val handleBack: () -> Unit = {
+        if (!actions.busy) {
+            if (draft != originalDraft) showDiscard = true
+            else {
+                if (unsavedNew) viewModel.discardNewPeriodTable(periodTableId)
+                onBack()
+            }
+        }
+    }
+    androidx.activity.compose.BackHandler(onBack = handleBack)
+    if (showDiscard) com.imsx3d.classy.ui.component.DiscardChangesDialog(
+        onKeepEditing = { showDiscard = false },
+        onDiscard = {
+            showDiscard = false
+            if (unsavedNew) viewModel.discardNewPeriodTable(periodTableId)
+            onBack()
+        }
+    )
 
     // UI-7c: 页头换成大标题；原来 M3 顶栏右侧的 分享/复制 两个动作键改挂在「返回」行右端
     //（Glasense/iOS 的导航行惯例：动作键与返回同行）。
     SettingsScaffold(
         title = stringResource(R.string.period_tables_title),
-        onBack = {
-            // issue#40: 未保存的新表返回 = 放弃 — 清掉建表残留行, 与
-            // 课表侧 discardNewTable 同语义(§4.2 新建取消不遗留空壳)
-            if (unsavedNew) viewModel.discardNewPeriodTable(periodTableId)
-            onBack()
-        },
+        onBack = handleBack,
         verticalSpacing = 14.dp,
         actions = {
             // v1.0.56 T11: 分享作息表(原生格式 / JSON 二选一)
@@ -162,26 +179,28 @@ fun PeriodTableEditScreen(
                 icon = Icons.Outlined.Share,
                 contentDescription = stringResource(R.string.period_table_share_sheet_title),
                 onClick = { showShareSheet = true },
+                enabled = !actions.busy && draft == originalDraft && !unsavedNew,
                 tint = colors.onSurfaceVariant
-                                )
+            )
             // v1.0.56 T8: 复制先弹命名框, 确认后才落库; 成功回管理页
             GlasenseIconButton(
                 icon = Icons.Outlined.ContentCopy,
                 contentDescription = stringResource(R.string.period_table_copy),
                 onClick = {
-                                scope.launch {
-                                    val suggested = viewModel.suggestPeriodTableCopyName(periodTable.id)
-                                    if (suggested != null) {
-                                        copyName = suggested
-                                        showCopyDialog = true
-                                    }
-                                }
-                            },
+                    actions.launch(scope) {
+                        copyName = checkNotNull(viewModel.suggestPeriodTableCopyName(periodTable.id))
+                        showCopyDialog = true
+                    }
+                },
+                enabled = !actions.busy && draft == originalDraft && !unsavedNew,
                 tint = colors.onSurfaceVariant
-                                )
+            )
         }
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
+        if (draft != originalDraft || unsavedNew) item {
+            com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.editor_save_before_export))
+        }
 
         item {
             Column(
@@ -283,9 +302,15 @@ fun PeriodTableEditScreen(
         }
 
         // 保存 — 先预览后确认(§5.2)
+        if (actions.busy || actions.error != null) item {
+            if (actions.busy) com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.editor_working))
+            actions.error?.let { Text(it, color = colors.error) }
+        }
+
         item {
             Button(
             colors = primaryFilledButtonColors(),
+                enabled = !actions.busy,
                 onClick = {
                     val valid = slotRows.isNotEmpty() &&
                         slotRows.all { it.start.matches(Regex("\\d{2}:\\d{2}")) && it.end.matches(Regex("\\d{2}:\\d{2}")) } &&
@@ -311,7 +336,7 @@ fun PeriodTableEditScreen(
                     // 预览: 全库范围内所有绑定本表的课程(§5.2 受影响课表列表)。
                     // 修复: state.courses 只装当前选中表的课, 直接用它统计会漏掉其他绑定表 —
                     // 从 repo 拉全库课程再按绑定表过滤
-                    scope.launch {
+                    actions.launch(scope) {
                         val boundIds = scheduleState.tables
                             .filter { it.periodTableId == periodTable.id }
                             .map { it.id }
@@ -337,6 +362,7 @@ fun PeriodTableEditScreen(
             item {
                 Button(
                     onClick = { showDeleteConfirm = true },
+                    enabled = !actions.busy,
                     modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
                     shape = SleepyTheme.Buttons.shape,
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -397,16 +423,19 @@ fun PeriodTableEditScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.period_table_preview_confirm),
                         onConfirm = {
                             val toSave = pendingSave!!
                             pendingPreview = null
                             pendingSave = null
                             // issue#40: 已确认保存 — 新建行的丢弃标记解除, 返回不再清行
-                            unsavedNew = false
-                            scope.launch {
-                                viewModel.updatePeriodTableContent(toSave)
+                            actions.launch(scope) {
+                                viewModel.awaitUpdatePeriodTableContent(toSave)
+                                unsavedNew = false
                                 onBack()
                             }
                         },
@@ -429,11 +458,14 @@ fun PeriodTableEditScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.period_table_delete_msg_body, periodTable.name), color = colors.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(12.dp))
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.delete),
                         onConfirm = {
                             showDeleteConfirm = false
-                            scope.launch {
+                            actions.launch(scope) {
                                 val ok = viewModel.deletePeriodTable(periodTable.id)
                                 if (ok) {
                                     onBack()
@@ -463,7 +495,10 @@ fun PeriodTableEditScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(msg, color = colors.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(12.dp))
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
+                        confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.ok),
                         onConfirm = { deleteBlockedMsg = null }
                     )
@@ -489,7 +524,7 @@ fun PeriodTableEditScreen(
             periodTables.map { it.name }
         )
         AlertDialog(
-            onDismissRequest = { showCopyDialog = false },
+            onDismissRequest = { if (!actions.busy) showCopyDialog = false },
             title = { Text(stringResource(R.string.period_table_copy_dialog_title), color = colors.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -507,20 +542,21 @@ fun PeriodTableEditScreen(
                         colors = fieldColors
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+                    actions.error?.let { Text(it, color = colors.error) }
                     com.imsx3d.classy.ui.component.DialogActionButtons(
+                        dismissEnabled = !actions.busy,
                         confirmText = stringResource(R.string.ok),
                         onConfirm = {
-                            scope.launch {
+                            actions.launch(scope) {
                                 val newId = viewModel.copyPeriodTableAs(periodTable.id, candidate)
-                                if (newId > 0) {
-                                    showCopyDialog = false
-                                    onBack()
-                                }
+                                check(newId > 0)
+                                showCopyDialog = false
+                                onBack()
                             }
                         },
                         dismissText = stringResource(R.string.cancel),
-                        onDismiss = { showCopyDialog = false },
-                        confirmEnabled = candidate.isNotBlank() && !nameTaken
+                        onDismiss = { if (!actions.busy) showCopyDialog = false },
+                        confirmEnabled = !actions.busy && candidate.isNotBlank() && !nameTaken
                     )
                 }
             },

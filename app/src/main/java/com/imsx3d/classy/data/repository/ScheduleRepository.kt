@@ -193,6 +193,27 @@ class ScheduleRepository(private val db: AppDatabase) {
         onDataChanged()
     }
 
+    /** Commit editor metadata and routine changes as one undoable transaction.
+     * Binding changes retain the existing snapshot/restore semantics and never remap courses.
+     */
+    suspend fun saveTableEditor(draft: TimeTableEntity, targetPeriodId: Long?): Unit = atomicEdit {
+        val stored = checkNotNull(tableDao.getById(draft.id))
+        if (targetPeriodId != null) checkNotNull(periodTableDao.getById(targetPeriodId))
+        val metadata = stored.copy(name = draft.name, startDate = draft.startDate, maxWeek = draft.maxWeek)
+        if (stored.periodTableId != targetPeriodId) {
+            updateTable(metadata)
+            bindPeriodTable(stored.id, targetPeriodId)
+        } else if (targetPeriodId != null) {
+            updateTable(metadata)
+            val period = checkNotNull(periodTableDao.getById(targetPeriodId))
+            savePeriodTable(period.copy(timeJson = draft.timeJson,
+                smartConfigJson = draft.smartConfigJson, nodesPerDay = draft.nodesPerDay))
+        } else {
+            updateTableRemappingCourses(metadata.copy(timeJson = draft.timeJson,
+                smartConfigJson = draft.smartConfigJson, nodesPerDay = draft.nodesPerDay))
+        }
+    }
+
     suspend fun deleteTable(id: Long): Unit = atomicEdit() {
         tableDao.deleteById(id)
         onDataChanged()
