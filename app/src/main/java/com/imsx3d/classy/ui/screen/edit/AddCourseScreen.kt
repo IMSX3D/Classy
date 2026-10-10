@@ -207,10 +207,10 @@ fun AddCourseScreen(
 
     // issue#23 逐卡: 待落库的新建槽位 / 已有槽位默认时间编辑 — UI 工作副本,
     // 落库前不污染 timeJson; 保存时串接 insertEdgeNode / updateEdgeNodeTimes 后一次性 updateTable
-    val pendingEdgeInserts = remember(editingCourse?.id) {
+    val pendingEdgeInserts = rememberSaveable(editingCourse?.id, saver = EdgeInsertsSaver) {
         mutableStateListOf<PendingEdgeInsert>()
     }
-    val pendingEdgeEdits = remember(editingCourse?.id) {
+    val pendingEdgeEdits = rememberSaveable(editingCourse?.id, saver = EdgeEditsSaver) {
         mutableStateListOf<EdgeSlotEdit>()
     }
 
@@ -228,13 +228,13 @@ fun AddCourseScreen(
     // 标准 1..N 连续节次上界 — 标准卡片 startNode/step 的取值范围
     val maxStd = remember(effectiveTimeJson) { TimeTableUtils.maxStandardNode(effectiveTimeJson) }
 
-    var courseName by remember(editingCourse?.id) { mutableStateOf(editingCourse?.courseName ?: "") }
+    var courseName by rememberSaveable(editingCourse?.id) { mutableStateOf(editingCourse?.courseName ?: "") }
     // issue#26: 课程别名(可选) — 空串 = 处处显示原名; 组级属性, 编辑页保存时整组覆盖
-    var courseAlias by remember(editingCourse?.id) { mutableStateOf(editingCourse?.alias ?: "") }
+    var courseAlias by rememberSaveable(editingCourse?.id) { mutableStateOf(editingCourse?.alias ?: "") }
     // issue#22: teacher/room/note/color/colorMode 已下沉到 MeetingBlockDraft(每个时段独立编辑)
-    var startWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.startWeek ?: 1) }
-    var endWeek by remember(editingCourse?.id) { mutableIntStateOf(editingCourse?.endWeek ?: validPrefill?.maxWeek ?: 16) }
-    var nextBlockId by remember(editingCourse?.id) { mutableIntStateOf(2) }
+    var startWeek by rememberSaveable(editingCourse?.id) { mutableIntStateOf(editingCourse?.startWeek ?: 1) }
+    var endWeek by rememberSaveable(editingCourse?.id) { mutableIntStateOf(editingCourse?.endWeek ?: validPrefill?.maxWeek ?: 16) }
+    var nextBlockId by rememberSaveable(editingCourse?.id) { mutableIntStateOf(2) }
     var validationIssues by remember { mutableStateOf<List<ValidationIssue>>(emptyList()) }
     // issue#23 逐卡: 三个弹层目标 — 顶层持状态, 内容按卡片渲染
     var edgePickTarget by remember { mutableStateOf<MeetingBlockDraft?>(null) }
@@ -248,11 +248,11 @@ fun AddCourseScreen(
     var showGroupColorPicker by remember { mutableStateOf(false) }
     // 组色源色值: 同组 colorMode=GROUP 中 id 最小行的 color — UI 显示 + 改组色弹层初值。
     // 编辑回填 LaunchedEffect 里更新;新建模式恒空串(显示"自动(黄金角)",不显示改组色入口)
-    var groupSourceColorHex by remember { mutableStateOf("") }
+    var groupSourceColorHex by rememberSaveable { mutableStateOf("") }
     // 改组色两段式: 调色盘选中 → 暂存 → 确认对话框(spec §6.3"组色会影响本组所有跟随组色的节次")→ 落库
     var pendingGroupColorHex by remember { mutableStateOf<String?>(null) }
 
-    val meetingBlocks = remember(editingCourse?.id) {
+    val meetingBlocks = rememberSaveable(editingCourse?.id, saver = MeetingBlocksSaver) {
         mutableStateListOf(initialMeetingBlock(editingCourse).also { block ->
             validPrefill?.let {
                 block.days.clear()
@@ -267,11 +267,12 @@ fun AddCourseScreen(
     }
 
     val editListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    var blocksLoaded by remember(editingCourse?.id) { mutableStateOf(false) }
-    var positioned by remember(editingCourse?.id) { mutableStateOf(false) }
+    var blocksLoaded by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
+    var positioned by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
 
     // 编辑模式：查同 groupId 全部课程，按时段分组回填多个 block (issue#22 分组规则不变)
     LaunchedEffect(editingCourse?.id, state.selectedTableId) {
+        if (blocksLoaded) return@LaunchedEffect
         val eg = editingCourse
         if (eg != null && eg.groupId.isNotBlank()) {
             val tid = state.selectedTableId ?: return@LaunchedEffect
@@ -320,6 +321,7 @@ fun AddCourseScreen(
                 }
             }
         }
+        nextBlockId = (meetingBlocks.maxOfOrNull { it.id } ?: 0) + 1
         blocksLoaded = true
     }
 

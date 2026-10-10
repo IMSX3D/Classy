@@ -980,4 +980,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="manage_period_tables_sub">Manage class times shared across timetables</string>
     <string name="about_maintenance_title">A note on maintenance</string>
     <string name="about_star_invitation">If Classy is useful to you, consider giving it a star on GitHub. Thanks for your support!</string>
+    <string name="course_list_select_hint">Select a course to view its class arrangements</string>
 </resources>

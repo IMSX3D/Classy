@@ -26,6 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.imsx3d.classy.ui.component.PeriodRowsSaver
+import com.imsx3d.classy.ui.component.SmartPeriodDraftSaver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -103,14 +106,14 @@ fun PeriodTableEditScreen(
         return
     }
 
-    var name by remember(periodTable.id) { mutableStateOf(periodTable.name) }
-    var timeSlotsExpanded by remember { mutableStateOf(true) }
+    var name by rememberSaveable(periodTable.id) { mutableStateOf(periodTable.name) }
+    var timeSlotsExpanded by rememberSaveable { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     // 预览态: 非 null = 显示确认弹窗; 确认才落库, 取消只清 state(§5.2 用户取消权)
     var pendingPreview by remember { mutableStateOf<TimeTableUtils.PeriodTablePreview?>(null) }
     var pendingSave by remember { mutableStateOf<PeriodTableEntity?>(null) }
     // issue#40: 新建未保存表的丢弃标记 — 用户确认保存后翻 false, 返回不再删行
-    var unsavedNew by remember { mutableStateOf(isNewUnsaved) }
+    var unsavedNew by rememberSaveable { mutableStateOf(isNewUnsaved) }
     // 2026-09-20 用户拍板(issue#40 反馈, aa23a443): 作息表编辑页不再有「作息表」第三 Tab。
     // 绑定只存在于课表→作息表单向; 作息表之间禁绑定/取入, 防循环改写。复制走管理页按钮。
     // v1.0.56 T7: 删除入口迁入本页 — 确认弹窗 + 绑定拦截提示(从管理页列表行整体搬迁)
@@ -118,18 +121,18 @@ fun PeriodTableEditScreen(
     var deleteBlockedMsg by remember(periodTable.id) { mutableStateOf<String?>(null) }
     // v1.0.56 T8: 复制先命名, 确认后才建; 成功后回管理页
     var showCopyDialog by remember(periodTable.id) { mutableStateOf(false) }
-    var copyName by remember(periodTable.id) { mutableStateOf("") }
+    var copyName by rememberSaveable(periodTable.id) { mutableStateOf("") }
     // v1.0.56 T11: 分享底部弹窗(原生格式/JSON 二选一)
     var showShareSheet by remember(periodTable.id) { mutableStateOf(false) }
 
-    val slotRows = remember(periodTable.id, periodTable.updatedAt, periodTable.timeJson) {
+    val slotRows = rememberSaveable(periodTable.id, periodTable.updatedAt, periodTable.timeJson, saver = PeriodRowsSaver) {
         mutableStateListOf<TimeTableUtils.TimeSlotRow>().apply {
             addAll(TimeTableUtils.parseTimeSlotRows(periodTable.timeJson))
         }
     }
     // issue#23 Task 4: 已存配置仍能 derive 出当前行 → 原样保留; 否则从当前行重推断;
     // 行不可推断 → 最简默认兜底(旧行为)。
-    val smartConfig = remember(periodTable.id, periodTable.smartConfigJson) {
+    val smartConfig = rememberSaveable(periodTable.id, periodTable.smartConfigJson, stateSaver = SmartPeriodDraftSaver) {
         val stored = com.imsx3d.classy.ui.component.decodeSmartPeriodConfig(periodTable.smartConfigJson)
         mutableStateOf(
             com.imsx3d.classy.ui.component.resolveAutoPeriodConfig(slotRows.toList(), stored)

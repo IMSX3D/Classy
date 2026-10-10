@@ -9,6 +9,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import com.imsx3d.classy.util.GridHitRow
 import com.imsx3d.classy.util.GridSelection
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -332,6 +334,10 @@ fun CardsGridView(
             val gridH = yOfRows(renderSlots.size.coerceAtLeast(1).toFloat())
 
             val density = LocalDensity.current
+            // Resizing changes the hit geometry; cancel the uncommitted gesture before a drop.
+            LaunchedEffect(maxWidth, maxHeight, density.density, density.fontScale) {
+                interaction.clear()
+            }
             interaction.days = sortedDays
             interaction.left = with(density) { (timeW + gapW).toPx() }
             interaction.width = with(density) { colW.toPx() }
@@ -1436,6 +1442,7 @@ private fun DayColumn(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetailDayCard(
     day: Int,
@@ -1508,30 +1515,23 @@ private fun DetailDayCard(
                         // (两栏模式下 lane 半宽,不缩则字全挤在一起——用户 2026-09-02)
                         // v7.10.10: 栏间画浅细竖分隔线(用户 2026-09-02)
                         val laneCount = row.laneCount
+                        Text(stringResource(R.string.import_conflicts),
+                            style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
                         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                             val laneGap = sd(6f)
                             val laneW = (maxWidth - laneGap * (laneCount - 1)) / laneCount
-                            val laneScale = weekLaneFontScale(laneW)
-                            val hideSide = weekLaneHideSideLabel(laneW)
-                            Row(
-                                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                                horizontalArrangement = Arrangement.spacedBy(laneGap)
+                            val stackLanes = laneW < 156.dp * androidx.compose.ui.platform.LocalDensity.current.fontScale
+                            val availableLaneWidth = if (stackLanes) maxWidth else laneW
+                            val laneScale = weekLaneFontScale(availableLaneWidth)
+                            val hideSide = weekLaneHideSideLabel(availableLaneWidth)
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(laneGap),
+                                verticalArrangement = Arrangement.spacedBy(laneGap)
                             ) {
                                 repeat(laneCount) { li ->
-                                    if (li > 0) {
-                                        // 栏间浅细竖线: 0.5dp 宽, onSurface 0.3 透明度, 高度随行
-                                        // (Row IntrinsicSize.Min → fillMaxHeight 有界, 随最高栏撑满)
-                                        Box(
-                                            modifier = Modifier
-                                                .width(0.5.dp)
-                                                .fillMaxHeight()
-                                                .background(
-                                                    colors.onSurface.copy(alpha = SleepyTheme.Alpha.hairline)
-                                                )
-                                        )
-                                    }
                                     val laneCourses = row.courses.filter { row.laneOf[it.id] == li }
-                                    Box(modifier = Modifier.weight(1f)) {
+                                    Box(modifier = if (stackLanes) Modifier.fillMaxWidth() else Modifier.width(laneW)) {
                                         Column(verticalArrangement = Arrangement.spacedBy(sd(5f))) {
                                             laneCourses.forEach { laneCourse ->
                                                 LessonRow(

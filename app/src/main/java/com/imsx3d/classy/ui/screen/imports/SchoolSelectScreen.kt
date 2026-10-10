@@ -1,6 +1,8 @@
 package com.imsx3d.classy.ui.screen.imports
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
+import com.imsx3d.classy.ui.theme.ClassyLayout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -193,10 +195,9 @@ fun SchoolSelectScreen(
     Scaffold(
         containerColor = colors.background
     ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+            modifier = Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxSize()
         ) {
             // UI-8b：顶栏换成「我的」页那套大标题页头。**故意不用 SettingsScaffold** ——
             // 这一页的 LazyColumn 要喂给外部 `listState`，字母索引栏靠 `letterToIndex`
@@ -339,6 +340,7 @@ fun SchoolSelectScreen(
                     }
                 }
             }
+        }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +99,7 @@ fun CourseDetailSheet(
                 topEnd = com.nevoit.glasense.theme.GlasenseTheme.specs.dialogCorner
             )
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
                 // Header
                 SheetHeader(
                     title = course.courseName.ifBlank { stringResource(R.string.course_detail_title) }

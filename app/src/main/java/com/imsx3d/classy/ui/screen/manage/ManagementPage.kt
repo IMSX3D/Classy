@@ -1,6 +1,8 @@
 package com.imsx3d.classy.ui.screen.manage
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
+import com.imsx3d.classy.ui.theme.ClassyLayout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,13 +74,14 @@ fun ManagementPage(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(colors.background),
+        contentAlignment = Alignment.TopCenter
     ) {
         // Dock 悬浮底栏: 滚动尾部多留 Dock 总高(FAB 语义, 同今日/我的页)
         // contentPadding(非 Modifier.padding): 内容能滚到屏幕边缘自然滑出, 禁列表整体内缩硬裁
         val navExtra = com.imsx3d.classy.ui.component.LocalNavExtraBottomPadding.current
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + navExtra
             ),

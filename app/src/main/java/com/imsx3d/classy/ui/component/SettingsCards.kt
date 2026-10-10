@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -209,7 +210,7 @@ fun SettingsScaffold(
     bottomCTA: (@Composable () -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.background,
     horizontalPadding: Dp = ClassyLayout.pagePadding,
-    maxContentWidth: Dp = Dp.Infinity,
+    maxContentWidth: Dp = ClassyLayout.readingWidth,
     listState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     content: LazyListScope.() -> Unit
 ) {
@@ -217,14 +218,16 @@ fun SettingsScaffold(
     // UI-17a：整页包一层 Box，内容之后盖一条状态栏遮罩（页头滚走后正文不再和时钟重叠）
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
-        modifier = Modifier.fillMaxSize().background(containerColor),
+        modifier = Modifier.fillMaxSize().background(containerColor).imePadding(),
         containerColor = containerColor,
         snackbarHost = snackbarHost,
         bottomBar = {
             if (bottomCTA != null) {
                 // 手势条内边距由这里补：Scaffold 不会给 bottomBar 加 insets，
                 // 而它当初在 innerPadding 里时本来就是抬在导航条之上的。
-                Column(modifier = Modifier.navigationBarsPadding()) { bottomCTA() }
+                Box(Modifier.fillMaxWidth().navigationBarsPadding(), contentAlignment = Alignment.TopCenter) {
+                    Column(Modifier.widthIn(max = maxContentWidth).fillMaxWidth()) { bottomCTA() }
+                }
             }
         }
     ) { padding ->

@@ -998,4 +998,5 @@
     <string name="manage_period_tables_sub">管理上课时间，可供多张课表共用</string>
     <string name="about_maintenance_title">关于维护</string>
     <string name="about_star_invitation">如果 Classy 对你有帮助，欢迎到 GitHub 点一颗 Star。谢谢你的支持！</string>
+    <string name="course_list_select_hint">选择左侧课程，查看上课安排</string>
 </resources>

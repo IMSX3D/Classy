@@ -1,5 +1,19 @@
 package com.imsx3d.classy.ui.screen.mine
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalDensity
+import com.imsx3d.classy.ui.theme.AdaptiveContentPolicy
+import com.imsx3d.classy.ui.theme.noRippleClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,42 +83,82 @@ fun CourseListScreen(
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     }
 
-    // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
-    SettingsScaffold(
-        title = stringResource(R.string.course_list_title),
-        onBack = onBack,
-        actions = {
-            androidx.compose.material3.TextButton(onClick = onAddCourse) {
-                Text(stringResource(R.string.manage_manual_add))
-            }
-        },
-        verticalSpacing = 12.dp
-    ) {
-        if (grouped.isEmpty()) {
-            // 空态: 当前课表无任何课程
-            item {
-                Box(
-                    modifier = Modifier.fillParentMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.course_list_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant
-                    )
+    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val selected = grouped.firstOrNull { group ->
+        group.locations.any { location -> location.rows.any { it.id == selectedId } }
+    }
+    val listState = rememberLazyListState()
+    val detailState = rememberSaveable(selectedId, saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
+        androidx.compose.foundation.lazy.LazyListState()
+    }
+    BackHandler(enabled = selected != null) { selectedId = null }
+
+    BoxWithConstraints(Modifier.fillMaxSize().background(colors.background)) {
+        val density = LocalDensity.current
+        val horizontalInsets = WindowInsets.safeDrawing.getLeft(density, androidx.compose.ui.unit.LayoutDirection.Ltr) +
+            WindowInsets.safeDrawing.getRight(density, androidx.compose.ui.unit.LayoutDirection.Ltr)
+        val verticalInsets = WindowInsets.safeDrawing.getTop(density) + WindowInsets.safeDrawing.getBottom(density)
+        val wide = AdaptiveContentPolicy.showCourseDetailPane(
+            maxWidth.value - with(density) { horizontalInsets.toDp().value },
+            maxHeight.value - with(density) { verticalInsets.toDp().value }, density.fontScale
+        )
+        Row(Modifier.fillMaxSize()) {
+            if (wide || selected == null) {
+                Box(if (wide) Modifier.width(320.dp * density.fontScale.coerceAtLeast(1f)) else Modifier.weight(1f)) {
+                    SettingsScaffold(
+                        title = stringResource(R.string.course_list_title),
+                        onBack = { if (selected != null) selectedId = null else onBack() },
+                        listState = listState,
+                        actions = {
+                            androidx.compose.material3.TextButton(onClick = onAddCourse) {
+                                Text(stringResource(R.string.manage_manual_add))
+                            }
+                        },
+                        verticalSpacing = 12.dp
+                    ) {
+                        if (grouped.isEmpty()) {
+                            item { Text(stringResource(R.string.course_list_empty), color = colors.onSurfaceVariant) }
+                        } else {
+                            item { Text(stringResource(R.string.course_list_subtitle), color = colors.onSurfaceVariant) }
+                            items(grouped, key = { it.locations.first().rows.first().id }) { group ->
+                                Column(
+                                    Modifier.fillMaxWidth()
+                                        .settingsCard(if (group == selected) colors.primaryContainer else colors.surfaceContainer)
+                                        .noRippleClickable { selectedId = group.locations.first().rows.first().id }
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(group.name, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                                    if (group.teacher.isNotBlank()) MetaRow(Icons.Outlined.Person, group.teacher)
+                                    Text(stringResource(R.string.course_list_arrangements, group.locations.sumOf { it.rows.size }),
+                                        style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            item {
-                Text(
-                    text = stringResource(R.string.course_list_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
+            if (wide || selected != null) {
+                Box(Modifier.weight(1f)) {
+                    if (selected != null) {
+                        SettingsScaffold(
+                            title = selected.name,
+                            onBack = { selectedId = null },
+                            listState = detailState,
+                            verticalSpacing = 12.dp
+                        ) {
+                            item { CourseGroupCard(selected) }
+                        }
+                    } else {
+                        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
+                            contentAlignment = Alignment.Center) {
+                            Text(stringResource(R.string.course_list_select_hint), color = colors.onSurfaceVariant)
+                        }
+                    }
+                }
             }
-            items(grouped) { group -> CourseGroupCard(group) }
         }
-        }
+    }
 }
 
 @Composable

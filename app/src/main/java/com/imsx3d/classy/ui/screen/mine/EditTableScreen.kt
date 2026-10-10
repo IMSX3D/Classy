@@ -26,6 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.imsx3d.classy.ui.component.PeriodRowsSaver
+import com.imsx3d.classy.ui.component.SmartPeriodDraftSaver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -101,18 +104,18 @@ fun EditTableScreen(
         return
     }
 
-    var name by remember(table.id) { mutableStateOf(table.name) }
-    var startDate by remember(table.id) { mutableStateOf(table.startDate) }
-    var maxWeekText by remember(table.id) { mutableStateOf(table.maxWeek.toString()) }
-    var timeSlotsExpanded by remember { mutableStateOf(false) }
+    var name by rememberSaveable(table.id) { mutableStateOf(table.name) }
+    var startDate by rememberSaveable(table.id) { mutableStateOf(table.startDate) }
+    var maxWeekText by rememberSaveable(table.id) { mutableStateOf(table.maxWeek.toString()) }
+    var timeSlotsExpanded by rememberSaveable { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // issue#40: 换绑选择(§5.3) — null 起始 = 未动过; 确认时才写 periodTableId。
     // pendingBind != table.periodTableId 时保存流程走换绑分支。
-    var pendingBind by remember(table.id, table.periodTableId) { mutableStateOf<Long?>(table.periodTableId) }
+    var pendingBind by rememberSaveable(table.id, table.periodTableId) { mutableStateOf<Long?>(table.periodTableId) }
     // v1.0.56 T6: bindExpanded 已随独立换绑卡拆除 — 绑定入口唯一化(第三 Tab)
     // issue#40 §5.3: 换绑确认弹窗 — 非 null 时弹「确认换绑」, 确认才真正写 periodTableId
-    var pendingRebind by remember { mutableStateOf<Long?>(null) }
+    var pendingRebind by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // issue#40: 编辑的就是"有效时间表" — 绑定了独立时间节次表时, 节次编辑区
     // 展示/修改的是该时间节次表(多张绑定课表同享), 保存写回 period_tables;
@@ -123,7 +126,7 @@ fun EditTableScreen(
         pendingBind != null && it.id == pendingBind
     } ?: allPeriodTables.find { it.id == pendingBind }
     val timeJson = effectivePeriodTable?.timeJson ?: table.timeJson
-    val slotRows = remember(table.id, effectivePeriodTable?.id, timeJson) {
+    val slotRows = rememberSaveable(table.id, effectivePeriodTable?.id, timeJson, saver = PeriodRowsSaver) {
         mutableStateListOf<TimeTableUtils.TimeSlotRow>().apply {
             addAll(TimeTableUtils.parseTimeSlotRows(timeJson))
         }
@@ -131,7 +134,7 @@ fun EditTableScreen(
     // v1.0.16 自动模式配置（编辑当前课表时使用）
     // issue#23 Task 4: 已存配置仍能 derive 出当前行 → 原样保留; 否则从当前行重推断;
     // 行不可推断 → 最简默认兜底(旧行为)。
-    val smartConfig = remember(table.id, effectivePeriodTable?.id, timeJson) {
+    val smartConfig = rememberSaveable(table.id, effectivePeriodTable?.id, timeJson, stateSaver = SmartPeriodDraftSaver) {
         val stored = com.imsx3d.classy.ui.component.decodeSmartPeriodConfig(
             effectivePeriodTable?.smartConfigJson ?: table.smartConfigJson
         )

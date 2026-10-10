@@ -1,6 +1,8 @@
 package com.imsx3d.classy.ui.screen.mine
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
+import com.imsx3d.classy.ui.theme.ClassyLayout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,11 +59,11 @@ fun MineScreen(
     val g = GlasenseTheme.colors
     val type = GlasenseTheme.type
     val specs = GlasenseTheme.specs
-    Box(modifier = Modifier.fillMaxSize().background(g.pageBackground)) {
+    Box(modifier = Modifier.fillMaxSize().background(g.pageBackground), contentAlignment = Alignment.TopCenter) {
         // Dock 悬浮底栏: 滚动尾部多留 Dock 总高(FAB 语义, 同今日页)
         val navExtra = com.imsx3d.classy.ui.component.LocalNavExtraBottomPadding.current
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxSize(),
             contentPadding = PaddingValues(
                 // UI-25a：20dp → 16dp —— 全 App 只有这两页（我的/今日）用 20dp，
                 // 导致大标题与其它页不在同一条左线上（实测：我的 20.0dp vs 设置页 16.0dp）

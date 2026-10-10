@@ -1010,4 +1010,5 @@
     <string name="sainz_evening_start">开始节次</string>
     <string name="sainz_evening_end">结束节次</string>
     <string name="sainz_collect_all">确认并采集全部页面</string>
+    <string name="course_list_select_hint">选择左侧课程，查看上课安排</string>
 </resources>
