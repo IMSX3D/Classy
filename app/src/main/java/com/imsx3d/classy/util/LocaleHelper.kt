@@ -15,14 +15,9 @@ import java.util.Locale
  */
 object LocaleHelper {
 
-    fun getLocale(langCode: String): Locale = when (langCode) {
-        "zh-CN" -> Locale.SIMPLIFIED_CHINESE
-        "zh-TW" -> Locale.TRADITIONAL_CHINESE
-        "en" -> Locale.ENGLISH
-        "ja" -> Locale.JAPANESE
-        "es" -> Locale("es")
-        else -> Locale.getDefault()
-    }
+    fun getLocale(langCode: String): Locale =
+        if (SupportedLanguages.normalize(langCode) == "en") Locale.ENGLISH
+        else Locale.SIMPLIFIED_CHINESE
 
     /** 给 Context 注入指定语言的 Locale，返回新的 Context */
     fun wrap(ctx: Context, langCode: String): Context {

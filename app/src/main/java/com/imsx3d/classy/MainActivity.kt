@@ -482,7 +482,6 @@ internal fun MainTabs(
         }
         Tab.Mine -> holder.SaveableStateProvider(currentTab.name) {
             MineScreen(
-                onOpenManagement = { setCurrentTab(Tab.Manage) },
                 onOpenSettings = { navigator.openSettings() },
                 onOpenAppearance = { navigator.openAppearance() },
                 onOpenWidgets = { navigator.openWidgetManagement() },

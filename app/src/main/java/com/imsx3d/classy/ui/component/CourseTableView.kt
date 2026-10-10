@@ -796,7 +796,7 @@ private fun CourseOverlayCard(
     val effectiveFg = if (accentBarStyle) colors.onSurface else fg
     val effectiveInfoFg = if (accentBarStyle) colors.onSurfaceVariant
         else effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
-    val effectiveAccentBar = accentBar
+    val effectiveAccentBar = CourseColorUtil.softenedIndicator(accentBar, effectiveBg)
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") {
         androidx.compose.ui.text.style.TextDecoration.LineThrough
@@ -1599,7 +1599,7 @@ private fun LessonRow(
     val effScale = scale * laneScale
     val sd = { v: Float -> (v * effScale).dp }
     // 2026-09-28（用户报「色块对比度过高、刺眼」→ 随后定「两版都留，做成设置项」）：
-    //   bar   = 中性卡片 + 左侧 4dp 课色条 + 时间用课色（克制，与今日页同源）；
+    //   bar   = 中性卡片 + 左侧 3dp 柔和课色条 + 中性时间文字（克制，与今日页同源）；
     //   fill  = 整行填课色 + 自适应文字色（醒目，即本页原来的观感）。
     //   两种承载共用同一套取色，只差"颜色铺多大"。设置项：通用 → 课表显示 → 课程色呈现。
     val barStyle = AppPrefs.getCourseColorStyle(context) == AppPrefs.COURSE_STYLE_BAR
@@ -1620,7 +1620,7 @@ private fun LessonRow(
         slot = com.imsx3d.classy.util.LocalCourseColorSlots.current[CourseColorUtil.colorSeed(course)]
     )
     val effectiveBg = if (barStyle) colors.surfaceContainer else fillBg
-    val effectiveAccent = accent
+    val effectiveAccent = CourseColorUtil.softenedIndicator(accent, effectiveBg)
     val effectiveFg = if (barStyle) colors.onSurface
         else CourseColorUtil.textColorOn(fillBg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
     val effectiveFgVariant = if (barStyle) colors.onSurfaceVariant
@@ -1650,7 +1650,7 @@ private fun LessonRow(
         if (barStyle) {
             Box(
                 modifier = Modifier
-                    .width(sd(4f))
+                    .width(sd(3f))
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(sd(2f)))
                     .background(effectiveAccent)
@@ -1668,14 +1668,14 @@ private fun LessonRow(
                 Text(
                     text = "${timeParts.first}-\n${timeParts.second}",
                     style = sideStyle,
-                    color = effectiveAccent,
+                    color = if (barStyle) effectiveFgVariant else accent,
                     modifier = Modifier.width(sd(42f))
                 )
             } else {
                 Text(
                     text = nodeLabel,
                     style = sideStyle,
-                    color = if (barStyle) effectiveAccent else effectiveFg,
+                    color = if (barStyle) effectiveFgVariant else effectiveFg,
                     modifier = Modifier.width(sd(42f)),
                     maxLines = 1
                 )

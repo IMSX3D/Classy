@@ -53,7 +53,7 @@ class EmptyStateFirstTableContractTest {
 
     /** 全部发布语言 (与 AboutLicenseAttributionTest.ALL_RELEASED_LOCALES 同集)。 */
     private val locales = listOf(
-        "values", "values-en", "values-es", "values-ja", "values-zh-rCN", "values-zh-rTW"
+        "values", "values-en", "values-zh-rCN"
     )
 
     private fun readString(locale: String, key: String): String {

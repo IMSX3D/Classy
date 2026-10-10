@@ -25,10 +25,10 @@ val SleepyThumbSpring = spring<Float>(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 动效门面（UI-30a · 规范 `设计规范_动效体系.md`）
+// 动效门面（设计原则见 docs/design/DESIGN_SYSTEM.md）
 //
 // 规则：**自研组件不许自己写时长与曲线** —— 一律从这里取。于是"改一处 = 全 app 同步"，
-// 红线脚本 `tools/scan_motion.py` 也能查（禁裸 tween/spring、禁不带 spec 的 expand/fade）。
+// 导航的预测性返回另由 SleepyMaterialTransition 维护，不在业务页新增独立曲线。
 // 取值来源是 M3E 的 `MaterialTheme.motionScheme`（Theme.kt 全局注入 Expressive），
 // 所以自研组件与官方组件（按钮 / Switch / 弹窗 / 底部弹层）用的是**同一套曲线** ——
 // 这就是"动效统一"的落地方式：不是抄一份参数，而是取同一个源头。

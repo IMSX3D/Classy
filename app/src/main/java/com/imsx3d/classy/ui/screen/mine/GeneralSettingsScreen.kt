@@ -62,10 +62,7 @@ fun GeneralSettingsScreen(onBack: () -> Unit) {
 
     val languages = listOf(
         "zh-CN" to "简体中文",
-        "zh-TW" to "繁體中文",
-        "en" to "English",
-        "ja" to "日本語",
-        "es" to "Español"
+        "en" to "English"
     )
 
     var languageExpanded by rememberSaveable { mutableStateOf(false) }

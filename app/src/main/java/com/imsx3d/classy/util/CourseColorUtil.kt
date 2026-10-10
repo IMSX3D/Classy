@@ -1,6 +1,7 @@
 package com.imsx3d.classy.util
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.core.graphics.ColorUtils
 import com.imsx3d.classy.data.entity.CourseColorMode
 import com.imsx3d.classy.data.entity.CourseEntity
@@ -23,6 +24,12 @@ import com.imsx3d.classy.ui.theme.CoursePalette
  *   平台适配层 — pickCourseColorCompose / pickCourseColorInt（两套返回类型，同一份逻辑）
  */
 object CourseColorUtil {
+
+    /** Decorative course markers share one surface-relative treatment; never use for text.
+     * Keep the original course color in storage and in the fill style/color picker.
+     */
+    fun softenedIndicator(accent: Color, surface: Color): Color =
+        lerp(surface, accent, 0.68f)
 
     // ============================ 第一层 · 常量 ============================
 
@@ -417,7 +424,7 @@ object CourseColorUtil {
     /**
      * 强调色 Compose 入口 —— 决策树与 [pickCourseColorComposeWithGroupRows] 完全一致
      * （CUSTOM 用户色原样、colorless 中性、AUTO/GROUP 走强调档），只是 AUTO/GROUP 取"更浓"那一档。
-     * 色条 / 时间文字一律走这里，保证"同门课在今日、网格、周视图里是同一条色"。
+     * 色条先从这里取得稳定色源，再经 softenedIndicator 适配卡面；色条模式文字使用主题前景色。
      */
     fun pickAccentComposeWithGroupRows(
         row: CourseEntity,

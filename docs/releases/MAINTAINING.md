@@ -3,7 +3,7 @@
 每次发布时：
 
 1. 在 `app/build.gradle.kts` 增加 `versionCode` 并设置 `versionName`。v0.0.9 的应用版本为 `0.0.9`、代码为 `9`，tag 为 `v0.0.9`；后续继续保持版本号可递增比较。
-2. 更新 `app/src/main/assets/release-notes.json`，填入同一版本号与版本代码。用 3–6 条通俗短句说明用户能感受到的变化，维护简体中文、繁体中文、英语、西班牙语和日语。
+2. 更新 `app/src/main/assets/release-notes.json`，填入同一版本号与版本代码。用 3–6 条通俗短句说明用户能感受到的变化，维护简体中文和英语。
 3. 执行单元测试、设备测试包编译、Lint 和正式签名构建，并运行教务脚本测试。
 4. 创建对应 tag 与 Release，附三种架构 APK、SHA256SUMS 和验证记录。资产名称须保持 `app-<abi>-release.apk`，应用更新检查依赖该命名。
 

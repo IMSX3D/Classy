@@ -9,13 +9,13 @@ import java.io.File
  *
  * Phase1 semantics (per plan): assert ONLY that the newly-added
  * `settings_course_colorless` / `settings_course_colorless_sub` keys are present
- * in all 6 locale files — do NOT assert full key-set equality, because the
+ * in all supported locale files — do NOT assert full key-set equality, because the
  * repo already has a known 9-line drift (values/ = 449 lines vs zh-rCN = 440).
  *
  * Batch-2 sequencing note: the string KEYS themselves land in batch 3
  * (pure-strings batch). This batch (2) lays the AppPrefs B-key groundwork and
  * the test scaffolding. The parity assertion therefore validates the
- * infrastructure (6 locale dirs + readable strings.xml) now, and the
+ * infrastructure (supported locale dirs + readable strings.xml) now, and the
  * `newKeys` list is the single source of truth that batch 3 will satisfy.
  *
  * This is a pure-JVM test (no Robolectric) — it only touches raw resource
@@ -23,14 +23,11 @@ import java.io.File
  */
 class StringsKeyParityTest {
 
-    /** The 6 supported locale directories (no ko/fr). */
+    /** Chinese (default and explicit qualifier) and English resource directories. */
     private val localeDirs = listOf(
         "values",
         "values-en",
-        "values-es",
-        "values-ja",
-        "values-zh-rCN",
-        "values-zh-rTW"
+        "values-zh-rCN"
     )
 
     /**
@@ -44,7 +41,7 @@ class StringsKeyParityTest {
 
     /**
      * 小组件重设计新增 string key (2026-09, feat/widget-fixed-window, 设计 §8)。
-     * 全 6 locale 必须齐 (评审 #22: 本测试只查显式列出的键, 新键必须手动登记)。
+     * 全部支持的 locale 必须齐 (评审 #22: 本测试只查显式列出的键, 新键必须手动登记)。
      */
     private val widgetRedesignKeys = listOf(
         "widget_footer_more",
@@ -59,7 +56,7 @@ class StringsKeyParityTest {
 
     /**
      * 自定义主题系统新增 string key(2026-09-11,feat/theme-custom-color)。
-     * 全 6 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
+     * 全部支持的 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
      */
     private val customThemeKeys = listOf(
         "theme_new",
@@ -101,7 +98,7 @@ class StringsKeyParityTest {
 
     /**
      * issue#40 独立时间节次表新增 string key (2026-09-15, feat/issue40-independent-timetable)。
-     * 全 6 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
+     * 全部支持的 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
      */
     private val periodTableKeys = listOf(
         "mine_period_tables",
@@ -124,7 +121,7 @@ class StringsKeyParityTest {
 
     /**
      * issue#23 混合课时自动模式新增 string key (2026-09-20, sdd/task-3)。
-     * 全 6 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
+     * 全部支持的 locale 必须齐 — 缺任一 = MissingTranslation lint error 回归。
      */
     private val mixedDurationKeys = listOf(
         "duration_assign_hint",

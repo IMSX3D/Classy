@@ -8,7 +8,7 @@ import java.io.File
 /**
  * 关于页致谢 (about_license_body) 漂移回归测试。
  *
- * 规则: 新增 parser / 学校落地后必须在 zh-rCN / zh-rTW / en / ja / es 5 语同步追加致谢条目
+ * 规则: 新增 parser / 学校落地后必须在 简体中文 / English 两种语言同步追加致谢条目
  * (避免 HFUT 那次 en 漏写的历史漂移)。致谢条目用上游项目名 + author/license
  * 三元组作为最小识别单位, 实际文案与语序由 strings.xml 维护者负责。
  *
@@ -321,7 +321,7 @@ class AboutLicenseAttributionTest {
 
     /** 全部发布语言: 致谢漂移曾只查 3 语, en/es/ja 漏整批 B 档致谢而闸门放行 */
     private val ALL_RELEASED_LOCALES = listOf(
-        "values", "values-zh-rCN", "values-zh-rTW", "values-en", "values-ja", "values-es"
+        "values", "values-zh-rCN", "values-en"
     )
 
     @Test

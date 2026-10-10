@@ -14,11 +14,7 @@ data class ReleaseNotes(val versionCode: Long, val versionName: String, val item
         fun parse(json: String, locale: Locale): ReleaseNotes {
             val root = JSONObject(json)
             val translations = root.getJSONObject("notes")
-            val language = when {
-                locale.language == "zh" && (locale.script == "Hant" || locale.country in listOf("TW", "HK", "MO")) -> "zh-Hant"
-                locale.language == "zh" -> "zh"
-                else -> locale.language
-            }
+            val language = if (locale.language == "zh") "zh" else "en"
             val rows = translations.optJSONArray(language) ?: translations.getJSONArray("en")
             return ReleaseNotes(root.getLong("versionCode"), root.getString("versionName"),
                 List(rows.length()) { rows.getString(it) })

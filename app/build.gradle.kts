@@ -30,7 +30,7 @@ android {
         versionName = "0.0.9"
         vectorDrawables { useSupportLibrary = true }
         androidResources {
-            localeFilters += listOf("zh-rCN", "zh-rTW", "en", "ja", "es")
+            localeFilters += listOf("zh-rCN", "en")
         }
     }
 
@@ -147,7 +147,7 @@ val verifyReleaseNotes by tasks.registering {
             "Update app/src/main/assets/release-notes.json for this version before building."
         }
         val translations = notes["notes"] as? Map<*, *> ?: error("Missing release notes")
-        for (language in listOf("zh", "zh-Hant", "en", "es", "ja")) {
+        for (language in listOf("zh", "en")) {
             val items = translations[language] as? List<*>
             check(!items.isNullOrEmpty() && items.all { it is String && it.isNotBlank() }) {
                 "Missing user-facing release notes for $language"

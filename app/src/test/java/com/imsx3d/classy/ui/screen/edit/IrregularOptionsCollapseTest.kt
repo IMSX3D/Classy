@@ -203,7 +203,7 @@ class IrregularOptionsCollapseTest {
 
     @Test
     fun section_strings_present_in_all_six_locales() {
-        val locales = listOf("values", "values-en", "values-es", "values-ja", "values-zh-rCN", "values-zh-rTW")
+        val locales = listOf("values", "values-en", "values-zh-rCN")
         for (locale in locales) {
             val f = findUpward("app/src/main/res/$locale/strings.xml")
             val text = f.readText()

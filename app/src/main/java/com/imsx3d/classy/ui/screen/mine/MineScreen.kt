@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Info
@@ -43,10 +42,9 @@ import com.nevoit.glasense.core.component.Text
 import com.nevoit.glasense.core.component.VGap
 import com.nevoit.glasense.theme.GlasenseTheme
 
-/** A passive overview followed by six task-level entry points. */
+/** A passive overview followed by five task-level entry points. */
 @Composable
 fun MineScreen(
-    onOpenManagement: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenWidgets: () -> Unit,
@@ -116,8 +114,6 @@ fun MineScreen(
 
             item {
                 Column(Modifier.fillMaxWidth().clip(specs.cardShape).background(g.cardBackground)) {
-                    SettingsRow(Icons.Outlined.Edit, stringResource(R.string.tab_manage), onOpenManagement)
-                    RowHairline()
                     SettingsRow(Icons.Outlined.Notifications, stringResource(R.string.reminder_title), onOpenReminder)
                     RowHairline()
                     SettingsRow(Icons.Outlined.Palette, stringResource(R.string.mine_appearance), onOpenAppearance)

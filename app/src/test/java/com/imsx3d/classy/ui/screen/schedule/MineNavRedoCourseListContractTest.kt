@@ -79,11 +79,11 @@ class MineNavRedoCourseListContractTest {
         )
     }
 
-    // A passive overview must not increase the six task-level choices.
+    // A passive overview must not increase the five task-level choices.
     @Test
-    fun `mine retains six task entries alongside the passive overview`() {
-        assertEquals(6, Regex("SettingsRow\\(Icons").findAll(mineScreen).count())
-        assertTrue(mineScreen.contains("onOpenManagement"))
+    fun `mine retains five task entries alongside the passive overview`() {
+        assertEquals(5, Regex("SettingsRow\\(Icons").findAll(mineScreen).count())
+        assertFalse(mineScreen.contains("onOpenManagement"))
         assertTrue(mineScreen.contains("onOpenSettings"))
     }
 
@@ -189,7 +189,7 @@ class MineNavRedoCourseListContractTest {
             "course_list_empty",
             "course_list_arrangements"
         )
-        val locs = listOf("values", "values-en", "values-es", "values-ja", "values-zh-rCN", "values-zh-rTW")
+        val locs = listOf("values", "values-en", "values-zh-rCN")
         for (loc in locs) {
             val s = stringsFor(loc)
             for (k in keys) {
@@ -202,10 +202,9 @@ class MineNavRedoCourseListContractTest {
     }
 
     @Test
-    fun `table_info string relabeled to arrangement count in CN zh-rCN and zh-rTW`() {
-        // 中文三 locale: 旧「%3$d门课」必须改成「%3$d个上课安排 / 个上課安排」
-        // ja 保留 コマ 原状, en/es/cl 不在改列
-        val zhs = listOf("values", "values-zh-rCN", "values-zh-rTW")
+    fun `table_info string relabeled to arrangement count in default Chinese and zh-rCN`() {
+        // 默认中文和显式简体资源统一使用上课安排计数。
+        val zhs = listOf("values", "values-zh-rCN")
         for (loc in zhs) {
             val s = stringsFor(loc)
             val m = Regex("""<string\s+name="table_info">([^<]+)</string>""").find(s)?.groupValues?.get(1)

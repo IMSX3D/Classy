@@ -69,7 +69,7 @@ object AppPrefs {
     const val KEY_COURSE_COLORLESS = "course_colorless" // bool default false (App 课程胶囊专用)
     /** 课程色呈现方式（用户 2026-09-28 定：**两版都保留**，作为可选项）：
      *  "fill" = 整块用课色填充 + 自适应文字色（**出厂默认**，传统课表观感）
-     *  "bar"  = 颜色只占左缘一条色条 + 时间文字用课色（克制，与今日页一致，用户可自行切换）
+     *  "bar"  = 颜色只占左缘一条柔和色条 + 时间文字用中性色（克制，与今日页一致，用户可自行切换）
      *  只影响**课表视图**（网格 / 周视图）；今日页固定用色条那套。 */
     const val KEY_COURSE_COLOR_STYLE = "course_color_style"
     const val COURSE_STYLE_BAR = "bar"
@@ -298,10 +298,10 @@ object AppPrefs {
 
 
     fun getLanguage(ctx: Context): String =
-        sp(ctx).getString(KEY_LANG, "zh-CN") ?: "zh-CN"
+        SupportedLanguages.normalize(sp(ctx).getString(KEY_LANG, "zh-CN"))
 
     fun setLanguage(ctx: Context, lang: String) {
-        sp(ctx).edit().putString(KEY_LANG, lang).apply()
+        sp(ctx).edit().putString(KEY_LANG, SupportedLanguages.normalize(lang)).apply()
     }
 
     // ===== 显示模式：节次 / 时间 =====

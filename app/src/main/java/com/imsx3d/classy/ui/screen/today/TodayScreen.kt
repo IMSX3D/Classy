@@ -58,7 +58,7 @@ import java.time.LocalDate
  * 与详情弹层的行为与之前逐字一致，改的是版式与配色语言：
  *   · 页面底色走 Glasense pageBackground（中性）
  *   · 头部由「大圆角卡片」改为 Glasense 的「大标题 + 日期 + 状态胶囊」
- *   · 课程卡由「高饱和满铺色块」改为「中性卡 + 课程色色条 + 课程色时间字」，
+ *   · 课程卡由「高饱和满铺色块」改为「中性卡 + 课程色色条 + 中性时间字」，
  *     信息层级靠字号与颜色深浅区分（不再靠大色块压过内容）
  *   · 圆角统一由 Glasense specs 提供（卡片 12dp）
  */
@@ -299,9 +299,9 @@ private fun EmptyToday(semesterStatus: DateUtils.SemesterStatus = DateUtils.Seme
 }
 
 /**
- * 课程卡 —— 中性卡面 + 课程色色条 + 课程色时间字。
+ * 课程卡 —— 中性卡面 + 课程色色条 + 中性时间字。
  * 原实现是「课程色满铺卡面 + 自动反色文字」，饱和度高、整屏色块抢眼；
- * 这里把课程色降级为**强调用色**（色条/时间/节次），文字回到中性前景，阅读层级更清楚。
+ * 这里把课程色降级为**强调用色**（柔和色条），文字回到中性前景，阅读层级更清楚。
  * 冲突分栏（同 groupId 多行取色）与无色模式逻辑保持不变。
  */
 @Composable
@@ -316,8 +316,7 @@ private fun TodayCourseCard(
     val context = LocalContext.current
     val colorless = AppPrefs.isCourseColorless(context)
     // 统一取色入口 — 种子是**课程名**（同门课在任何课表/任何一次导入里恒为同色）。
-    // 2026-09-28：色条/时间属于"强调用色"，必须取**强调档**（更浓）——
-    // 早先误用填充档（L=0.80 的粉彩），细条在浅色模式下几乎看不见，三门课看着一个色。
+    // 以稳定课程色为源，绘制时统一柔化；时间文字独立使用主题前景色。
     // issue#22: 同名课程多地点 — 用 groupRows 传同 groupId 全行, 支持 AUTO/CUSTOM 模式取色
     val accent = if (colorless) g.contentVariant else CourseColorUtil.pickAccentComposeWithGroupRows(
         row = course,
@@ -347,10 +346,10 @@ private fun TodayCourseCard(
         // 课程色色条（贴在卡片左缘，高度随内容）
         Box(
             modifier = Modifier
-                .width(4.dp)
+                .width(3.dp)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(2.dp))
-                .background(accent)
+                .background(CourseColorUtil.softenedIndicator(accent, g.cardBackground))
         )
         HGap(12.dp)
         // 时间槽 — 固定宽度避免 "10:20-12:45" 被截断
@@ -358,7 +357,7 @@ private fun TodayCourseCard(
             Text(
                 text = course.shortNodeString(context),
                 style = GlasenseTheme.type.subHeadlineEmphasized,
-                color = accent
+                color = g.contentVariant
             )
             if (time != null) {
                 VGap(2.dp)
