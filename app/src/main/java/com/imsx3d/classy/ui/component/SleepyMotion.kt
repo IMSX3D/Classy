@@ -29,29 +29,35 @@ val SleepyThumbSpring = spring<Float>(
 //
 // 规则：**自研组件不许自己写时长与曲线** —— 一律从这里取。于是"改一处 = 全 app 同步"，
 // 导航的预测性返回另由 SleepyMaterialTransition 维护，不在业务页新增独立曲线。
-// 取值来源是 M3E 的 `MaterialTheme.motionScheme`（Theme.kt 全局注入 Expressive），
-// 所以自研组件与官方组件（按钮 / Switch / 弹窗 / 底部弹层）用的是**同一套曲线** ——
-// 这就是"动效统一"的落地方式：不是抄一份参数，而是取同一个源头。
+// 透明度继续取 M3E effects；内容尺寸与指示器明确采用无回弹 spring，
+// 官方按钮 / Switch / 弹窗 / 底部弹层保留 Material 自己的交互与曲线，
+// 统一的是交互职责与同类组件入口，不强制所有动画使用同一条曲线。
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** 折叠 / 展开：尺寸走 spatial 档（空间曲线），透明度走 effects 档（不回弹） */
+/** Content size must settle without bouncing text; keep effects on the shared Material scheme. */
+fun <T> sleepyContentSizeSpec(): FiniteAnimationSpec<T> = spring(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMedium
+)
+
+/** 折叠 / 展开：尺寸不回弹，透明度继续使用主题 effects。 */
 @Composable
 fun sleepyExpandEnter(): EnterTransition =
-    expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) +
+    expandVertically(sleepyContentSizeSpec()) +
         fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec())
 
 @Composable
 fun sleepyExpandExit(): ExitTransition =
-    shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) +
+    shrinkVertically(sleepyContentSizeSpec()) +
         fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
 
-/** 展开指示（折叠箭头旋转等）—— fast spatial：比内容展开本身更快收住，不抢戏 */
+/** 展开指示与选择滑块共用快速无回弹响应。 */
 @Composable
 fun sleepyIndicatorSpec(): FiniteAnimationSpec<Float> =
-    MaterialTheme.motionScheme.fastSpatialSpec()
+    SleepyThumbSpring
 
 /**
- * 加载圈的自转周期。**全库唯一写死的时长**，理由：它是无限循环的匀速转动，
+ * 加载圈的自转周期。它是无限循环的匀速转动，
  * 没有起点终点、不属于"状态过渡"，motionScheme 的有限 spec 不适用。
  * 1100ms 是试出来的：再快像卡住，再慢像卡顿。
  */

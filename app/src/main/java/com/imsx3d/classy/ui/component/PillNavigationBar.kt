@@ -72,9 +72,30 @@ class PillBarState {
     val thumbX = Animatable(0f)
     var thumbPlaced by mutableStateOf(false)
     var thumbCenter by mutableFloatStateOf(0f)
-    // 上次落位时的 tab 序号 — 重建组合与持久落位一致时禁止任何动画/重定位,
-    // 高亮从首帧起钉死在原位(2026-09-21 用户: 从子页返回时光点不该动)。
+    // 最新目标序号，不用它跳过运动：快速切回旧页时当前位置可能仍在两页中间。
     var placedIndex by mutableIntStateOf(-1)
+
+    /** Every new selection retargets the current position, even when returning to the last settled tab. */
+    internal suspend fun moveThumb(index: Int, target: Float, snap: Boolean) {
+        placedIndex = index
+        if (snap || !thumbPlaced) {
+            thumbX.snapTo(target)
+        } else {
+            thumbX.animateTo(target, SleepyThumbSpring) { thumbCenter = value }
+        }
+        thumbCenter = thumbX.value
+        thumbPlaced = true
+    }
+}
+
+/** Per-composition geometry: recreation/resizing aligns immediately, selections animate. */
+internal class ThumbGeometry {
+    private var previous: List<Float>? = null
+    fun needsSnap(centers: List<Float>): Boolean {
+        val changed = previous != centers
+        previous = centers.toList()
+        return changed
+    }
 }
 
 /**
@@ -105,7 +126,7 @@ object NavDockSpec {
  *
  * 几何真值: 各 tab 药丸中心/文字左缘/bar 原点全部 onGloballyPositioned 实测(positionInRoot
  * 差值), SpaceEvenly + 变宽 label 的实际分布不靠推算。布局变化(旋转/语言/形态)时
- * centers key 变化 → LaunchedEffect 重跑 → thumb 平滑滑到新位置。
+ * centers key 变化时直接对齐新几何；只有选择变化才从当前位置接续动画。
  */
 @Composable
 fun PillNavigationBar(
@@ -135,37 +156,19 @@ fun PillNavigationBar(
     // 读 pillRootXs/barRoot → 布局变化时重启 effect 重新定目标。
     // Main entry 从子页返回时会重新组合: 此次组合的首次测量只 snap,不能把同一 tab
     // 的几何重测误判成 tab 切换,否则高亮会从旁边滑回原位。
-    var laidOutInThisComposition by remember { mutableStateOf(false) }
+    val geometry = remember { ThumbGeometry() }
     val centers = List(count) { pillRootXs[it] + pillHalf - barRootX }
-    LaunchedEffect(centers, barLaidOut, selectedIndex) {
+    LaunchedEffect(centers, barLaidOut, selectedIndex, dock) {
+        // Dock owns its own fixed-seat geometry; never run two drivers for the same thumb.
+        if (dock) return@LaunchedEffect
         val idx = selectedIndex.coerceIn(0, count - 1)
-        // 组合重建早期的 root 坐标仍是 0/临时值,不能据此重定位持久 thumb。
         if (!barLaidOut || pillRootXs[idx] <= 0f) return@LaunchedEffect
-        val target = centers[idx]
-        if (state.placedIndex == idx && state.thumbPlaced) {
-            laidOutInThisComposition = true
-            return@LaunchedEffect
-        }
-        if (!laidOutInThisComposition) {
-            state.thumbX.snapTo(target)
-            state.thumbCenter = target
-            state.thumbPlaced = true
-            state.placedIndex = idx
-            laidOutInThisComposition = true
-        } else {
-            // 只有 selectedIndex 真正变化才走弹簧;同 tab 的重测量永远不动。
-            state.thumbX.animateTo(
-                targetValue = target,
-                animationSpec = SleepyThumbSpring,
-                block = { state.thumbCenter = value }
-            )
-            state.placedIndex = idx
-        }
+        state.moveThumb(idx, centers[idx], snap = geometry.needsSnap(centers))
     }
 
     // ═══ 形态分流 ═══
     // 贴底 = 通栏 76dp 矩形带(现状不动); Dock = iOS 26 floating tab bar 语义:
-    // 56dp 胶囊 icon-only, 半透明玻璃底+柔投影, 悬于手势条上方, 浮在内容上层
+    // 56dp 胶囊 icon-only, 半透明底+柔投影（非玻璃采样）, 悬于手势条上方, 浮在内容上层
     if (dock) {
         DockNavigationBar(
             items = items,
@@ -330,28 +333,10 @@ private fun DockNavigationBar(
         }
     }
 
-    var laidOutInThisComposition by remember { mutableStateOf(false) }
+    val geometry = remember { ThumbGeometry() }
     LaunchedEffect(centers, selectedIndex) {
         val idx = selectedIndex.coerceIn(0, count - 1)
-        val target = centers[idx]
-        if (state.placedIndex == idx && state.thumbPlaced) {
-            laidOutInThisComposition = true
-            return@LaunchedEffect
-        }
-        if (!laidOutInThisComposition) {
-            state.thumbX.snapTo(target)
-            state.thumbCenter = target
-            state.thumbPlaced = true
-            state.placedIndex = idx
-            laidOutInThisComposition = true
-        } else {
-            state.thumbX.animateTo(
-                targetValue = target,
-                animationSpec = SleepyThumbSpring,
-                block = { state.thumbCenter = value }
-            )
-            state.placedIndex = idx
-        }
+        state.moveThumb(idx, centers[idx], snap = geometry.needsSnap(centers))
     }
 
     val totalWidth = NavDockSpec.itemSeat * count +

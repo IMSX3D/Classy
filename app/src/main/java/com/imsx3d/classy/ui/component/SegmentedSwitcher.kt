@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -37,7 +38,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.imsx3d.classy.ui.theme.SleepyTheme
-import kotlin.math.roundToInt
 
 /**
  * Segmented Switcher — 仿 switchable.html .switcher
@@ -68,6 +68,7 @@ fun <T> SegmentedSwitcher(
     modifier: Modifier = Modifier,
     containerColor: Color? = null
 ) {
+    if (options.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     val selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
     val count = options.size
@@ -75,17 +76,12 @@ fun <T> SegmentedSwitcher(
     // thumb 位移: Animatable 值 = 逻辑段坐标(0..count-1), spring 驱动
     // 高硬度+无阻尼: 用户反馈 MediumLow 拖沓不跟手, 提到 High 段切换 ≈150ms 收束
     val thumbX = remember { Animatable(selectedIndex.toFloat()) }
-    // 逐帧快照: animateTo 期间把当前值同步到 state, 供文字层逐帧重组着色
-    var thumbXState by remember { mutableIntStateOf(selectedIndex) }
-    LaunchedEffect(selectedIndex) {
-        thumbX.animateTo(
-            targetValue = selectedIndex.toFloat(),
-            animationSpec = SleepyThumbSpring,
-            block = { thumbXState = value.roundToInt() }
-        )
+    LaunchedEffect(selectedIndex, count) {
+        if (thumbX.value !in 0f..(count - 1).toFloat()) thumbX.snapTo(selectedIndex.toFloat())
+        thumbX.animateTo(targetValue = selectedIndex.toFloat(), animationSpec = SleepyThumbSpring)
     }
 
-    // 每段文字的字符矩形缓存(非 state: 字色由 thumbXState 逐帧驱动, 缓存只是普通字典,
+    // 每段文字的字符矩形缓存(非 state: 字色由 thumbX.value 逐帧驱动, 缓存只是普通字典,
     // 避免 onTextLayout 每次重组都重新分配列表 — 上一版每次着色都 charRects() 全量重算 = "卡卡的")
     val charRectsCache = remember { mutableMapOf<Int, List<Rect>>() }
 
@@ -107,7 +103,7 @@ fun <T> SegmentedSwitcher(
             .padding(4.dp)
     ) {
         val segW = if (count == 0) 0f else trackWidthPx.toFloat() / count
-        val thumbStart = thumbXState * segW
+        val thumbStart = thumbX.value * segW
         val thumbEnd = thumbStart + segW
 
         Layout(
@@ -140,7 +136,7 @@ fun <T> SegmentedSwitcher(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) { onSelect(options[index].first) }
-                            .semantics { role = Role.Button }
+                            .semantics { role = Role.Tab; this.selected = index == selectedIndex }
                     )
                 }
                 // 层n+1..2n: 文字层 — 每个字符按覆盖率 lerp 上色, 与 thumb 同帧
