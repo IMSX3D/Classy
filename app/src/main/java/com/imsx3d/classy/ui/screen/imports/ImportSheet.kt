@@ -16,6 +16,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -252,204 +257,210 @@ fun ImportSheet(
         )
     }
 
-    MaterialTheme(motionScheme = ImportSheetMotion) {
-        ModalBottomSheet(
-            onDismissRequest = { if (!isLoading) { clearExternalImport(); onDismiss() } },
-            sheetState = sheetState,
+    ModalBottomSheet(
+        onDismissRequest = { if (!isLoading) { clearExternalImport(); onDismiss() } },
+        sheetState = sheetState,
+        // Keep the top safe area outside the measured sheet. Material3 alpha28 consumes
+        // top insets from the animated offset; padding them inside a tall scrollable sheet
+        // feeds back into its height/Expanded anchor, making the surface creep upward
+        // after its content has stopped moving. A fixed outer inset breaks that loop.
+        modifier = Modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        ),
+        contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom) },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
+            // 标题与草稿入口
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 标题与草稿入口
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.import_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = colors.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = { showDrafts = true },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(colors.primaryContainer)
-                    ) {
-                        // 2026-09-16 用户: 书签不像草稿箱 — 换带盖收纳箱 Inventory2
-                        Icon(
-                            imageVector = Icons.Outlined.Inventory2,
-                            contentDescription = stringResource(R.string.import_drafts),
-                            tint = colors.onPrimaryContainer
-                        )
-                    }
-                }
                 Text(
-                    text = stringResource(R.string.import_preview_sub),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    text = stringResource(R.string.import_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = colors.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
-
-                // 行 1：教务直连
-                ImportMethodRow(
-                    icon = Icons.Outlined.QrCode2,
-                    label = stringResource(R.string.import_jw),
-                    onClick = {
-                        onDismiss()
-                        onJwImportRequested()
-                    }
-                )
-
-                // 行 2：从文本导入（可折叠）
-                ImportMethodRow(
-                    icon = Icons.Outlined.Description,
-                    label = stringResource(R.string.import_paste),
-                    trailing = if (textExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                    onClick = { textExpanded = !textExpanded }
-                )
-                AnimatedVisibility(
-                    visible = textExpanded,
-                    // UI-30a：这里原来只有展开没有淡入（全库唯一一处），与其它折叠统一
-                    enter = sleepyExpandEnter(),
-                    exit = sleepyExpandExit()
+                IconButton(
+                    onClick = { showDrafts = true },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(colors.primaryContainer)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 56.dp, top = 4.dp, bottom = 8.dp, end = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            placeholder = { Text(stringResource(R.string.import_paste_hint), color = colors.onSurfaceVariant) },
-                            enabled = !isLoading,
-                            shape = SleepyTheme.fieldShape,
-                            colors = fieldColors
-                        )
-                        Button(
-                    colors = primaryFilledButtonColors(),
-                            onClick = {
-                                scope.launch {
-                                    isLoading = true
-                                    try {
-                                        val p = buildImportPreview(inputText, state, context) { msg -> errorMsg = msg }
-                                        if (p != null) {
-                                            preview = p
-                                            // 不要 onDismiss() —— dialog 叠在 sheet 上显示; 用户在 dialog 操作完后再关 sheet。
-                                        }
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
-                            enabled = !isLoading && inputText.isNotBlank(),
-                            shape = SleepyTheme.Buttons.shape,
-                        ) {
-                            Text(
-                                text = if (isLoading) stringResource(R.string.import_parsing) else stringResource(R.string.import_preview),
-                                color = colors.onPrimary,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-                    }
+                    // 2026-09-16 用户: 书签不像草稿箱 — 换带盖收纳箱 Inventory2
+                    Icon(
+                        imageVector = Icons.Outlined.Inventory2,
+                        contentDescription = stringResource(R.string.import_drafts),
+                        tint = colors.onPrimaryContainer
+                    )
                 }
+            }
+            Text(
+                text = stringResource(R.string.import_preview_sub),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-                // 行 3：从文件导入
-                ImportMethodRow(
-                    icon = Icons.Outlined.FileUpload,
-                    label = stringResource(R.string.import_file),
-                    onClick = {
-                        // OpenDocument() 接受 MIME 数组, 让 picker 只显示 json / 文本文件
-                        filePicker.launch(arrayOf("application/json", "text/plain", "text/csv", "text/html", "*/*"))
-                    }
-                )
+            // 行 1：教务直连
+            ImportMethodRow(
+                icon = Icons.Outlined.QrCode2,
+                label = stringResource(R.string.import_jw),
+                onClick = {
+                    onDismiss()
+                    onJwImportRequested()
+                }
+            )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 支持的导入类型
+            // 行 2：从文本导入（可折叠）
+            ImportMethodRow(
+                icon = Icons.Outlined.Description,
+                label = stringResource(R.string.import_paste),
+                trailing = if (textExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                onClick = { textExpanded = !textExpanded }
+            )
+            AnimatedVisibility(
+                visible = textExpanded,
+                // UI-30a：这里原来只有展开没有淡入（全库唯一一处），与其它折叠统一
+                enter = sleepyExpandEnter(),
+                exit = sleepyExpandExit()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .settingsCard(colors.surfaceContainer)
-                        .padding(14.dp)
+                        .padding(start = 56.dp, top = 4.dp, bottom = 8.dp, end = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.import_supported_formats),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.onSurface,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                    TextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
+                        placeholder = { Text(stringResource(R.string.import_paste_hint), color = colors.onSurfaceVariant) },
+                        enabled = !isLoading,
+                        shape = SleepyTheme.fieldShape,
+                        colors = fieldColors
                     )
-                    FormatRow(
-                        name = stringResource(R.string.format_wakeup_share),
-                        desc = stringResource(R.string.format_wakeup_desc),
-                        onDetail = { detailFormat = ImportFormat.WAKEUP_SHARE }
-                    )
-                    FormatRow(
-                        name = stringResource(R.string.format_wakeup_json),
-                        desc = stringResource(R.string.format_json_desc),
-                        onDetail = { detailFormat = ImportFormat.WAKEUP_JSON }
-                    )
-                    FormatRow(
-                        name = stringResource(R.string.format_ics),
-                        desc = stringResource(R.string.format_ics_desc),
-                        onDetail = { detailFormat = ImportFormat.ICS }
-                    )
-                    FormatRow(
-                        name = stringResource(R.string.format_csv),
-                        desc = stringResource(R.string.format_csv_desc),
-                        onDetail = { detailFormat = ImportFormat.CSV }
-                    )
-                    FormatRow(
-                        name = stringResource(R.string.format_html),
-                        desc = stringResource(R.string.format_html_desc),
-                        onDetail = { detailFormat = ImportFormat.HTML }
-                    )
-                    FormatRow(
-                        name = stringResource(R.string.format_plain),
-                        desc = stringResource(R.string.format_plain_desc),
-                        onDetail = { detailFormat = ImportFormat.PLAIN }
-                    )
-                    // UI-27b（用户 2026-09-27 令）：把"旧 sleepy 格式也能导入"摆进列表 ——
-                    // 读取端本来就兼容（`SleepyNativeFormat.MAGIC_REGEX` 是 `(?:sleepy|classy)`），
-                    // 但没有入口告诉用户，拿着旧 sleepy 导出的文本会以为不能用。
-                    // 与「纯文本」是**同一套格式**（只差首行的 magic 词），所以弹窗正文复用同一份规格
-                    // （PLAIN_LEGACY 只换标题），规格里已注明两种首行都识别。
-                    FormatRow(
-                        name = stringResource(R.string.format_sleepy_plain),
-                        desc = stringResource(R.string.format_sleepy_plain_desc),
-                        onDetail = { detailFormat = ImportFormat.PLAIN_LEGACY }
-                    )
+                    Button(
+                colors = primaryFilledButtonColors(),
+                        onClick = {
+                            scope.launch {
+                                isLoading = true
+                                try {
+                                    val p = buildImportPreview(inputText, state, context) { msg -> errorMsg = msg }
+                                    if (p != null) {
+                                        preview = p
+                                        // 不要 onDismiss() —— dialog 叠在 sheet 上显示; 用户在 dialog 操作完后再关 sheet。
+                                    }
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
+                        enabled = !isLoading && inputText.isNotBlank(),
+                        shape = SleepyTheme.Buttons.shape,
+                    ) {
+                        Text(
+                            text = if (isLoading) stringResource(R.string.import_parsing) else stringResource(R.string.import_preview),
+                            color = colors.onPrimary,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // 错误反馈通道: 上面 errorMsg → snackbar.showSnackbar 依赖此 host,
-            // 之前 sheet 内无 host → 导入失败提示被静默吞掉。默认 M3 配色, 与其余 5 处一致。
-            // (原 BoxWithConstraints 包裹层已删: scope 内 maxWidth/maxHeight 从未被消费, lint UnusedBoxWithConstraintsScope)
-            GlasenseSnackbarHost(
-                hostState = snackbar,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            // 导入成功提示: 不再跳编辑课表页(假保存闸), 用 snackbar 明示已落库
-            LaunchedEffect(preview, pendingMode) {
-                if (preview == null && pendingMode == null && importJustApplied) {
-                    importJustApplied = false
-                    snackbar.showSnackbar(importSuccessMessage)
+            // 行 3：从文件导入
+            ImportMethodRow(
+                icon = Icons.Outlined.FileUpload,
+                label = stringResource(R.string.import_file),
+                onClick = {
+                    // OpenDocument() 接受 MIME 数组, 让 picker 只显示 json / 文本文件
+                    filePicker.launch(arrayOf("application/json", "text/plain", "text/csv", "text/html", "*/*"))
                 }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 支持的导入类型
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .settingsCard(colors.surfaceContainer)
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.import_supported_formats),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_wakeup_share),
+                    desc = stringResource(R.string.format_wakeup_desc),
+                    onDetail = { detailFormat = ImportFormat.WAKEUP_SHARE }
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_wakeup_json),
+                    desc = stringResource(R.string.format_json_desc),
+                    onDetail = { detailFormat = ImportFormat.WAKEUP_JSON }
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_ics),
+                    desc = stringResource(R.string.format_ics_desc),
+                    onDetail = { detailFormat = ImportFormat.ICS }
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_csv),
+                    desc = stringResource(R.string.format_csv_desc),
+                    onDetail = { detailFormat = ImportFormat.CSV }
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_html),
+                    desc = stringResource(R.string.format_html_desc),
+                    onDetail = { detailFormat = ImportFormat.HTML }
+                )
+                FormatRow(
+                    name = stringResource(R.string.format_plain),
+                    desc = stringResource(R.string.format_plain_desc),
+                    onDetail = { detailFormat = ImportFormat.PLAIN }
+                )
+                // UI-27b（用户 2026-09-27 令）：把"旧 sleepy 格式也能导入"摆进列表 ——
+                // 读取端本来就兼容（`SleepyNativeFormat.MAGIC_REGEX` 是 `(?:sleepy|classy)`），
+                // 但没有入口告诉用户，拿着旧 sleepy 导出的文本会以为不能用。
+                // 与「纯文本」是**同一套格式**（只差首行的 magic 词），所以弹窗正文复用同一份规格
+                // （PLAIN_LEGACY 只换标题），规格里已注明两种首行都识别。
+                FormatRow(
+                    name = stringResource(R.string.format_sleepy_plain),
+                    desc = stringResource(R.string.format_sleepy_plain_desc),
+                    onDetail = { detailFormat = ImportFormat.PLAIN_LEGACY }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // 错误反馈通道: 上面 errorMsg → snackbar.showSnackbar 依赖此 host,
+        // 之前 sheet 内无 host → 导入失败提示被静默吞掉。默认 M3 配色, 与其余 5 处一致。
+        // (原 BoxWithConstraints 包裹层已删: scope 内 maxWidth/maxHeight 从未被消费, lint UnusedBoxWithConstraintsScope)
+        GlasenseSnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        // 导入成功提示: 不再跳编辑课表页(假保存闸), 用 snackbar 明示已落库
+        LaunchedEffect(preview, pendingMode) {
+            if (preview == null && pendingMode == null && importJustApplied) {
+                importJustApplied = false
+                snackbar.showSnackbar(importSuccessMessage)
             }
         }
     }
