@@ -1,0 +1,15 @@
+<resources>
+    <string name="glass_sample_title">Dock material preview</string>
+    <string name="glass_sample_intro">Isolated sample; your timetables and appearance settings stay unchanged. Scroll and switch tabs to compare materials.</string>
+    <string name="glass_sample_enable">Glass material</string>
+    <string name="glass_sample_dark">Dark theme</string>
+    <string name="glass_sample_busy">Detailed background</string>
+    <string name="glass_sample_active">Glass preview active; device performance is not yet verified</string>
+    <string name="glass_sample_fallback">Solid display is used on this device or in battery saver</string>
+    <string name="glass_sample_solid">Solid display active</string>
+    <string name="glass_sample_selected">Selected sample tab: %1$s</string>
+    <string name="glass_sample_tab_schedule">Table</string>
+    <string name="glass_sample_tab_today">Today</string>
+    <string name="glass_sample_tab_manage">Manage</string>
+    <string name="glass_sample_tab_mine">Me</string>
+</resources>

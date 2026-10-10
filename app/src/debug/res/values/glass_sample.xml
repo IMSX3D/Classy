@@ -1,0 +1,15 @@
+<resources>
+    <string name="glass_sample_title">底栏材质预览</string>
+    <string name="glass_sample_intro">独立测试页，不修改你的课表或外观设置。滚动样例并切换底栏，比较两种材质。</string>
+    <string name="glass_sample_enable">玻璃材质</string>
+    <string name="glass_sample_dark">深色背景</string>
+    <string name="glass_sample_busy">复杂背景</string>
+    <string name="glass_sample_active">正在预览玻璃，实际性能待设备验证</string>
+    <string name="glass_sample_fallback">当前设备或省电状态使用实色显示</string>
+    <string name="glass_sample_solid">正在使用实色</string>
+    <string name="glass_sample_selected">当前示例选项：%1$s</string>
+    <string name="glass_sample_tab_schedule">课表</string>
+    <string name="glass_sample_tab_today">今日</string>
+    <string name="glass_sample_tab_manage">管理</string>
+    <string name="glass_sample_tab_mine">我的</string>
+</resources>

@@ -120,6 +120,19 @@ fun AppearanceScreen(
             }
         }
 
+        if (com.imsx3d.classy.BuildConfig.DEBUG) {
+            item {
+                SettingsGroupCard {
+                    com.imsx3d.classy.ui.component.SettingsGroupRow(
+                        title = stringResource(R.string.glass_sample_entry),
+                        onClick = {
+                            context.startActivity(android.content.Intent().setClassName(context, "com.imsx3d.classy.debug.GlassSampleActivity"))
+                        }
+                    )
+                }
+            }
+        }
+
         // 主题选择
         item {
             // UI-25a：本页第一个分组标题 → 0（页头已带 12dp 底边距，避免叠成 40dp）

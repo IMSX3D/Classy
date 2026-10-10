@@ -181,6 +181,8 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    // P4 isolated material sample; use the same pinned version as glasense-ui.
+    debugImplementation("io.github.kyant0:backdrop:2.0.0")
     val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)

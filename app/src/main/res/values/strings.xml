@@ -1042,4 +1042,5 @@
     <string name="widget_single_hint">仅更改这个小组件显示的课表</string>
     <string name="widget_refresh_section">刷新</string>
     <string name="widget_manual_help">长按桌面空白处，进入“小组件”并找到 Classy。部分 OPPO、一加或 realme 手机需在“卡片”页底部进入“插件”。仍找不到时，可复制诊断信息用于反馈，不包含课表内容。</string>
+    <string name="glass_sample_entry">底栏材质预览（测试）</string>
 </resources>

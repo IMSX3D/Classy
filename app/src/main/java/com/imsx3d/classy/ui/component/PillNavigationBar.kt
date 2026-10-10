@@ -136,6 +136,7 @@ fun PillNavigationBar(
     modifier: Modifier = Modifier,
     dock: Boolean = false,
     state: PillBarState = remember { PillBarState() },
+    dockSurface: Modifier? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current
@@ -181,6 +182,7 @@ fun PillNavigationBar(
             },
             modifier = modifier,
             state = state,
+            surface = dockSurface,
         )
         return
     }
@@ -313,7 +315,8 @@ private fun DockNavigationBar(
     density: androidx.compose.ui.unit.Density,
     onBarGeometry: (Float, Float, Boolean) -> Unit,
     state: PillBarState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    surface: Modifier? = null
 ) {
     val count = items.size.coerceAtLeast(1)
     val seatHalf = with(density) { (NavDockSpec.itemSeat / 2).toPx() }
@@ -351,7 +354,7 @@ private fun DockNavigationBar(
             .width(totalWidth)
             .height(NavDockSpec.capsuleHeight)
             .clip(capsuleShape)
-            .background(glassBg)
+            .then(surface ?: Modifier.background(glassBg))
             .onGloballyPositioned { c ->
                 onBarGeometry(c.positionInRoot().x, c.positionInRoot().y, true)
             }

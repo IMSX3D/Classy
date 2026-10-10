@@ -12,6 +12,10 @@
 
     <application>
         <activity
+            android:name=".debug.GlassSampleActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Sleepy" />
+        <activity
             android:name=".debug.DesignSampleActivity"
             android:exported="true"
             android:label="Classy Design Sample"

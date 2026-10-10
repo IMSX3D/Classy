@@ -1012,4 +1012,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="widget_single_hint">Change the timetable for this widget only</string>
     <string name="widget_refresh_section">Refresh</string>
     <string name="widget_manual_help">Hold an empty area of your home screen, open Widgets and find Classy. Some OPPO, OnePlus or realme phones place Plugins at the bottom of Cards. If needed, copy diagnostics for feedback; timetable content is not included.</string>
+    <string name="glass_sample_entry">Dock material preview (test)</string>
 </resources>
