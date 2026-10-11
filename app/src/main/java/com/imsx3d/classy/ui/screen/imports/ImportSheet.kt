@@ -134,6 +134,7 @@ fun ImportSheet(
     var isLoading by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     var preview by remember { mutableStateOf<ImportPreview?>(null) }
+    var reviewError by remember { mutableStateOf<String?>(null) }
     var pendingMode by remember { mutableStateOf<ImportApplyMode?>(null) }
     var confirmedTableName by remember { mutableStateOf("") }
     var confirmedStartDate by remember { mutableStateOf("") }
@@ -577,6 +578,8 @@ fun ImportSheet(
                     incomingJson = currentPreview.parseResult.timeJson,
                     requiredNodeCount = currentPreview.parseResult.nodesPerDay
                 )
+                reviewError = null
+                confirmedBindPeriodTableId = null
                 pendingMode = mode
             }
         )
@@ -615,6 +618,8 @@ fun ImportSheet(
             }
         } else {
             ImportConfirmDialog(
+                busy = isLoading,
+                submitError = reviewError,
                 startDate = confirmedStartDate,
                 tableName = confirmedTableName,
                 timeJson = confirmedTimeJson,
@@ -623,7 +628,7 @@ fun ImportSheet(
                 onTableNameChange = { confirmedTableName = it },
                 onStartDateChange = { confirmedStartDate = it },
                 onTimeJsonChange = { confirmedTimeJson = it },
-                onDismiss = { pendingMode = null },
+                onDismiss = { if (!isLoading) pendingMode = null },
                 // v1.0.56 T6: 第三 Tab「作息表」
                 periodTableOptions = allPeriodTables.map {
                     com.imsx3d.classy.ui.component.PeriodTableOption(it.id, it.name, it.nodesPerDay)
@@ -635,6 +640,7 @@ fun ImportSheet(
                     if (isLoading) return@ImportConfirmDialog
                     val mode = pendingMode ?: return@ImportConfirmDialog
                     val currentPreview = preview ?: return@ImportConfirmDialog
+                    reviewError = null
                     isLoading = true
                     scope.launch {
                         isLoading = true
@@ -650,7 +656,7 @@ fun ImportSheet(
                                 confirmedTimeJson = confirmedTimeJson,
                                 context = context,
                                 onImported = importCompleted,
-                                onError = { msg -> errorMsg = msg; pendingMode = null },
+                                onError = { msg -> reviewError = msg },
                                 bindPeriodTableId = confirmedBindPeriodTableId
                             )
                         } finally {
@@ -1305,6 +1311,8 @@ private fun PreviewInfoRow(label: String, value: String) {
 
 @Composable
 private fun ImportConfirmDialog(
+    busy: Boolean,
+    submitError: String?,
     startDate: String,
     tableName: String,
     timeJson: String,
@@ -1346,8 +1354,19 @@ private fun ImportConfirmDialog(
         )
     }
     var errorMsg by remember { mutableStateOf<String?>(null) }
-    com.imsx3d.classy.ui.component.ImportConfirmationDialog(
-        onDismissRequest = onDismiss,
+    val baseline = androidx.compose.runtime.saveable.rememberSaveable {
+        listOf(tableName, startDate, timeJson, selectedPeriodTableId.toString())
+    }
+    var showDiscard by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val back: () -> Unit = {
+        if (!busy) {
+            if (baseline != listOf(tableName, startDate, timeJson, selectedPeriodTableId.toString())) showDiscard = true
+            else onDismiss()
+        }
+    }
+    com.imsx3d.classy.ui.component.ImportReviewPage(
+        onDismissRequest = back,
+        busy = busy,
         title = { Text(stringResource(R.string.import_confirm_title), color = colors.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1359,6 +1378,7 @@ private fun ImportConfirmDialog(
                 if (showTableName) {
                     TextField(
                         value = tableName,
+                        enabled = !busy,
                         onValueChange = onTableNameChange,
                         label = { Text(stringResource(R.string.import_table_name)) },
                         singleLine = true,
@@ -1369,7 +1389,8 @@ private fun ImportConfirmDialog(
                 }
                 DatePickerField(
                     value = startDate,
-                    onValueChange = onStartDateChange,
+                    enabled = !busy,
+                    onValueChange = { errorMsg = null; onStartDateChange(it) },
                     label = stringResource(R.string.import_week_start),
                     modifier = Modifier.fillMaxWidth(),
                     // 只在日期错误时标红; 节次错误标到节次区(2026-09-20 反馈: 节次错也标日期框误导)
@@ -1382,9 +1403,11 @@ private fun ImportConfirmDialog(
                         ,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TimeSlotEditor(
+                    com.imsx3d.classy.ui.component.ImportRoutineField(
                         rows = rows,
+                        enabled = !busy,
                         onRowsChange = { newRows ->
+                            errorMsg = null
                             rows = newRows
                             onTimeJsonChange(TimeTableUtils.buildTimeJsonFromRows(newRows))
                         },
@@ -1393,15 +1416,18 @@ private fun ImportConfirmDialog(
                         // v1.0.56 T6: 第三 Tab「作息表」
                         periodTableOptions = periodTableOptions,
                         selectedPeriodTableId = selectedPeriodTableId,
-                        onSelectPeriodTable = onSelectPeriodTable
+                        onSelectPeriodTable = { errorMsg = null; onSelectPeriodTable(it) }
                     )
                 }
             }
         },
         confirmButton = {
             com.imsx3d.classy.ui.component.DialogActionButtons(
+                    confirmEnabled = !busy,
+                    dismissEnabled = !busy,
                     confirmText = stringResource(R.string.import_confirm),
                     onConfirm = {
+                        if (busy) return@DialogActionButtons
                         if (startDate.isBlank()) {
                             errorMsg = startDateRequiredMessage
                             return@DialogActionButtons
@@ -1437,10 +1463,14 @@ private fun ImportConfirmDialog(
                         onConfirm()
                     },
                     dismissText = stringResource(R.string.back),
-                    onDismiss = onDismiss
+                    onDismiss = back
                 )
 },
-error = errorMsg
+error = errorMsg ?: submitError
+    )
+    if (showDiscard) com.imsx3d.classy.ui.component.DiscardChangesDialog(
+        onKeepEditing = { showDiscard = false },
+        onDiscard = { showDiscard = false; onDismiss() }
     )
 }
 

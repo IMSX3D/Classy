@@ -58,7 +58,8 @@ fun DatePickerField(
     label: String,
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = SleepyTheme.fieldShape,
-    isError: Boolean = false
+    isError: Boolean = false,
+    enabled: Boolean = true
 ) {
     val colors = MaterialTheme.colorScheme
     var showPicker by remember { mutableStateOf(false) }
@@ -71,6 +72,7 @@ fun DatePickerField(
     ) {
         TextField(
             value = value,
+            enabled = enabled,
             onValueChange = onValueChange,
             label = { Text(label) },
             singleLine = true,
@@ -81,6 +83,7 @@ fun DatePickerField(
         )
         GlasenseIconButton(
             icon = Icons.Outlined.CalendarMonth,
+            enabled = enabled,
             contentDescription = stringResource(R.string.select_date),
             onClick = { showPicker = true },
             modifier = Modifier.padding(start = 4.dp),

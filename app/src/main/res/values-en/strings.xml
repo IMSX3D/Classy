@@ -1035,4 +1035,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="editor_working">Working, please wait…</string>
     <string name="editor_save_before_export">Save your changes before copying or sharing.</string>
     <string name="period_table_import_new_count">New from this import · %1$d periods/day</string>
+    <string name="import_routine_title">Class times</string>
+    <string name="import_routine_local">Use times from this import</string>
+    <string name="import_routine_incomplete">Some times are missing. Tap to set them.</string>
 </resources>

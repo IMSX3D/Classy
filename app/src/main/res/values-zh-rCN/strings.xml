@@ -1053,4 +1053,7 @@
     <string name="editor_working">正在处理，请稍候…</string>
     <string name="editor_save_before_export">保存后即可复制或分享。</string>
     <string name="period_table_import_new_count">本次导入新建 · %1$d 节/天</string>
+    <string name="import_routine_title">作息时间</string>
+    <string name="import_routine_local">使用本次导入的时间</string>
+    <string name="import_routine_incomplete">时间尚未填完整，点此设置。</string>
 </resources>

@@ -7,6 +7,27 @@ import org.junit.Test
 
 class JwImportDraftTest {
 
+    @Test fun `routine source survives draft save and restore including explicit unbound`() {
+        for (id in listOf(null, -1L, 7L)) {
+            val draft = snapshot.copy(selectedPeriodTableId = id)
+            assertEquals(draft, JwImportDraftCodec.fromJson(JwImportDraftCodec.toJson(draft)))
+        }
+    }
+
+    @Test fun `legacy draft keeps original create routine behavior`() {
+        val json = org.json.JSONObject(JwImportDraftCodec.toJson(snapshot))
+        json.remove("selectedPeriodTableId")
+        assertEquals(-1L, JwImportDraftCodec.fromJson(json.toString())?.selectedPeriodTableId)
+    }
+
+    @Test fun `invalid stored routine source cannot silently select another routine`() {
+        for (id in listOf(0L, -2L)) {
+            val json = org.json.JSONObject(JwImportDraftCodec.toJson(snapshot))
+            json.put("selectedPeriodTableId", id)
+            assertNull(JwImportDraftCodec.fromJson(json.toString()))
+        }
+    }
+
     @Test
     fun `login draft without courses restores school and phase`() {
         val login = snapshot.copy(courses = emptyList(), periods = emptyList(), phase = JwImportDraftPhase.WEBVIEW_LOGIN)

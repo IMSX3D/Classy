@@ -132,6 +132,7 @@ class JwImportActivity : ComponentActivity() {
                 var selectedSchool by remember { mutableStateOf<JwSchoolInfo?>(null) }
                 var stage by remember { mutableStateOf<Stage>(Stage.SelectSchool) }
                 var errorMsg by remember { mutableStateOf<String?>(null) }
+                val importActions = remember { com.imsx3d.classy.ui.component.EditorActionState(getString(R.string.editor_action_failed)) }
                 var statusMsg by remember { mutableStateOf<String?>(null) }
                 val statusSnackbarHostState = remember { SnackbarHostState() }
                 // 排查全量包导出: 错误弹窗点"导出排查全量包"按钮后由 JwCaptureDump 落 zip
@@ -181,6 +182,7 @@ class JwImportActivity : ComponentActivity() {
                         termStartDate = configStartDate,
                         tableName = configTableName,
                         smartConfigJson = Json.encodeToString(configSmartConfig),
+                        selectedPeriodTableId = configBindPeriodTableId,
                     )
                 }
 
@@ -191,6 +193,7 @@ class JwImportActivity : ComponentActivity() {
                 }
 
                 fun requestExit() {
+                    if (importActions.busy) return
                     val result = reduceExitDraftState(exitDraftState, ExitDraftEvent.RequestExit)
                     exitDraftState = result.state
                     if (result.outcome == ExitDraftOutcome.FinishDirectly) finish()
@@ -419,7 +422,7 @@ class JwImportActivity : ComponentActivity() {
                         startTime = configRows.firstOrNull()?.start?.takeIf { it.isNotBlank() } ?: "08:00"
                     )
                     // v1.0.56 T10: 默认选中「本次导入自动建作息表」(合成 id=-1)
-                    configBindPeriodTableId = -1L
+                    configBindPeriodTableId = snapshot.selectedPeriodTableId
                     exitDraftState = exitDraftState.copy(activeImport = true)
                     stage = Stage.ConfigureConfirm
                 }
@@ -437,7 +440,9 @@ class JwImportActivity : ComponentActivity() {
                         } else saveableStateHolder.SaveableStateProvider("ConfigureConfirm") {
                         val colors = MaterialTheme.colorScheme
                         var confirmError by remember { mutableStateOf<String?>(null) }
-                        com.imsx3d.classy.ui.component.ImportConfirmationDialog(
+                        com.imsx3d.classy.ui.component.ImportReviewPage(
+                            useWindow = false,
+                            busy = importActions.busy,
                             onDismissRequest = { requestExit() },
                             title = {
                                 Column {
@@ -459,6 +464,7 @@ class JwImportActivity : ComponentActivity() {
                                 ) {
                                     DatePickerField(
                                         value = configStartDate,
+                                        enabled = !importActions.busy,
                                         onValueChange = { configStartDate = it; checkpointDraft() },
                                         label = getString(R.string.import_week_start),
                                         modifier = Modifier.fillMaxWidth(),
@@ -471,13 +477,15 @@ class JwImportActivity : ComponentActivity() {
                                     // 此次把命名入口放到导入前, 落库前最后一次修改机会.
                                     TextField(
                                         value = configTableName,
+                                        enabled = !importActions.busy,
                                         onValueChange = { configTableName = it; checkpointDraft() },
                                         label = { Text(getString(R.string.jw_table_name_label)) },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
-                                    TimeSlotEditor(
+                                    com.imsx3d.classy.ui.component.ImportRoutineField(
                                         rows = configRows,
+                                        enabled = !importActions.busy,
                                         onRowsChange = { newRows ->
                                             configRows = newRows
                                             confirmError = null
@@ -503,14 +511,17 @@ class JwImportActivity : ComponentActivity() {
                                             })
                                         },
                                         selectedPeriodTableId = configBindPeriodTableId,
-                                        onSelectPeriodTable = { configBindPeriodTableId = it; confirmError = null }
+                                        onSelectPeriodTable = { configBindPeriodTableId = it; confirmError = null; checkpointDraft() }
                                     )
                                 }
                             },
                             confirmButton = {
                                 com.imsx3d.classy.ui.component.DialogActionButtons(
+                                        confirmEnabled = !importActions.busy,
+                                        dismissEnabled = !importActions.busy,
                                         confirmText = getString(R.string.jw_config_confirm),
                                         onConfirm = {
+                                        if (importActions.busy) return@DialogActionButtons
                                         if (configStartDate.isBlank() || !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(configStartDate)) {
                                             confirmError = getString(R.string.start_date_format)
                                             return@DialogActionButtons
@@ -538,7 +549,7 @@ class JwImportActivity : ComponentActivity() {
                                         configTimeJson = TimeTableUtils.buildTimeJsonFromRows(effectiveRows)
                                         // 落库
                                         statusMsg = getString(R.string.import_parsing)
-                                        scope.launch {
+                                        importActions.launch(scope) {
                                             try {
                                                 val maxNode = effectiveRows.maxOfOrNull { it.node } ?: 0
                                                 // v1.0.56 T10: id=-1 = 本次导入自动建作息表(名字随课表名, VM 内
@@ -563,21 +574,23 @@ class JwImportActivity : ComponentActivity() {
                                                     timeJson = configTimeJson,
                                                     nodesPerDay = maxNode,
                                                     smartConfigJson = Json.encodeToString(configSmartConfig),
-                                                    periodTable = autoPeriodEntity
+                                                    periodTable = autoPeriodEntity,
+                                                    boundPeriodTableId = configBindPeriodTableId?.takeIf { it > 0 }
                                                 )
-                                                // v1.0.56 T6: 选了既有作息表 Tab → 导入的课表直接绑定该表(节次以表为准)
-                                                val chosenId = configBindPeriodTableId
-                                                if (chosenId != null && chosenId > 0) {
-                                                    scheduleViewModel.bindPeriodTable(tableId, chosenId)
-                                                }
-                                                draftId?.let { draftRepository.delete(it) }
                                                 Log.d("JwImport", "importAsNewTable tableId=$tableId courses=${parsedCourses.size}")
                                                 statusMsg = getString(R.string.jw_import_success, parsedCourses.size)
                                                 importFinished = true
                                                 exitDraftState = exitDraftState.copy(activeImport = false)
+                                                val completedDraftId = draftId
+                                                if (completedDraftId != null) kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                                                    try { draftRepository.delete(completedDraftId) }
+                                                    catch (_: Exception) { /* Committed import remains successful. */ }
+                                                }
+                                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                                throw e
                                             } catch (e: Exception) {
                                                 Log.e("JwImport", "import failed", e)
-                                                errorMsg = getString(R.string.jw_parse_failed, e.message ?: "")
+                                                confirmError = getString(R.string.editor_action_failed)
                                                 statusMsg = null
                                             }
                                         }
@@ -586,7 +599,7 @@ class JwImportActivity : ComponentActivity() {
                                         onDismiss = { requestExit() }
                                     )
 },
-error = confirmError
+error = confirmError ?: importActions.error
                         )
                         } // end else (school != null) — SaveableStateProvider("ConfigureConfirm")
                     }

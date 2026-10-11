@@ -18,6 +18,8 @@ data class JwImportDraftSnapshot(
     /** Serialized SmartPeriodConfig; kept opaque to avoid coupling this contract to UI/entity classes. */
     val smartConfigJson: String = "",
     val phase: JwImportDraftPhase = JwImportDraftPhase.CONFIGURE_CONFIRM,
+    /** -1 creates an imported routine, null uses local times, positive IDs bind a saved routine. */
+    val selectedPeriodTableId: Long? = -1L,
 )
 
 data class JwImportDraftPeriod(
@@ -48,6 +50,7 @@ object JwImportDraftCodec {
         put("termStartDate", snapshot.termStartDate)
         put("tableName", snapshot.tableName)
         put("smartConfigJson", snapshot.smartConfigJson)
+        put("selectedPeriodTableId", snapshot.selectedPeriodTableId ?: JSONObject.NULL)
     }.toString()
 
     /** Returns null for an unsupported schema or any invalid/incomplete external payload. */
@@ -82,6 +85,11 @@ object JwImportDraftCodec {
             tableName = root.optString("tableName", ""),
             smartConfigJson = root.optString("smartConfigJson", ""),
             phase = phase,
+            selectedPeriodTableId = when {
+                !root.has("selectedPeriodTableId") -> -1L
+                root.isNull("selectedPeriodTableId") -> null
+                else -> root.getLong("selectedPeriodTableId").also { require(it == -1L || it > 0L) }
+            },
         )
     }.getOrNull()
 

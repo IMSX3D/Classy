@@ -644,7 +644,8 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
         smartConfigJson: String = "",
         // v1.0.56 T10: 非 null = 教务解析出了独立节次 → 同事务自动建同名作息表并绑定。
         // 名字走全局唯一名顺延(课表∪作息表), 撞名自动加后缀。
-        periodTable: com.imsx3d.classy.data.entity.PeriodTableEntity? = null
+        periodTable: com.imsx3d.classy.data.entity.PeriodTableEntity? = null,
+        boundPeriodTableId: Long? = null
     ): Long = withContext(Dispatchers.IO) {
         if (courses.isEmpty()) throw IllegalArgumentException("课程列表为空，请确认已到达课表页面")
 
@@ -681,7 +682,12 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
                     )
                 )
             }
-            val generatedId = tableDao.insert(newTable.copy(periodTableId = autoPeriodTableId))
+            val existingId = boundPeriodTableId?.also {
+                checkNotNull(db.periodTableDao().getById(it)) { "Selected routine no longer exists" }
+            }
+            val boundTable = existingId?.let { TimeTableEntity.snapshotForBind(newTable, it) }
+                ?: newTable.copy(periodTableId = autoPeriodTableId)
+            val generatedId = tableDao.insert(boundTable)
             // 把其他表设为非 default，确保只有当前表是 default
             tableDao.setDefault(generatedId)
 

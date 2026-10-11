@@ -143,7 +143,9 @@ fun TimeSlotEditor(
     periodTableOptions: List<PeriodTableOption> = emptyList(),
     selectedPeriodTableId: Long? = null,
     onSelectPeriodTable: (Long?) -> Unit = {},
-    excludePeriodTableId: Long? = null
+    excludePeriodTableId: Long? = null,
+    clearBindingOnEdit: Boolean = false,
+    scrollPeriodTableList: Boolean = true
 ) {
     var mode by remember {
         mutableStateOf(when {
@@ -189,7 +191,10 @@ fun TimeSlotEditor(
         // ===== Tab 切换 =====
         ModeTabSwitch(
             current = mode,
-            onChange = { next -> if (next == Mode.Auto) switchToAuto() else mode = next },
+            onChange = { next ->
+                if (clearBindingOnEdit && (selectedPeriodTableId ?: 0L) > 0L && next != Mode.PeriodTable) onSelectPeriodTable(null)
+                if (next == Mode.Auto) switchToAuto() else mode = next
+            },
             hasPeriodTableTab = periodTableOptions.isNotEmpty() || selectedPeriodTableId != null
         )
         Spacer(Modifier.height(8.dp))
@@ -212,7 +217,8 @@ fun TimeSlotEditor(
             Mode.PeriodTable -> PeriodTableBindTab(
                 options = periodTableOptions.filterNot { it.id == excludePeriodTableId },
                 selectedId = selectedPeriodTableId,
-                onSelect = onSelectPeriodTable
+                onSelect = onSelectPeriodTable,
+                scrollList = scrollPeriodTableList
             )
         }
     }
@@ -267,14 +273,14 @@ private fun ModeTabSwitch(current: Mode, onChange: (Mode) -> Unit, hasPeriodTabl
 private fun PeriodTableBindTab(
     options: List<PeriodTableOption>,
     selectedId: Long?,
-    onSelect: (Long?) -> Unit
+    onSelect: (Long?) -> Unit,
+    scrollList: Boolean = true
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 240.dp)
-            .verticalScroll(rememberScrollState()),
+            .then(if (scrollList) Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState()) else Modifier),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // 未绑定 = 不绑, 用解析出的/本表内置节次
