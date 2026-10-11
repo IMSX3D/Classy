@@ -126,10 +126,10 @@ fun PeriodTableEditScreen(
     // 2026-09-20 用户拍板(issue#40 反馈, aa23a443): 作息表编辑页不再有「作息表」第三 Tab。
     // 绑定只存在于课表→作息表单向; 作息表之间禁绑定/取入, 防循环改写。复制走管理页按钮。
     // v1.0.56 T7: 删除入口迁入本页 — 确认弹窗 + 绑定拦截提示(从管理页列表行整体搬迁)
-    var showDeleteConfirm by remember(periodTable.id) { mutableStateOf(false) }
-    var deleteBlockedMsg by remember(periodTable.id) { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by rememberSaveable(periodTable.id) { mutableStateOf(false) }
+    var deleteBlockedMsg by rememberSaveable(periodTable.id) { mutableStateOf<String?>(null) }
     // v1.0.56 T8: 复制先命名, 确认后才建; 成功后回管理页
-    var showCopyDialog by remember(periodTable.id) { mutableStateOf(false) }
+    var showCopyDialog by rememberSaveable(periodTable.id) { mutableStateOf(false) }
     var copyName by rememberSaveable(periodTable.id) { mutableStateOf("") }
     // v1.0.56 T11: 分享底部弹窗(原生格式/JSON 二选一)
     var showShareSheet by remember(periodTable.id) { mutableStateOf(false) }

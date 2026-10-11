@@ -67,7 +67,6 @@ fun DatePickerField(
 ) {
     val colors = MaterialTheme.colorScheme
     var showPicker by rememberSaveable { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
     val fieldColors = SleepyTheme.fieldColors()
 
     Row(
@@ -95,16 +94,24 @@ fun DatePickerField(
     }
 
     if (showPicker) {
+        // Session-local draft: cancel disposes it; recreation while open restores it.
+        val initialDate = PickerInitialValues.dateMillis(value)
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initialDate,
+            initialDisplayedMonthMillis = initialDate,
+            yearRange = PickerInitialValues.dateYears
+        )
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 色块按钮
                 Button(
-                colors = primaryFilledButtonColors(),
+                    enabled = datePickerState.selectedDateMillis != null,
+                    colors = primaryFilledButtonColors(),
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val date = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.of("Asia/Shanghai"))
+                                .atZone(java.time.ZoneOffset.UTC)
                                 .toLocalDate()
                             onValueChange(date.format(DateTimeFormatter.ISO_LOCAL_DATE))
                         }
@@ -143,11 +150,6 @@ fun TimePickerField(
 ) {
     val colors = MaterialTheme.colorScheme
     var showPicker by rememberSaveable { mutableStateOf(false) }
-    val timePickerState = rememberTimePickerState(
-        initialHour = value.substringBefore(":").toIntOrNull() ?: 8,
-        initialMinute = value.substringAfter(":").toIntOrNull() ?: 0,
-        is24Hour = true
-    )
     val fieldColors = SleepyTheme.fieldColors()
 
     // Box + clickable 包装：OutlinedTextField 内部设 enabled=false
@@ -171,6 +173,12 @@ fun TimePickerField(
     }
 
     if (showPicker) {
+        val initialTime = PickerInitialValues.time(value)
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialTime.hour,
+            initialMinute = initialTime.minute,
+            is24Hour = true
+        )
         AlertDialog(
             onDismissRequest = { showPicker = false },
             title = { Text(stringResource(R.string.select_time), color = colors.onSurface) },
