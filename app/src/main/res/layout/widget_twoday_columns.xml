@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:layout_width="match_parent" android:layout_height="match_parent"
+ android:background="@drawable/widget_scroll_clip" android:clipToOutline="true" android:outlineProvider="background">
+<LinearLayout
  android:id="@+id/twoday_root" android:layout_width="match_parent" android:layout_height="match_parent"
- android:orientation="vertical" android:background="@drawable/widget_scroll_clip" android:clipToOutline="true" android:outlineProvider="background" android:padding="6dp">
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="4dp">
+ android:orientation="vertical" android:padding="@dimen/widget_content_inset">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="0dp">
   <TextView android:id="@+id/twoday_header" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
   <TextView android:id="@+id/twoday_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:maxLines="1" android:layout_marginStart="6dp" />
  </LinearLayout>
@@ -24,3 +27,5 @@
   </LinearLayout>
  </LinearLayout>
 </LinearLayout>
+
+</FrameLayout>

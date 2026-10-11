@@ -90,8 +90,8 @@ class CourseRowWidgetService : RemoteViewsService() {
 
         /** 一行真实内容的高度估算（真实行是 wrap_content，实测 ≈64dp）。 */
         private val rowHeightDp = 64
-        /** 表头 + 上下内边距的高度估算（widget_course_list.xml：padding 8+4、表头两行 ≈30dp）。 */
-        private val chromeHeightDp = 42
+        /** 表头 + 上下内边距的高度估算（widget_course_list.xml：上下安全边距 16+16、表头两行 ≈30dp）。 */
+        private val chromeHeightDp = 62
 
         override fun onCreate() {}
 
@@ -177,7 +177,7 @@ class CourseRowWidgetService : RemoteViewsService() {
             )
             // Blend colors rather than remote View.setAlpha (not supported by every host).
             fun tone(color: androidx.compose.ui.graphics.Color): Int =
-                (if (completed) lerp(scheme.surfaceContainer, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
+                (if (completed) lerp(scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
             return Row(
                 name = name,
                 // 极端情况（导入数据缺地点/教师）也给一行可见文案，不留空行
@@ -186,7 +186,7 @@ class CourseRowWidgetService : RemoteViewsService() {
                 barColor = tone(bg),
                 nameColor = tone(scheme.onSurface),
                 metaColor = tone(scheme.onSurfaceVariant),
-                cardColor = scheme.surfaceContainer.toArgb()
+                cardColor = scheme.bg.toArgb()
             )
         }
 

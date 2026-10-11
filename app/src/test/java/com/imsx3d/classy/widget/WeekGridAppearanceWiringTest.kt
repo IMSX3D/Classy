@@ -19,7 +19,7 @@ class WeekGridAppearanceWiringTest {
             .substringBefore("override fun getCount()")
         assertTrue(snapshot.contains("AppPrefs.getCourseColorStyle(context) == AppPrefs.COURSE_STYLE_BAR"))
         val render = factory.substringAfter("override fun getViewAt")
-        assertTrue(render.contains("if (s.barStyle) s.scheme.surface"))
+        assertTrue(render.contains("if (s.barStyle) s.scheme.bg"))
         assertTrue(render.contains("CourseColorUtil.softenedIndicator("))
         assertTrue(render.contains("if (s.barStyle) View.VISIBLE else View.GONE"))
         assertTrue(render.contains("tone(indicator)"))

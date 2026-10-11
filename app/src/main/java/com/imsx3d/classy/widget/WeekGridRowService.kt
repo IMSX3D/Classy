@@ -159,7 +159,7 @@ class WeekGridRowFactory(
                     block.addView(R.id.wg_blk_sizer, RemoteViews(context.packageName, R.layout.widget_weekgrid_spacer))
                 }
                 val rows = groupRows[course.groupId].orEmpty()
-                val bg = if (s.barStyle) s.scheme.surface else CourseColorUtil.pickCourseColorComposeWithGroupRows(
+                val bg = if (s.barStyle) s.scheme.bg else CourseColorUtil.pickCourseColorComposeWithGroupRows(
                     course, rows, s.scheme.isDark, s.scheme.surfaceVariant, s.colorless
                 )
                 val fg = if (s.barStyle) s.scheme.onSurface
