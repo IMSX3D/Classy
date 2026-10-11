@@ -1001,7 +1001,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="routine_sections_hint">Sessions start independently. Changing morning periods will not delay the afternoon.</string>
     <string name="routine_exceptions_hint">Adjust only exceptions. A zero-minute break joins consecutive classes; breaks between sessions are calculated automatically.</string>
     <string name="routine_generated_hint">These times were generated automatically. Check them against your school schedule before saving.</string>
-    <string name="routine_missing_hint">Some period times are missing. Use automatic scheduling or an existing period timetable.</string>
+    <string name="routine_missing_hint">Class times are missing. Enter them individually, use automatic arrangement, or choose a saved routine.</string>
     <string name="course_move_custom_hint">The class will start at the selected period and keep its original duration.</string>
     <string name="course_move_undo_hint">Only this slot changes. You can undo it at the top of the timetable after saving.</string>
     <string name="widget_placed_title">Widgets on your home screen</string>
@@ -1034,4 +1034,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="editor_action_failed">Could not complete the action. Your edits are kept; please try again.</string>
     <string name="editor_working">Working, please wait…</string>
     <string name="editor_save_before_export">Save your changes before copying or sharing.</string>
+    <string name="period_table_import_new_count">New from this import · %1$d periods/day</string>
 </resources>

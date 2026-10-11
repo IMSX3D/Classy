@@ -1031,7 +1031,7 @@
     <string name="routine_sections_hint">各时段独立开始；修改上午课时不会推迟下午。</string>
     <string name="routine_exceptions_hint">只需调整例外课时或课间。课间设为 0 表示连堂；时段之间的休息自动计算。</string>
     <string name="routine_generated_hint">这些时间由系统生成，请按学校作息核对后保存。</string>
-    <string name="routine_missing_hint">上课时间不完整，请选择自动安排或已有作息表。</string>
+    <string name="routine_missing_hint">缺少上下课时间，可逐节填写、自动安排，或选择已有作息表。</string>
     <string name="course_move_custom_hint">课程将从所选节次开始，原上课时长不变。</string>
     <string name="course_move_undo_hint">只调整本时段；保存后可在课表顶部撤销。</string>
     <string name="widget_placed_title">桌面上的小组件</string>
@@ -1064,4 +1064,5 @@
     <string name="editor_action_failed">操作未完成，请重试。当前编辑内容仍保留。</string>
     <string name="editor_working">正在处理，请稍候…</string>
     <string name="editor_save_before_export">保存后即可复制或分享。</string>
+    <string name="period_table_import_new_count">本次导入新建 · %1$d 节/天</string>
 </resources>

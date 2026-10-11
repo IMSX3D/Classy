@@ -480,6 +480,7 @@ class JwImportActivity : ComponentActivity() {
                                         rows = configRows,
                                         onRowsChange = { newRows ->
                                             configRows = newRows
+                                            confirmError = null
                                             configTimeJson = TimeTableUtils.buildTimeJsonFromRows(newRows)
                                             checkpointDraft()
                                         },
@@ -502,7 +503,7 @@ class JwImportActivity : ComponentActivity() {
                                             })
                                         },
                                         selectedPeriodTableId = configBindPeriodTableId,
-                                        onSelectPeriodTable = { configBindPeriodTableId = it }
+                                        onSelectPeriodTable = { configBindPeriodTableId = it; confirmError = null }
                                     )
                                 }
                             },
@@ -655,15 +656,7 @@ error = confirmError
                                             // 根据课程实际节次数生成行；
                                             // 如果 WebView 抓到 periods 则预填，否则空行让用户填
                                             val maxNode = courses.maxOf { maxOf(it.startNode, it.endNode) }
-                                            val periodMap = periods.associate { it.first to (it.second to it.third) }
-                                            val newRows = (1..maxNode).map { node ->
-                                                val filled = periodMap[node]
-                                                TimeTableUtils.TimeSlotRow(
-                                                    node = node,
-                                                    start = filled?.first ?: "",
-                                                    end = filled?.second ?: ""
-                                                )
-                                            }
+                                            val newRows = TimeTableUtils.importedPeriodRows(maxNode, periods)
                                             configRows = newRows
                                             // 学期起始日预填: JSON 直连协议 (boya_pp/cqu/chaoxing) 能从
                                             // 接口拿到第一周周一 (如燕大 2026-2027-1 实为 2026-08-31,

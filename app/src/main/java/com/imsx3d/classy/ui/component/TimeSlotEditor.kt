@@ -196,7 +196,7 @@ fun TimeSlotEditor(
         modeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (generatedNotice) Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_generated_hint),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-        else if (rows.any { it.start.isBlank() || it.end.isBlank() }) Text(
+        else if ((selectedPeriodTableId == null || selectedPeriodTableId <= 0) && rows.any { it.start.isBlank() || it.end.isBlank() }) Text(
             androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_missing_hint),
             style = MaterialTheme.typography.bodyMedium)
 
@@ -286,7 +286,10 @@ private fun PeriodTableBindTab(
         options.forEach { opt ->
             BindChoiceRow(
                 title = opt.name,
-                subtitle = stringResource(R.string.period_table_nodes_count, opt.nodesPerDay),
+                subtitle = stringResource(
+                    if (opt.id == -1L) R.string.period_table_import_new_count else R.string.period_table_nodes_count,
+                    opt.nodesPerDay
+                ),
                 selected = selectedId == opt.id,
                 onClick = { onSelect(opt.id) }
             )

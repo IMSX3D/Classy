@@ -21,20 +21,32 @@ const val ZF_NEW_FETCH_JS = """(function(){
       ok:false, kind:kind, err:err||'', format:'zf_new'
     }));
   }
-  function ok(data, xnm, xqm, empty){
+  function ok(data, xnm, xqm, empty, routine){
     // Read only explicit single-period row headings; never infer a lesson time from course text.
     var periods = [], seen = {}, conflicts = {};
-    var headings = document.querySelectorAll('tr > th, tr > td:first-child');
+    function add(node, start, end) {
+      var n = String(node == null ? '' : node).trim().match(/^(?:第\s*)?(\d{1,2})\s*(?:节)?$/);
+      var a = String(start || '').trim().match(/^(\d{1,2})[:：](\d{2})$/);
+      var b = String(end || '').trim().match(/^(\d{1,2})[:：](\d{2})$/);
+      if (!n || !a || !b) return;
+      node=+n[1]; var sh=+a[1], sm=+a[2], eh=+b[1], em=+b[2];
+      if (node<1 || node>48 || sh>23 || eh>23 || sm>59 || em>59 || sh*60+sm>=eh*60+em) return;
+      function pad(v){return ('0'+v).slice(-2);}
+      var period={node:node,start:pad(sh)+':'+pad(sm),end:pad(eh)+':'+pad(em)};
+      if (seen[node] && (seen[node].start!==period.start || seen[node].end!==period.end)) conflicts[node]=true;
+      seen[node]=period;
+    }
+    // The authenticated routine endpoint supplies per-node times, independently of DOM layout.
+    (Array.isArray(routine) ? routine : []).forEach(function(row){
+      if (row && typeof row === 'object') add(row.jcmc, row.qssj, row.jssj);
+    });
+    // Use headings only when the routine endpoint has no usable rows. Do not mix campuses/terms.
+    var headings = Object.keys(seen).length ? [] : document.querySelectorAll('tr > th, tr > td:first-child');
     for (var i=0; i<headings.length; i++) {
       var txt = (headings[i].innerText || headings[i].textContent || '').trim();
       var match = txt.match(/^(?:第\s*)?(\d{1,2})\s*(?:节)?\s*[（(\[]?\s*(\d{1,2})[:：](\d{2})\s*[-~～—至]\s*(\d{1,2})[:：](\d{2})\s*[）)\]]?$/);
       if (!match) continue;
-      var node=+match[1], sh=+match[2], sm=+match[3], eh=+match[4], em=+match[5];
-      if (node<1 || node>48 || sh>23 || eh>23 || sm>59 || em>59 || sh*60+sm>=eh*60+em) continue;
-      function pad(n){return ('0'+n).slice(-2);}
-      var period={node:node,start:pad(sh)+':'+pad(sm),end:pad(eh)+':'+pad(em)};
-      if (seen[node] && (seen[node].start!==period.start || seen[node].end!==period.end)) conflicts[node]=true;
-      seen[node]=period;
+      add(match[1], match[2]+':'+match[3], match[4]+':'+match[5]);
     }
     Object.keys(seen).forEach(function(n){if(!conflicts[n]) periods.push(seen[n]);});
     periods.sort(function(a,b){return a.node-b.node;});
@@ -106,6 +118,24 @@ const val ZF_NEW_FETCH_JS = """(function(){
       return fetch(url, opts).then(function(r){ return r.text(); });
     }
 
+    function readRoutine(t, kbList){
+      var campuses = [];
+      kbList.forEach(function(course){
+        var id = String(course && course.xqh_id || '').trim();
+        if (id && campuses.indexOf(id) < 0) campuses.push(id);
+      });
+      if (campuses.length !== 1) return Promise.resolve([]);
+      var controller = new AbortController();
+      var timer = setTimeout(function(){controller.abort();}, 8000);
+      return fetch(pathPrefix + '/kbcx/xskbcx_cxRjc.html?gnmkdm=' + encodeURIComponent(gnmkdm), {
+        method:'POST', credentials:'include', signal:controller.signal,
+        headers:{'X-Requested-With':'XMLHttpRequest', 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+        body:'xnm='+encodeURIComponent(t.xnm)+'&xqm='+encodeURIComponent(t.xqm)+'&xqh_id='+encodeURIComponent(campuses[0])
+      }).then(function(r){if (!r.ok) return []; return r.json();})
+        .catch(function(){return [];})
+        .then(function(rows){clearTimeout(timer);return Array.isArray(rows) ? rows : [];});
+    }
+
     pickTerm().then(function(t){
       var apiPath = pathPrefix + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + encodeURIComponent(gnmkdm);
       var body = 'xnm=' + encodeURIComponent(t.xnm) +
@@ -141,7 +171,9 @@ const val ZF_NEW_FETCH_JS = """(function(){
         ok(JSON.stringify({kbList:[]}), t.xnm, t.xqm, true);
         return;
       }
-      ok(JSON.stringify({kbList:kbList}), t.xnm, t.xqm, false);
+      return readRoutine(t, kbList).then(function(routine){
+        ok(JSON.stringify({kbList:kbList}), t.xnm, t.xqm, false, routine);
+      });
     }).catch(function(e){
       fail('FORMAT_ERROR', String(e));
     });

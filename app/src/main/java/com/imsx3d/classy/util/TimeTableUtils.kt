@@ -527,6 +527,17 @@ object TimeTableUtils {
         return rows + TimeSlotRow(nextNode, "", "")
     }
 
+    /** Preserve the full school routine and expose missing course times without inventing defaults. */
+    fun importedPeriodRows(maxCourseNode: Int, periods: List<Triple<Int, String, String>>): List<TimeSlotRow> {
+        val valid = periods.filter { it.first in 1..48 }
+        val lastNode = maxOf(maxCourseNode, valid.maxOfOrNull { it.first } ?: 0)
+        val byNode = valid.associate { it.first to (it.second to it.third) }
+        return (1..lastNode).map { node ->
+            val time = byNode[node]
+            TimeSlotRow(node, time?.first.orEmpty(), time?.second.orEmpty())
+        }
+    }
+
     /**
      * 确认导入时真正生效的节次行(v1.0.56 T6 绑表/自动建表语义落地)：
      *
