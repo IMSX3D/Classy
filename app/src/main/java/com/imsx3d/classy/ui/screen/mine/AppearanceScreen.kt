@@ -99,7 +99,11 @@ fun AppearanceScreen(
             SettingsGroupCard {
                 CourseAppearanceChoices(
                     selected = courseAppearance,
-                    onSelect = { courseAppearance = it; AppPrefs.setCourseAppearance(context, it) }
+                    onSelect = {
+                        courseAppearance = it
+                        AppPrefs.setCourseAppearance(context, it)
+                        refreshWidgets()
+                    }
                 )
                 SettingsRowDivider()
                 SettingsSegmentedRow(

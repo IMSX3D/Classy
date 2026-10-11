@@ -30,7 +30,7 @@ def course(d,x,y,width,index,slot,lang):
  label(d,(x+16,y),name,size)
  label(d,(x+16,y+34),('教室 ' if lang=='zh' else 'Room ')+str(201+index),20,MUTED)
  label(d,(x+16,y+62),TIMES[slot],20,MUTED)
-def draw(kind,lang):
+def draw(kind,lang,filled=False):
  w,h=(360,360) if kind=='today_small' else (720,720) if kind=='weekgrid' else (720,360)
  im,d=card(w,h)
  label(d,(24,20),'示例课表' if lang=='zh' else 'Sample schedule',22)
@@ -43,14 +43,23 @@ def draw(kind,lang):
    label(d,(x+16,58),('周'+days[day]) if lang=='zh' else days[day],18,MUTED)
    label(d,(x+27,81),str(12+day),16,MUTED)
   for node in range(12): label(d,(15,top+node*rh/2+16),str(node+1),18,MUTED)
-  for day,row,index in [(0,0,0),(0,1,1),(1,0,2),(1,1,3),(2,2,0),(3,1,1),(4,0,2)]:
-   x,y=left+day*cw,top+row*rh+12
-   d.rounded_rectangle((x,y,x+cw-8,y+rh-8),radius=10,fill='#FFFFFF')
-   d.rounded_rectangle((x,y+8,x+4,y+rh-16),radius=2,fill=COLORS[index])
+  # A realistic spread across morning, afternoon and evening; preserve empty slots.
+  for day,row,span,index in [(0,0,2,0),(0,2,2,1),(1,0,2,2),(1,4,3,3),(2,4,3,0),(3,2,2,1),(4,0,2,2),(4,8,3,3)]:
+   x,y=left+day*cw,top+row*rh/2+6
+   ch=span*rh/2-6
+   d.rounded_rectangle((x,y,x+cw-6,y+ch),radius=8,fill=COLORS[index] if filled else '#FFFFFF')
+   if not filled: d.rounded_rectangle((x,y+6,x+5,y+ch-6),radius=2,fill=COLORS[index])
    name=NAMES[lang][index]
-   chunks=[name[i:i+2] for i in range(0,len(name),2)] if lang=='zh' else [name[i:i+7] for i in range(0,len(name),7)]
-   for line,t in enumerate(chunks[:2]): label(d,(x+9,y+8+line*23),t,19 if lang=='zh' else 16)
-   label(d,(x+9,y+60),str(201+index),16,MUTED)
+   chunks=[name[i:i+2] for i in range(0,len(name),2)] if lang=='zh' else (['Program', 'ming'] if index==1 else [name])
+   size=19 if lang=='zh' else 15
+   line_h=23 if lang=='zh' else 19
+   block_h=len(chunks)*line_h
+   name_y=y+max(5,(ch-24-block_h)/2)
+   for line,t in enumerate(chunks):
+    tx=x+5+(cw-16-font(size).getlength(t))/2
+    label(d,(tx,name_y+line*line_h),t,size)
+   room=str(201+index)
+   label(d,(x+5+(cw-16-font(15).getlength(room))/2,y+ch-22),room,15,MUTED)
  elif kind=='twoday':
   label(d,(600,22),'10/12',20,MUTED)
   for col in range(2):
@@ -76,3 +85,11 @@ if __name__=='__main__':
  for kind,xy,size in [('today_small',(20,20),(360,360)),('today',(400,20),(720,360)),('twoday',(20,420),(720,360)),('weekgrid',(780,420),(720,720))]:
   im=draw(kind,'zh').resize(size);sheet.paste(im,xy,im)
  sheet.save(ROOT.parent/'99-整理记录/widget-preview-contact.png')
+
+ comparison=Image.new('RGB',(1500,790),'#E5E8EC')
+ cd=ImageDraw.Draw(comparison)
+ for filled,x,title in [(False,20,'色条模式 · 示意'),(True,760,'填充模式 · 示意')]:
+  label(cd,(x,12),title,24)
+  preview=draw('weekgrid','zh',filled)
+  comparison.paste(preview,(x,55),preview)
+ comparison.save(ROOT.parent/'99-整理记录/widget-week-style-comparison.png')

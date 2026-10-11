@@ -316,6 +316,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
             val fgOnSurfaceVar  = scheme.onSurfaceVariant.toIntArgb()
             val gridLine        = scheme.surfaceVariant.toIntArgb()
             val colorless       = AppPrefs.isWidgetColorless(context)
+            val barStyle = AppPrefs.getCourseColorStyle(context) == AppPrefs.COURSE_STYLE_BAR
 
             // v23: 课程颜色完全对齐 CourseTableView — 黄金角 HSL 分配
             // hue = groupId.hashCode() * 137.508° → 相邻课色差最大化, 同门课永远同色
@@ -596,25 +597,31 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         course, allCourses.filter { it.groupId == course.groupId },
                         isDark, gridLine, colorless
                     )
-                    p.color = baseColor
-                    // UI-4（2026-09-26）: 原 alpha 200（半透明）会让色块与浅灰面板混成一片、看着发灰；
-                    // App 网格里的课程块是实色 → 统一为实色（12dp 圆角与 App 卡片同值，原 10dp）
+                    // The weekly bitmap follows the same fill/bar preference as the app.
+                    // Keep neutral text separate from the decorative course indicator.
+                    val cardColor = if (barStyle) bgSurface else baseColor
+                    val radius = dp(4f).toFloat()
+                    p.color = cardColor
                     p.alpha = 255
-                    c.drawRoundRect(cardRect, dp(4f).toFloat(), dp(4f).toFloat(), p)
-                    p.alpha = 255
-
-                    // border
-                    p.style = Paint.Style.STROKE
-                    p.strokeWidth = dp(0.5f).toFloat()
-                    p.color = baseColor
-                    p.alpha = 80
-                    c.drawRoundRect(cardRect, dp(4f).toFloat(), dp(4f).toFloat(), p)
-                    p.style = Paint.Style.FILL
-                    p.alpha = 255
-
-                    // v19k: 课名居中独占主体, 教室做底部小字角标
-                    // 卡片窄(~40dp), 双列并排挤死 → 改成: 课名竖排居中 + 教室缩到 0.6× 字号横排在底部
-                    val textColor = if (isDarkOn(baseColor)) Color.WHITE else 0xFF1D1B20.toInt()
+                    c.drawRoundRect(cardRect, radius, radius, p)
+                    val stripWidth = if (barStyle) minOf(3f * density, laneW * 0.12f) else 0f
+                    if (barStyle) {
+                        val accent = CourseColorUtil.pickAccentComposeWithGroupRows(
+                            course, allCourses.filter { it.groupId == course.groupId },
+                            isDark, scheme.onSurfaceVariant, colorless
+                        )
+                        p.color = CourseColorUtil.softenedIndicator(
+                            accent, scheme.surface
+                        ).toArgb()
+                        val inset = minOf(3f * density, cardRect.height() * 0.15f)
+                        c.drawRoundRect(
+                            RectF(cardRect.left, cardRect.top + inset,
+                                cardRect.left + stripWidth, cardRect.bottom - inset),
+                            stripWidth / 2f, stripWidth / 2f, p
+                        )
+                    }
+                    val textColor = if (barStyle) fgOnSurface
+                        else if (isDarkOn(baseColor)) Color.WHITE else 0xFF1D1B20.toInt()
                     p.color = textColor
                     p.textAlign = Paint.Align.CENTER
 
@@ -636,7 +643,8 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                     //   · 只在 maxLines 内真的放不下时才画省略号
                     //   · Latin 整组旋转 90° 那套特殊处理整体退场（真排版不需要）
                     val nameText = CourseDisplayUtil.displayName(course, useAlias)
-                    val innerW = (cardRect.width() - unifiedPad * 2).coerceAtLeast(1f).toInt()
+                    val contentLeft = cardRect.left + unifiedPad + stripWidth
+                    val innerW = (cardRect.width() - unifiedPad * 2 - stripWidth).coerceAtLeast(1f).toInt()
                     // UI-4f 真机实测: StaticLayout 的行高 ≈ 1.25×字号（不是 1×），
                     // 按 nameAvailH/charSize 算行数会让末行压到教室小字上（真机截图实测重叠）。
                     val nameLines = (nameAvailH / (charSize * 1.25f)).toInt().coerceIn(1, 5)
@@ -647,7 +655,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                     val nameTop = cardRect.top + unifiedPad +
                         ((nameAvailH - nameLayout.height).coerceAtLeast(0f)) / 2f
                     c.save()
-                    c.translate(cardRect.left + unifiedPad, nameTop)
+                    c.translate(contentLeft, nameTop)
                     nameLayout.draw(c)
                     c.restore()
 
@@ -666,7 +674,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         )
                         val roomTop = cardRect.bottom - unifiedPad - roomLayout.height
                         c.save()
-                        c.translate(cardRect.left + unifiedPad, roomTop)
+                        c.translate(contentLeft, roomTop)
                         roomLayout.draw(c)
                         c.restore()
                     }
