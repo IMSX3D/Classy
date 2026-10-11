@@ -106,6 +106,7 @@ class JwImportActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.imsx3d.classy.ui.nav.TaskActivityTransitions.install(this)
         uiNightModeState.value =
             resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         enableEdgeToEdge()
@@ -193,7 +194,7 @@ class JwImportActivity : ComponentActivity() {
                 }
 
                 fun requestExit() {
-                    if (importActions.busy) return
+                    if (importActions.busy || importFinished) return
                     val result = reduceExitDraftState(exitDraftState, ExitDraftEvent.RequestExit)
                     exitDraftState = result.state
                     if (result.outcome == ExitDraftOutcome.FinishDirectly) finish()
@@ -427,12 +428,15 @@ class JwImportActivity : ComponentActivity() {
                     stage = Stage.ConfigureConfirm
                 }
 
+                // Closing must not replace the committed form with an empty composition.
+                LaunchedEffect(importFinished) { if (importFinished) finish() }
+                androidx.compose.animation.AnimatedContent(
+                    targetState = stage,
+                    transitionSpec = { com.imsx3d.classy.ui.nav.sleepyForwardTransform },
+                    label = "jw-import-stage"
+                ) { visibleStage ->
                 when {
-                    importFinished -> {
-                        LaunchedEffect(Unit) { finish() }
-                    }
-
-                    stage is Stage.ConfigureConfirm && parsedCourses.isNotEmpty() -> {
+                    visibleStage is Stage.ConfigureConfirm && parsedCourses.isNotEmpty() -> {
                         val school = parsedSchool
                         if (school == null) {
                             stage = Stage.WebViewLogin
@@ -442,7 +446,7 @@ class JwImportActivity : ComponentActivity() {
                         var confirmError by remember { mutableStateOf<String?>(null) }
                         com.imsx3d.classy.ui.component.ImportReviewPage(
                             useWindow = false,
-                            busy = importActions.busy,
+                            busy = importActions.busy || importFinished,
                             onDismissRequest = { requestExit() },
                             title = {
                                 Column {
@@ -464,7 +468,7 @@ class JwImportActivity : ComponentActivity() {
                                 ) {
                                     DatePickerField(
                                         value = configStartDate,
-                                        enabled = !importActions.busy,
+                                        enabled = !importActions.busy && !importFinished,
                                         onValueChange = { configStartDate = it; checkpointDraft() },
                                         label = getString(R.string.import_week_start),
                                         modifier = Modifier.fillMaxWidth(),
@@ -477,7 +481,7 @@ class JwImportActivity : ComponentActivity() {
                                     // 此次把命名入口放到导入前, 落库前最后一次修改机会.
                                     TextField(
                                         value = configTableName,
-                                        enabled = !importActions.busy,
+                                        enabled = !importActions.busy && !importFinished,
                                         onValueChange = { configTableName = it; checkpointDraft() },
                                         label = { Text(getString(R.string.jw_table_name_label)) },
                                         singleLine = true,
@@ -485,7 +489,7 @@ class JwImportActivity : ComponentActivity() {
                                     )
                                     com.imsx3d.classy.ui.component.ImportRoutineField(
                                         rows = configRows,
-                                        enabled = !importActions.busy,
+                                        enabled = !importActions.busy && !importFinished,
                                         onRowsChange = { newRows ->
                                             configRows = newRows
                                             confirmError = null
@@ -517,11 +521,11 @@ class JwImportActivity : ComponentActivity() {
                             },
                             confirmButton = {
                                 com.imsx3d.classy.ui.component.DialogActionButtons(
-                                        confirmEnabled = !importActions.busy,
-                                        dismissEnabled = !importActions.busy,
+                                        confirmEnabled = !importActions.busy && !importFinished,
+                                        dismissEnabled = !importActions.busy && !importFinished,
                                         confirmText = getString(R.string.jw_config_confirm),
                                         onConfirm = {
-                                        if (importActions.busy) return@DialogActionButtons
+                                        if (importActions.busy || importFinished) return@DialogActionButtons
                                         if (configStartDate.isBlank() || !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(configStartDate)) {
                                             confirmError = getString(R.string.start_date_format)
                                             return@DialogActionButtons
@@ -604,7 +608,7 @@ error = confirmError ?: importActions.error
                         } // end else (school != null) — SaveableStateProvider("ConfigureConfirm")
                     }
 
-                    stage is Stage.SelectSchool -> {
+                    visibleStage is Stage.SelectSchool -> {
                         saveableStateHolder.SaveableStateProvider("SelectSchool") {
                             SchoolSelectScreen(
                                 customEntryName = getString(R.string.school_custom_entry),
@@ -622,7 +626,7 @@ error = confirmError ?: importActions.error
                         }
                     }
 
-                    stage is Stage.WebViewLogin -> {
+                    visibleStage is Stage.WebViewLogin -> {
                         val school = selectedSchool
                         if (school == null) {
                             stage = Stage.SelectSchool
@@ -736,6 +740,8 @@ error = confirmError ?: importActions.error
                     }
                 }
 
+                } // AnimatedContent: the previous stage stays alive until its exit completes.
+
                 exitDraftState.takeIf { it.confirmationVisible }?.let {
                     ExitDraftConfirmationDialog(
                         onContinue = { handleExitChoice(ExitDraftChoice.Continue) },
@@ -839,6 +845,11 @@ error = confirmError ?: importActions.error
                 }
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        com.imsx3d.classy.ui.nav.TaskActivityTransitions.afterFinish(this)
     }
 
     private sealed class Stage {
