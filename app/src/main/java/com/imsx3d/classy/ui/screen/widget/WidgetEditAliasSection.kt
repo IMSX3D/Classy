@@ -1,5 +1,7 @@
 package com.imsx3d.classy.ui.screen.widget
 
+import androidx.compose.foundation.selection.selectableGroup
+import com.imsx3d.classy.ui.component.SettingsGroupCard
 import androidx.compose.foundation.background
 import com.imsx3d.classy.ui.theme.noRippleClickable
 import androidx.compose.ui.semantics.semantics
@@ -12,21 +14,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.imsx3d.classy.R
-import com.imsx3d.classy.ui.theme.SleepyTheme
 
 /**
  * issue#26 课程别名 — widget 编辑页「课程名显示」节。
@@ -48,12 +46,10 @@ object WidgetEditAliasSection : WidgetEditSection {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.padding(top = 8.dp))
-            Surface(
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            SettingsGroupCard {
+                // The shared shell clips edge-to-edge row backgrounds to its rounded shape.
+                // Spacing belongs inside each row, never between the shell and its selection.
+                Column(modifier = Modifier.selectableGroup()) {
                     OptionRow(
                         label = stringResource(R.string.settings_name_original),
                         selected = !scope.useAlias,
@@ -87,14 +83,15 @@ object WidgetEditAliasSection : WidgetEditSection {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             if (selected) {
                 Icon(
                     imageVector = Icons.Outlined.Check,
                     contentDescription = stringResource(R.string.selected),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

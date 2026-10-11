@@ -82,11 +82,21 @@ fun EditTableScreen(
 ) {
     val state by viewModel.state.collectAsState()
     // issue#40: 全部时间节次表(换绑选择器数据源 §4.3)
-    val allPeriodTables by viewModel.allPeriodTables.collectAsState()
+    val periodTablesSnapshot by viewModel.periodTablesSnapshot.collectAsState()
+    val allPeriodTables = periodTablesSnapshot.orEmpty()
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val validationErrorMessage = stringResource(R.string.edit_table_validation_error)
+
+    if (periodTablesSnapshot == null) {
+        com.imsx3d.classy.ui.component.SettingsScaffold(
+            title = stringResource(R.string.edit_table_title), onBack = onBack
+        ) {
+            item { Text(stringResource(R.string.loading), modifier = Modifier.padding(16.dp)) }
+        }
+        return
+    }
 
     // tableId == null means edit current table
     val table = if (tableId != null) state.tables.find { it.id == tableId } else state.currentTable

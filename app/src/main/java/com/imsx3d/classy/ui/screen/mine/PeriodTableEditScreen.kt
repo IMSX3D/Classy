@@ -89,8 +89,18 @@ fun PeriodTableEditScreen(
     val validationErrorMessage = stringResource(R.string.edit_table_validation_error)
     val courseNodeFormat = stringResource(R.string.course_node_format)
     val deleteBlockedFormat = stringResource(R.string.period_table_delete_blocked)
-    val periodTables by viewModel.allPeriodTables.collectAsState()
+    val periodTablesSnapshot by viewModel.periodTablesSnapshot.collectAsState()
+    val periodTables = periodTablesSnapshot.orEmpty()
     val scheduleState by viewModel.state.collectAsState()
+
+    if (periodTablesSnapshot == null) {
+        com.imsx3d.classy.ui.component.SettingsScaffold(
+            title = stringResource(R.string.period_tables_title), onBack = onBack
+        ) {
+            item { Text(stringResource(R.string.loading), modifier = Modifier.padding(16.dp)) }
+        }
+        return
+    }
 
     val periodTable = periodTables.find { it.id == periodTableId }
     if (periodTable == null) {

@@ -7,3 +7,6 @@
 - Course indicators use the shared `CourseColorUtil.softenedIndicator` treatment. Keep readable text separate from decorative color and preserve saved custom colors.
 - Glass is currently a researched optional direction, not an implemented app setting. Do not claim a translucent surface is liquid glass or a browser mockup establishes Android performance.
 - Keep the existing release/tag unchanged unless the user requests a release. Discuss merge conflicts before resolving them.
+
+- Initial UI state must represent the intended destination on first layout: distinguish loading from empty/missing, await required edit data before composing editable fields, and use initial list/pager positions rather than post-entry scrolling. Restored user position takes precedence over initial targeting. Check slow loading, non-first targets and recreation when changing these paths.
+- Grouped selection rows must paint to the shared clipped card edges; put content padding inside rows, not around the row group. Independent pills/segmented tracks may retain intentional symmetric insets. Check first/middle/last selection and theme contrast.

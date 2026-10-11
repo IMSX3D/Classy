@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,12 +76,14 @@ class ScheduleViewModel : ViewModel() {
     val state: StateFlow<ScheduleState> = _state.asStateFlow()
 
     /** issue#40: 全部独立时间节次表(管理页列表) */
-    val allPeriodTables = repo.observeAllPeriodTables()
-        .stateIn(
-            viewModelScope,
-            kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
+    // null means the database has not emitted yet; an empty list means genuinely empty.
+    val periodTablesSnapshot = repo.observeAllPeriodTables()
+        .map<List<com.imsx3d.classy.data.entity.PeriodTableEntity>, List<com.imsx3d.classy.data.entity.PeriodTableEntity>?> { it }
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), null)
+
+    val allPeriodTables = periodTablesSnapshot
+        .map { it.orEmpty() }
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Whether the user has explicitly selected a table (vs auto-picking default on load) */
     private var manualSelectDone = false

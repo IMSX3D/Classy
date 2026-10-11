@@ -17,4 +17,14 @@ class CourseEditorInitialPositionTest {
         assertFalse(source.contains("editListState.scrollToItem"))
         assertFalse(source.contains("editListState.animateScrollToItem"))
     }
+
+    @Test fun `routine editors distinguish loading from an empty result before composing fields`() {
+        for (name in listOf("EditTableScreen", "PeriodTableEditScreen")) {
+            val s = File("src/main/java/com/imsx3d/classy/ui/screen/mine/$name.kt").readText()
+            val gate = s.indexOf("if (periodTablesSnapshot == null)")
+            val fields = s.indexOf("var name by rememberSaveable")
+            assertTrue(name, gate >= 0 && fields > gate)
+            assertTrue(s.substring(gate, fields).contains("return"))
+        }
+    }
 }
