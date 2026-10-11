@@ -167,7 +167,10 @@ fun PeriodTableEditScreen(
             }
         }
     }
-    androidx.activity.compose.BackHandler(onBack = handleBack)
+    androidx.activity.compose.BackHandler(
+        enabled = actions.busy || draft != originalDraft || unsavedNew,
+        onBack = handleBack
+    )
     if (showDiscard) com.imsx3d.classy.ui.component.DiscardChangesDialog(
         onKeepEditing = { showDiscard = false },
         onDiscard = {

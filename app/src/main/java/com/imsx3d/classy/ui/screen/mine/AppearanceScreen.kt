@@ -250,9 +250,15 @@ fun AppearanceScreen(
     }
 
     // 编辑器 overlay — 全屏覆盖在外观页之上(仿其他 overlay 页的层叠样式)
-    if (showEditor) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = showEditor,
+        enter = com.imsx3d.classy.ui.nav.sleepyForwardEnter(),
+        exit = com.imsx3d.classy.ui.nav.sleepyPopExit()
+    ) {
+        // Keep the outgoing editor's identity even when the parent clears its selection.
+        val editorTheme = remember { editingTheme }
         CustomThemeEditorScreen(
-            editing = editingTheme,
+            editing = editorTheme,
             nextThemeNumber = remember(customListVersion) { CustomThemeStore.getAll(context).size + 1 },
             onBack = { showEditor = false; editingTheme = null },
             onSaved = { saved ->

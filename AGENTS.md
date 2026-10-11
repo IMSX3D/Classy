@@ -10,3 +10,5 @@
 
 - Initial UI state must represent the intended destination on first layout: distinguish loading from empty/missing, await required edit data before composing editable fields, and use initial list/pager positions rather than post-entry scrolling. Restored user position takes precedence over initial targeting. Check slow loading, non-first targets and recreation when changing these paths.
 - Grouped selection rows must paint to the shared clipped card edges; put content padding inside rows, not around the row group. Independent pills/segmented tracks may retain intentional symmetric insets. Check first/middle/last selection and theme contrast.
+
+- User baseline: ALL page transitions must be smooth and continuous, including enter/back/save exits, full-screen overlays and separate Activities. Preserve outgoing render data until disposal; do not reset forms before their exit animation. Let navigation own clean predictive back; intercept only unsaved/busy/cleanup states. Audit every new entry and exit, including cancellation, rapid input, reduced motion and phone/tablet windows. Build success alone is not visual acceptance.

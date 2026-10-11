@@ -337,7 +337,8 @@ fun AddCourseScreen(
         if (saving) return
         if (draftFingerprint() != originalDraft) showDiscardConfirm = true else onBack()
     }
-    androidx.activity.compose.BackHandler { requestBack() }
+    // Clean exits belong to NavDisplay's predictive back; intercept only protected work.
+    androidx.activity.compose.BackHandler(enabled = saving || draftFingerprint() != originalDraft) { requestBack() }
     val prefillReady = validPrefill == null || currentTable?.id == validPrefill.tableId
     val canSave = !saving && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 

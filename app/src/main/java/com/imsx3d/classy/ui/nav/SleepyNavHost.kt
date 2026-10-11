@@ -180,8 +180,17 @@ internal fun SleepyNavHost(
             // 手动新增(editing=false)走空表单, 属正常可恢复路径。
             val courseId = key.courseId
             val editing = key.editing
-            val editingCourse = remember(editing, courseId, session.editingCourse?.id) {
+            val editingCourse = remember(editing, courseId) {
                 if (editing) session.editingCourse else null
+            }
+            // Entry-owned snapshot remains intact while NavDisplay animates the outgoing page.
+            // System predictive back bypasses onBack, so also release the session on disposal.
+            androidx.compose.runtime.DisposableEffect(key) {
+                onDispose {
+                    if (navigator.backStack.none { it is SleepyRoute.AddCourse && it.editing }) {
+                        session.clearEditCourse()
+                    }
+                }
             }
             AddCourseScreen(
                 onBack = {
