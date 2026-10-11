@@ -166,7 +166,7 @@ class EmptyStateFirstTableContractTest {
         )
         assertTrue(
             "引导 flag 必须流入 ManagementPage 的 autoShowImportSheet 参数",
-            Regex("""ManagementPage\([^)]*autoShowImportSheet\s*=\s*autoOnce""")
+            Regex("""ManagementPage\([^)]*autoShowImportSheet\s*=\s*currentTab\s*==\s*Tab\.Manage\s*&&\s*\(autoOnce""")
                 .containsMatchIn(mainActivity)
         )
     }

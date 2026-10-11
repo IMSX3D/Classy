@@ -24,7 +24,7 @@ import org.junit.Test
  *   1b. **AddCourse 例外**: 编辑/新增课程会话**不纳入**任何保存作用域 —
  *      基线 §1.3 明确编辑课程会话在旋转/进程恢复时安全丢弃(防恢复成空表单重复加课),
  *      必须有恢复守卫锚定此例外;
- *   2. 4 个 tab 的内容切换处同样包 SaveableStateProvider(currentTab.name);
+ *   2. 4 个 tab 的内容切换处同样包 SaveableStateProvider(visibleTab.name);
  *   3. GeneralSettingsScreen 的 languageExpanded 必须 rememberSaveable(折叠展开态跨返回存活);
  *   4. JwImportActivity 的 stage 条件组合必须含 SaveableStateProvider(key=stage 类名);
  *   5. SchoolSelectScreen 的 query 必须 rememberSaveable(搜索词跨 WebView 往返存活)。
@@ -99,6 +99,8 @@ class BackRestoreSaveableContractTest {
     fun editing_course_session_is_not_persisted() {
         val session = Regex("""class NavSession[\s\S]*?\n\}""").find(navigatorSource)?.value.orEmpty()
         assertTrue("NavSession 不存在", session.isNotEmpty())
+        assertTrue("配置重建必须保留编辑会话", navigatorSource.contains("val session: NavSession = viewModel()"))
+        assertTrue("编辑会话由 ViewModel 持有", session.contains("class NavSession : ViewModel()"))
         assertTrue(
             "editingCourse 必须是普通 mutableStateOf(进程恢复即丢弃)",
             Regex("""var editingCourse\b[\s\S]{0,80}?by\s+mutableStateOf""").containsMatchIn(session)
@@ -147,14 +149,14 @@ class BackRestoreSaveableContractTest {
         return ""
     }
 
-    /** 契约 2: 4 个 tab 的内容切换处必须包 SaveableStateProvider(currentTab.name) */
+    /** 契约 2: 4 个 tab 的内容切换处必须包 SaveableStateProvider(visibleTab.name) */
     @Test
     fun mainTabs_wraps_each_tab_content_in_SaveableStateProvider() {
         val tabs = listOf("Schedule", "Today", "Manage", "Mine")
         tabs.forEach { tab ->
             assertTrue(
-                "Tab '$tab' content must be wrapped in SaveableStateProvider(currentTab.name)",
-                Regex("""SaveableStateProvider\(\s*currentTab\.name\s*\)""").containsMatchIn(mainSource)
+                "Tab '$tab' content must be wrapped in SaveableStateProvider(visibleTab.name)",
+                Regex("""Tab\.$tab\s*->\s*holder\.SaveableStateProvider\(\s*visibleTab\.name\s*\)""").containsMatchIn(mainSource)
             )
         }
     }

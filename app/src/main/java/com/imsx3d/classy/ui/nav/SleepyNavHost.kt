@@ -174,8 +174,8 @@ internal fun SleepyNavHost(
         }
 
         entry<SleepyRoute.AddCourse> { key ->
-            // 基线 §1.3 例外: 编辑课程会话**不纳入**任何保存作用域。
-            // editingCourse 是纯内存态(NavSession), 进程恢复后必为 null, 所以这条
+            // Activity ViewModel retains edits on rotation; §1.3 process-death guard remains.
+            // editingCourse remains in-memory (NavSession); after process death it is null, so
             // 路由被系统恢复出来时上方 LaunchedEffect 会把它弹掉 → 回到主 Tab。
             // 手动新增(editing=false)走空表单, 属正常可恢复路径。
             val courseId = key.courseId
@@ -257,8 +257,8 @@ internal fun SleepyNavHost(
                 },
                 onDeleted = {
                     pending = null; prevDefault = null
+                    // Return to the originating management flow, including when deleting a copy.
                     navigator.pop()
-                    setCurrentTab(Tab.Schedule)
                 },
             )
         }

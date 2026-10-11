@@ -106,7 +106,7 @@ Debug 构建、2337 项 JVM 测试（0 失败/错误/跳过）、三 ABI 签名�
 | NAV-MAIN-02 快速反向及主页面返回 | 返回非课表标签时回课表；课表标签按宿主退出语义 | 同级返回目前同样直接替换。若引入同时保留两页的过渡，管理页消费导入标志/观察草稿、SaveableStateProvider 快速重复 key 均需审查 | MainActivity.kt Manage 分支在 composition 内清除 autoShowImportOnceState；需先理清一次性事件归属，再接内容过渡；不直接机械 Crossfade |
 | COURSE-VIEW-01 课表/今日→课程详情 | 保留 ModalBottomSheet：短时查看与下一步操作，保留课表上下文 | skipPartiallyExpanded=true；内容可滚动，编辑按钮与关闭有 closing 防重；Material 负责显隐与拖动。不另叠缩放 | ui/component/CourseDetailSheet.kt。保留；冲突课程单选、短横屏与大字体待实测 |
 | COURSE-EDIT-01 详情→编辑 | 保留独立任务页：多个字段、多个时段和明确保存 | closeThen 等待 sheet.hide 后触发编辑；不是人为 sleep。此串行动效增加总耗时但避免叠层，待按实际片段测量，不直接删除等待 | CourseDetailSheet.kt；MainActivity.kt onEditCourse；ui/screen/edit/AddCourseScreen.kt。保留语义，测量衔接间隙 |
-| COURSE-EDIT-02 非首时段进入/返回 | 指定时段的完整编辑任务；修改后返回用放弃确认 | 数据未就绪不显示可编辑顶部占位；rememberLazyListState initialFirstVisibleItemIndex 定位，恢复位置优先。普通返回由导航负责，未保存修改拦截；父子进出 220ms/0.92 基线 | AddCourseScreen.kt；ui/nav/SleepyMaterialTransition.kt。已完成过真机第二时段、键盘放弃检查；旋转/保存失败/取消侧滑待验证 |
+| COURSE-EDIT-02 非首时段进入/返回 | 指定时段的完整编辑任务；修改后返回用放弃确认 | 数据未就绪不显示可编辑顶部占位；rememberLazyListState initialFirstVisibleItemIndex 定位，恢复位置优先。普通返回由导航负责，未保存修改拦截；父子进出 220ms/0.92 基线 | AddCourseScreen.kt；ui/nav/SleepyMaterialTransition.kt。已完成过真机第二时段、键盘放弃检查；本轮平板旋转/保存已复测；保存失败/取消侧滑仍待验证 |
 | SETTINGS-NAV-01 我的→设置→课表显示/通用 | 保留导航行+箭头→子页面，目录不弹确认 | SettingsTopic 使用 SettingsGroupRow 按压反馈；子路由共用 sleepyForwardTransform、sleepyPopTransform、predictive transform。父子进入缩放+淡入，返回揭示静止父页 | ui/screen/mine/SettingsHomeScreen.kt；SleepyNavHost.kt；SleepyMaterialTransition.kt。保留；现有参数不因统一要求盲改，PERF-01 优先测该链 |
 | SETTINGS-SELECT-01 默认视图/时间显示/副信息/灰显 | 保留两到三个互斥值的分段选择，选择即应用 | SettingsSegmentedRow 按文字和宽度选择同排/上下排；公共选择器负责选中动画，不弹确认 | ui/screen/mine/ScheduleDisplayScreen.kt；ui/component/SettingsCards.kt；SegmentedSwitcher.kt。检查选中两方向、快速切回、长英文/字号后再定通过 |
 | SETTINGS-TOGGLE-01 高刷新率/双栏/隐藏空日等 | 独立布尔值，保留即时 Switch | 公共 SettingsSwitchRow 整行点击和 Switch 各有点击入口；开关两向动效交给 Material。存在双语义点击目标可能，需设备无障碍检查，不能只看外形统一 | SettingsCards.kt；GeneralSettingsScreen.kt；ScheduleDisplayScreen.kt。保留开关类型，复核语义合并与一次触发 |
@@ -116,3 +116,35 @@ Debug 构建、2337 项 JVM 测试（0 失败/错误/跳过）、三 ABI 签名�
 | SETTINGS-SLIDER-01 网格/周视图缩放 | 连续数值保留滑杆并显示数值；自动/手动是互斥模式 | 不能给每次移动增加弹窗；模式与滑杆可用性要一致，实时刷新/提交频率需测 | ScheduleDisplayScreen.kt；SettingsSliderRow。保留载体，频繁拖动与重组性能待验证 |
 
 本批结论：12 个稳定条目已作源码决策（含保留及需修改），不是 12 条设备验收通过。明确遗漏为主标签内容硬切、同语言重复重建；星期开关复用/边界反馈和整行无障碍语义为待细化项。PERF-01 的具体函数根因仍未知。
+
+
+## W1 其余路由与操作载体复核（2026-10-12）
+
+以下结合本文件原有操作契约及本轮回调/载体检查，补足19路由范围的决策；仍不把路由覆盖当作每个配置都已设备验收。所有父子任务页复用导航/窗口过渡，局部选择复用对应Material组件；系统界面由系统控制。
+
+| ID / 路由或入口 | 载体与决定 | 生效、退出与例外 | 验证边界 |
+| --- | --- | --- | --- |
+| TABLE-LIST-01 AllTables选择/复制/编辑 | 保留整页列表；选表原位生效，复制是按钮动作，编辑进任务页 | 复制锁与结果反馈保留；删除后返回原管理上下文，本轮去除暗中切到课表标签 | 虚构表复制/取消删除/确认删除实测；失败注入仍未覆盖 |
+| TABLE-EDIT-01 EditTable | 保留多字段独立页；日期局部弹窗、作息选择局部展开、删除和换绑解释后果 | 保存成功再退；删除数量按上课安排表述；有修改才询问放弃 | 既有失败守卫仍保留，不从视觉测试推断数据库失败全覆盖 |
+| COURSE-LIST-01 CourseList | 窄屏列表→详情，宽屏同页主从；保留该差异 | 只切换右侧详情，返回先退详情；选中/滚动随宽度变化保留 | 虚构Math两时段横竖屏与返回已查；长列表连续拖窗待专项 |
+| APPEARANCE-01 Appearance样式/主题 | 样式即时分段、主题列表单选；主题编辑独立全屏任务，颜色局部弹窗 | 保存/放弃边界保留，离场冻结颜色，避免中途换色；不改成一串弹窗 | 外观设置与主题草稿设备核对另记 |
+| GENERAL-01 General | 高频布尔开关，语言折叠短单选，恢复默认危险确认 | 已选语言无操作；恢复默认会重建，属于特殊路径，不以常规导航验收替代 | 当前语言已选路径已查，实际语言切换/默认重置分别验证 |
+| DISPLAY-01 ScheduleDisplay | 互斥用分段、连续数值用滑杆、多天独立开关，节假日跳子页 | 七天统一公共开关；最后一天不得关闭并给轻提示；每个开关整行只有一个语义动作 | 新开关自动化覆盖两向单次写入；实际所有开关场景仍需按页记录 |
+| HOLIDAY-01 Holiday | 即时规则开关；复杂补课按假期展开；单日选日期弹窗，假期范围局部表单 | 多项规则不伪装成互斥选项；取消范围不保存；删除保留恢复入口 | 保留已有方案；日期范围/补课业务需独立数据与系统日期组合 |
+| EXPORT-01 Export | 独立导出页，来源短列表选择框，格式操作交给系统分享 | 选择数据源不切当前课表；短列表弹窗允许滚动，暂无必要机械换底部面板；loading/error不显示旧源数据 | 原源码与事务修复保留；系统分享返回与多源核对单列 |
+| REMINDER-01 Reminder | 布尔开关；时间/提前分钟单值确认弹窗；权限系统交互 | 默认提醒偏好开启是既有用户决定，初次进入本页补授权保留；拒绝回页可重开；取消不写 | 实际拒绝→开关→授权、时间取消已查；后台/OEM定时投递不由本UI验收保证 |
+| ABOUT-01 About | 信息与外链入口；更新说明阅读弹窗，不作复杂编辑任务 | Benchmark/Debug不提供正式包更新；官方更新/外部浏览器由系统承载 | 不执行实际安装或发送反馈；网络失败显示机制保留 |
+| LICENSE-01 License | 阅读页＋按项展开长文 | 无保存和放弃确认；返回原层级 | 设备阅读入口、滚动与返回检查，不增加无意义对话框 |
+| WIDGET-MANAGE-01 WidgetManagement | 已添加实例列表、添加帮助展开、共享设置即时生效 | 系统固定流程归桌面；实例编辑去单独页；不与共享选项混为一个保存表单 | 真桌面与配置页分别记录；不能以预览代替OEM呈现 |
+| WIDGET-EDIT-01 WidgetEdit | 实例绑定单选，原位生效 | 只改此实例；返回直接离开；首次无界面握手不强加窗口动画 | Activity重编辑与首添为两条入口 |
+| PERIOD-LIST-01 PeriodTables | 列表进入编辑；复制用单名称弹窗 | 可取消，失败保留输入，不为普通选择增加确认 | 虚构数据保存/复制/删除可测；共享影响保留 |
+| PERIOD-EDIT-01 PeriodEdit | 多字段独立任务、分享格式面板、复制命名、影响预览与删除确认 | 本轮无绑定作息直接保存；有绑定时仍展示共享影响。保存按钮文案改为作息表；busy/error保护原样保留 | 不能将“影响0张表”当必须确认；共享保存仍需数据专项 |
+| IMPORT-01 来源→预览→确认 | 来源底部面板，格式说明局部阅读，确认课程/作息用完整任务层 | 本轮成功保留确认内容到退出，隐藏来源面板后回管理页；教务跳转先收起面板；取消/失败仍留可操作入口 | 使用原生虚构文件实测；最终APK已复测成功退场与教务入口/返回 |
+| IMPORT-ACTIVITY-01 教务Activity | 学校列表→网页登录→导入核对为独立多步任务 | 网页返回先走历史；退出可保留草稿，解析/保存成功后统一Activity退场 | 真实登录和教务站点可用性单列，不把源码通过算作登录通过 |
+| EXTERNAL-01 其余Activity | 文件接收是无界面转发；首次固定小组件是系统流程；重编辑为任务页 | 不给转发叠无用途动画。WidgetLab/ControlGallery是验证样板，不算业务入口体验证明 | 无界面入口不能录成页面转场，结果到达正确宿主另测 |
+| FEEDBACK-01 通用反馈 | 字段错误就地；加载/失败/重试留任务内；成功轻反馈；破坏性操作解释后果 | 失败不伪装成功，不叠同一动作的多份反馈；成功导入来源面板退场后使用轻提示 | 对话框确认/取消双方同一规则；反馈是否可见需实机 |
+
+W1实现更新：MainTabs已接同级淡入淡出，SaveableStateProvider用可见场景key，离场内容不可点击/不可被无障碍选中；导入请求由管理页effect接收后消费；管理页草稿摘要记忆化。公共开关消除行与滑块的双操作语义。SettingsSegmentedRow有说明时跳过无用宽度探测，不能因简化就宣称帧率提升；三组复测没有证明明显改善。
+
+
+补充缺陷 ROTATE-EDIT-01：真平板第二时段输入后旋转触发旧内存会话丢失守卫，导致退出编辑。现改 Activity ViewModel 保留会话；横→竖→横草稿保留、返回放弃确认、继续编辑保存、再次进入核对均实测。进程死亡安全退出规则保持，不能宣称进程死亡草稿恢复已完成。

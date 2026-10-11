@@ -355,6 +355,13 @@ fun PeriodTableEditScreen(
                             .filter { it.periodTableId == periodTable.id }
                             .map { it.id }
                             .toSet()
+                        if (boundIds.isEmpty()) {
+                            // No shared timetable is affected: the Save button is sufficient confirmation.
+                            viewModel.awaitUpdatePeriodTableContent(updated)
+                            unsavedNew = false
+                            onBack()
+                            return@launch
+                        }
                         val allCourses = viewModel.getAllCourses().filter { it.tableId in boundIds }
                         val oldJson = periodTable.timeJson
                         pendingPreview = TimeTableUtils.previewPeriodTableChange(oldJson, newTimeJson, allCourses)
@@ -365,7 +372,7 @@ fun PeriodTableEditScreen(
             ) {
                 Icon(Icons.Outlined.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.edit_table_save))
+                Text(stringResource(R.string.period_table_save))
             }
         }
 

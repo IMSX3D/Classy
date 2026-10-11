@@ -119,3 +119,32 @@ FrameTimeline归类：App Deadline Missed=15，App Deadline Missed+Buffer Stuffi
 复现资料入仓库：tools/validation/PERFORMANCE_CAPTURE.md、classy-navigation.pbtxt、classy-navigation.sql。本地完整证据：E:/C015/99-整理记录/stage2-tablet-device/；构建日志tablet-benchmark-build.log、tablet-fixes-build.log位于上一级。设备截屏/trace含系统内容，不随源码或安装包公开。
 
 本批仍不标记第二阶段完成：首标签内容过渡、带数据的平板双栏/草稿、完整页面/组件状态与真实帧归因继续推进。无推送、无版本/tag/Release更改。
+
+
+## 2026-10-12 自主回归与修复（接19d3706）
+
+代码以包含本节的提交为准。设备为已授权 PA2553 平板，独立 Benchmark 数据；旧手机未操作。仅使用虚构课表，不涉及学校账号。证据目录 `E:/C015/99-整理记录/stage2-tablet-device/`，截图/XML按下列前缀检索。
+
+| 操作链 | 本轮结果与证据 |
+| --- | --- |
+| 空课表引导→来源→系统文件→预览→确认 | 虚构8节、4门课5个上课安排导入成功；修复成功后停留来源面板。最终回管理页，`final-import-confirm/exit`；文件选择器重名节点须选搜索结果，首次脚本误点不算产品失败 |
+| 来源面板→教务→返回 | 先隐藏来源面板再进入学校列表；返回管理页，`final-school-entry/return`；未登录，不宣称学校全链通过 |
+| 双栏课程清单 | Math两安排，横竖屏保留选中，返回先退详情；`final-course-detail`及前批旋转证据 |
+| 课程第二时段→键盘→旋转→返回/保存 | 发现 ROTATE-EDIT-01：旧 NavSession 旋转丢失导致退页。改 Activity ViewModel；`rotation-fixed-portrait/landscape/back/saved/restored`证明 Room 102-QA 草稿保留、放弃询问、保存并重新打开核对，之后恢复 Room 102 |
+| 课表复制/删除 | 副本取消与确认删除；删除文案使用5个上课安排；修复返回时暗改主标签，`delete-final-message/return` |
+| 作息保存 | 无绑定直接保存 `period-direct-save`；将虚构副本换绑到12节作息后，仍有换绑确认和共享影响预览（1张表/5安排不变），取消后留在编辑；`shared-period-save-confirm/impact` |
+| 主题任务 | 新建→颜色取消→随机配色→返回放弃询问→继续→保存→编辑→删除取消/确认；`final-theme-*`。测试主题已删除，配色恢复系统 |
+| 导出 | 从当前UI Acceptance2切到UI Acceptance导出原生文件；只打开系统分享后取消，没有发送；回管理仍是UI Acceptance2，`final-export-*` |
+| 提醒 | 拒绝权限后可重开授权；时间取消保留07:00；测试结束关闭提醒总开关，避免虚构课程通知 |
+| 语言/字号/主题 | 简中→English保留通用页面；英文1.5字号课表显示首屏与中段无截图可见遮挡；返回简中、字号恢复1.0。外观浅色/深色检查；`final-language-english`、`english-large-display*`、`final-light-appearance`。不是所有页面配置笛卡尔积通过 |
+| 关闭动画 | 暂时将3个系统动画比例设0，课表显示/通用进入返回可用；finally恢复原值；`zero-motion-*` |
+| 关于/许可 | 信息页与许可入口及返回正常，`final-about* / final-license`，未实际发送反馈或安装更新 |
+| 桌面组件 | 应用内固定请求返回成功但OEM无确认；改桌面组件搜索手动添加4×4成功，实际被宿主压成很矮一行，内容不足以阅读。选择器顺序正确。`launcher-widget-* / final-widget-grid-desktop / widget-resize-menu`。仅观察到移除菜单，未完成正常尺寸及缩放验收；测试组件已移除。禁止把这项记通过，也不擅改用户要求的40dp自由缩放下限 |
+
+验证：最终业务代码 Debug/Benchmark 构建成功；JVM2337/2337，无跳过；模拟器API35最终16/16（Room8、网格2、选择器4、主标签/开关2）。lintDebug 0错误、555警告、21提示；没有把历史警告说成已清零。日志：`interaction-rotation-final-build.log`、`interaction-rotation-final-device-tests.txt`。
+
+性能：同旧空数据采样方法的优化前三组为5/222、4/222、4/220；后为5/222、5/224、5/226，未证明改善。optimized trace慢布局21.35ms，其中主线程Running21.29ms、可运行等待0.07ms（裁剪到该slice的调度区间），可确认这个样本主要在CPU执行，不能归因于系统调度等待。包含多个Compose重组/应用和文字布局，无单一业务函数已被证明为全部根因。尝试仅Benchmark引入runtime-tracing，实际仍未获得函数级切片，故撤掉该诊断依赖；试验trace不混入正式性能对比。无录屏固定坐标采样与ART编译诊断另存precompile/postcompile文件，结论见最新交接。
+
+尚未通过的边界：PERF-01持续慢帧；OEM周网格正常尺寸/拖放；预测返回手势中途取消；进程死亡完整草稿恢复（当前按既有安全退出）；数据库失败UI注入；学校真实登录/导入；全部页面×语言/主题/字号/窗口组合。已通过的局部测试不替代这些项目，不宣布第二阶段整体完成。
+
+ART诊断补充：固定坐标无录屏，编译前超时4/224、5/224、4/224；speed编译后4/226、4/232、5/224，无显著改善。这是包含临时诊断依赖的测试包，不能冒充最终APK发布性能。

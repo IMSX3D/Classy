@@ -420,8 +420,8 @@ internal fun MainTabs(
     holder: SaveableStateHolder,
     updateNoticeVisible: Boolean = false
 ) {
-    // tab 往返滚动位置保真: when 条件组合同样整页移除被切走的 tab, 各 tab 内容包
-    // SaveableStateProvider(currentTab.name) — key 稳定(tab 枚举名), 返回时恢复。
+    // Crossfade reuses destinations by stable tab key, including rapid reversals.
+    // Each visible destination owns its saveable state; outgoing pages survive until fade-out.
     // 注意: scheduleViewMode 会话态仍由 AppRoot 持有(§1.4 契约), 此处只管组合作用域。
     val session = navigator.session
     val draftScope = rememberCoroutineScope()
@@ -434,8 +434,9 @@ internal fun MainTabs(
     androidx.compose.runtime.CompositionLocalProvider(
         com.imsx3d.classy.util.LocalCourseColorSlots provides courseColorSlots
     ) {
-    when (currentTab) {
-        Tab.Schedule -> holder.SaveableStateProvider(currentTab.name) {
+    com.imsx3d.classy.ui.component.MainTabTransition(currentTab) { visibleTab ->
+    when (visibleTab) {
+        Tab.Schedule -> holder.SaveableStateProvider(visibleTab.name) {
             ScheduleScreen(
                 viewMode = viewMode,
                 onViewModeChange = onViewModeChange,
@@ -445,18 +446,17 @@ internal fun MainTabs(
                 onCreateTable = onCreateNewTable,
                 onEditCourse = { course -> session.beginEditCourse(course); navigator.openAddCourse(course.id, editing = true) })
         }
-        Tab.Today -> holder.SaveableStateProvider(currentTab.name) {
+        Tab.Today -> holder.SaveableStateProvider(visibleTab.name) {
             TodayScreen(onEditCourse = { course -> session.beginEditCourse(course); navigator.openAddCourse(course.id, editing = true) })
         }
-        Tab.Manage -> holder.SaveableStateProvider(currentTab.name) {
+        Tab.Manage -> holder.SaveableStateProvider(visibleTab.name) {
             val ctx = LocalContext.current
             val importCoursesLabel = stringResource(com.imsx3d.classy.R.string.import_courses)
             // 空态导入引导: autoShowImportOnce 置位过 → 本次进管理页自动弹 ImportSheet, 随即消费清零。
             // pendingImportText != null 是另一路 (外部 app 分享课表文本进来) 的既有自动弹层, 语义不同并存。
             val autoOnce = MainActivity.autoShowImportOnceState.value
-            if (autoOnce) MainActivity.autoShowImportOnceState.value = false
             val draftEntities by SleepyApp.get().importDraftRepository.observeAll().collectAsState(initial = emptyList())
-            val drafts = draftEntities.mapNotNull { entity ->
+            val drafts = remember(draftEntities, importCoursesLabel) { draftEntities.mapNotNull { entity ->
                 val snapshot = JwImportDraftCodec.fromJson(entity.payloadJson) ?: return@mapNotNull null
                 ImportDraft(
                     id = entity.id,
@@ -464,7 +464,8 @@ internal fun MainTabs(
                     details = "${snapshot.courses.size} $importCoursesLabel",
                 )
             }
-            ManagementPage(autoShowImportSheet = autoOnce || MainActivity.pendingImportText != null || MainActivity.pendingImportToken != null, onJwImportRequested = { ctx.startActivity(Intent(ctx, com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)) }, onCreateNewTableRequested = onCreateNewTable,
+            }
+            ManagementPage(autoShowImportSheet = currentTab == Tab.Manage && (autoOnce || MainActivity.pendingImportText != null || MainActivity.pendingImportToken != null), onAutoShowImportHandled = { MainActivity.autoShowImportOnceState.value = false }, onJwImportRequested = { ctx.startActivity(Intent(ctx, com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)) }, onCreateNewTableRequested = onCreateNewTable,
                 onEditCurrentTable = { navigator.openEditTable() }, onExportRequested = { navigator.openExport() },
                 onOpenAllTables = { navigator.openAllTables() },
                 onOpenPeriodTables = { navigator.openPeriodTables() },
@@ -480,7 +481,7 @@ internal fun MainTabs(
                 // 打断"复制副本→追加导入→继续操作"的管理动线。当前课表摘要卡就地刷新可见。
                 onImported = { /* 留在管理页, 摘要卡就地刷新 */ })
         }
-        Tab.Mine -> holder.SaveableStateProvider(currentTab.name) {
+        Tab.Mine -> holder.SaveableStateProvider(visibleTab.name) {
             MineScreen(
                 onOpenSettings = { navigator.openSettings() },
                 onOpenAppearance = { navigator.openAppearance() },
@@ -489,6 +490,7 @@ internal fun MainTabs(
                 onOpenAbout = { navigator.openAbout() },
                 updateNoticeVisible = updateNoticeVisible)
         }
+    }
     }
     }
 }

@@ -62,13 +62,20 @@ fun ManagementPage(
     onRestoreDraft: (String) -> Unit = {},
     onDeleteDraft: (String) -> Unit = {},
     viewModel: ScheduleViewModel = viewModel(),
-    autoShowImportSheet: Boolean = false
+    autoShowImportSheet: Boolean = false,
+    onAutoShowImportHandled: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
     val table = state.currentTable
 
-    var showImportSheet by remember { mutableStateOf(autoShowImportSheet) }
+    var showImportSheet by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(autoShowImportSheet) {
+        if (autoShowImportSheet) {
+            showImportSheet = true
+            onAutoShowImportHandled()
+        }
+    }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(

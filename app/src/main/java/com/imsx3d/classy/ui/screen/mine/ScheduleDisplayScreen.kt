@@ -200,23 +200,20 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                 )
                 (1..7).forEach { day ->
                     val checked = day in visibleDays
-                    // UI-17a：度量对齐《设计规范_控件体系》C2（卡内 16dp、行高 48dp、开关锁 32dp）。
-                    // 旧值 8/4dp 让星期文字比同页其它行左移 12dp、开关贴到卡片右沿。
-                    Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).noRippleClickable {
-                            val n = if (checked) visibleDays - day else visibleDays + day
-                            if (n.isNotEmpty()) { visibleDays = n; AppPrefs.setVisibleDays(context, n); refreshWidgets() }
-                        }.padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = DateUtils.localizedDay(day, context), style = MaterialTheme.typography.bodyLarge, color = colors.onSurface)
-                        Switch(checked = checked, onCheckedChange = { on ->
-                            val n = if (on) visibleDays + day else visibleDays - day
-                            if (n.isNotEmpty()) { visibleDays = n; AppPrefs.setVisibleDays(context, n); refreshWidgets() }
-                        }, colors = SwitchDefaults.colors(checkedThumbColor = colors.onPrimary, checkedTrackColor = colors.primary),
-                            modifier = Modifier.heightIn(max = 32.dp))
-                    }
+                    SettingsSwitchRow(
+                        title = DateUtils.localizedDay(day, context),
+                        checked = checked,
+                        onCheckedChange = { on ->
+                            val next = if (on) visibleDays + day else visibleDays - day
+                            if (next.isNotEmpty()) {
+                                visibleDays = next
+                                AppPrefs.setVisibleDays(context, next)
+                                refreshWidgets()
+                            } else {
+                                android.widget.Toast.makeText(context, R.string.select_at_least_one_day, android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                     if (day != 7) SettingsRowDivider()
                 }
             }

@@ -144,7 +144,7 @@ fun ImportSheet(
     // v1.0.56 T9: 纯作息导入 — 解析结果只有作息表没课程时, 走独立确认框(只建作息表)
     var purePeriodName by remember { mutableStateOf("") }
     val allPeriodTables by viewModel.allPeriodTables.collectAsState(initial = emptyList())
-    var importJustApplied by remember { mutableStateOf(false) }
+    var closing by remember { mutableStateOf(false) }
     var showDrafts by remember { mutableStateOf(false) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
 
@@ -158,12 +158,26 @@ fun ImportSheet(
             catch (e: Exception) { android.util.Log.w("Classy", "Unable to remove completed import draft", e) }
         }
     }
+    fun closeThen(action: () -> Unit) {
+        if (closing) return
+        closing = true
+        scope.launch {
+            try {
+                sheetState.hide()
+                if (!sheetState.isVisible) {
+                    onDismiss()
+                    action()
+                }
+            } finally { closing = false }
+        }
+    }
     val importCompleted: () -> Unit = {
         clearExternalImport()
-        preview = null
-        pendingMode = null
-        importJustApplied = true
-        onImported()
+        // Keep the confirmed preview alive until the host exits; no flash back to source choices.
+        closeThen {
+            android.widget.Toast.makeText(context, importSuccessMessage, android.widget.Toast.LENGTH_SHORT).show()
+            onImported()
+        }
     }
     androidx.compose.runtime.LaunchedEffect(com.imsx3d.classy.MainActivity.pendingImportToken, com.imsx3d.classy.MainActivity.pendingImportText) {
         val token = com.imsx3d.classy.MainActivity.pendingImportToken
@@ -259,7 +273,7 @@ fun ImportSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = { if (!isLoading) { clearExternalImport(); onDismiss() } },
+        onDismissRequest = { if (!isLoading && !closing) { clearExternalImport(); onDismiss() } },
         sheetState = sheetState,
         // Keep the top safe area outside the measured sheet. Material3 alpha28 consumes
         // top insets from the animated offset; padding them inside a tall scrollable sheet
@@ -316,8 +330,7 @@ fun ImportSheet(
                 icon = Icons.Outlined.QrCode2,
                 label = stringResource(R.string.import_jw),
                 onClick = {
-                    onDismiss()
-                    onJwImportRequested()
+                    closeThen(onJwImportRequested)
                 }
             )
 
@@ -457,13 +470,7 @@ fun ImportSheet(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-        // 导入成功提示: 不再跳编辑课表页(假保存闸), 用 snackbar 明示已落库
-        LaunchedEffect(preview, pendingMode) {
-            if (preview == null && pendingMode == null && importJustApplied) {
-                importJustApplied = false
-                snackbar.showSnackbar(importSuccessMessage)
-            }
-        }
+
     }
 
     if (showDrafts) {

@@ -65,6 +65,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -321,11 +327,12 @@ fun SettingsGroupRow(
     leading: (@Composable () -> Unit)? = null,
     // UI-20a：破坏性动作行（如「恢复默认设置」）用 `error` 色标题 —— 符合 C3「颜色管状态」
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
-    trailing: (@Composable RowScope.() -> Unit)? = null
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.noRippleClickable(onClick = onClick) else Modifier)
             .heightIn(min = GroupRowMinHeight)
@@ -392,16 +399,20 @@ fun SettingsSwitchRow(
         title = title,
         subtitle = subtitle,
         titleBadge = titleBadge,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            role = Role.Switch
+            toggleableState = ToggleableState(checked)
+        },
         onClick = { onCheckedChange(!checked) },
         trailing = {
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange,
+                onCheckedChange = null,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = colors.onPrimary,
                     checkedTrackColor = colors.primary
                 ),
-                modifier = Modifier.heightIn(max = 32.dp)
+                modifier = Modifier.heightIn(max = 32.dp).clearAndSetSemantics { }
             )
         }
     )
@@ -522,16 +533,8 @@ fun SettingsSegmentedRow(
     subtitle: String? = null,
     height: Dp = 36.dp
 ) {
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    val titleWidth = with(density) {
-        textMeasurer.measure(AnnotatedString(title), MaterialTheme.typography.bodyLarge).size.width.toDp()
-    }
-    val controlWidth = segmentedTabWidth(options)
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        // 行内左右各 16dp；标题与控件之间留 8dp
-        val available = maxWidth - 32.dp
-        if (subtitle != null || titleWidth + 8.dp + controlWidth > available) {
+    @Composable
+    fun StackedContent() {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                 if (subtitle != null) {
@@ -544,6 +547,24 @@ fun SettingsSegmentedRow(
                     height = height, modifier = Modifier.fillMaxWidth()
                 )
             }
+    }
+    // A subtitle always uses the stacked layout. Avoid text probes and an extra
+    // subcomposition during LazyColumn measurement when width cannot change this choice.
+    if (subtitle != null) {
+        StackedContent()
+        return
+    }
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+    val titleWidth = with(density) {
+        textMeasurer.measure(AnnotatedString(title), MaterialTheme.typography.bodyLarge).size.width.toDp()
+    }
+    val controlWidth = segmentedTabWidth(options)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        // 行内左右各 16dp；标题与控件之间留 8dp
+        val available = maxWidth - 32.dp
+        if (titleWidth + 8.dp + controlWidth > available) {
+            StackedContent()
         } else {
             SettingsGroupRow(
                 title = title, subtitle = subtitle,
@@ -571,13 +592,12 @@ fun SettingsRowSegmented(
     height: Dp = 36.dp,
     modifier: Modifier? = null
 ) {
-    val tabWidth = segmentedTabWidth(options)
     SegmentedSwitcher(
         options = options.mapIndexed { i, label -> i to label },
         selected = selectedKey,
         onSelect = onSelect,
         // 高度 36dp: 介于开关本体(32)与组件默认(42)之间 — 轨道不挤, 行高仍与开关行一致
-        modifier = (modifier ?: Modifier.width(tabWidth)).height(height),
+        modifier = (modifier ?: Modifier.width(segmentedTabWidth(options))).height(height),
         // UI-3c: 卡内轨道同样用淡遮罩（卡面之上仍可见）
         containerColor = com.nevoit.glasense.theme.GlasenseTheme.colors.scrimNormal
     )

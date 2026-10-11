@@ -94,7 +94,7 @@
     <string name="edit_table_validation_error">Date must be yyyy-MM-dd, time must be HH:mm with start before end</string>
     <string name="edit_table_delete_confirm">Confirm Delete</string>
     <string name="edit_table_delete_msg">Delete schedule \"%1$s\"? This cannot be undone.</string>
-    <string name="edit_table_delete_msg_count">Delete timetable "%1$s"? Its %2$d courses will be deleted too. This cannot be undone.</string>
+    <string name="edit_table_delete_msg_count">Delete timetable "%1$s"? Its %2$d scheduled sessions will be deleted too. This cannot be undone.</string>
     <string name="default_table_name">Default</string>
     <string name="import_paste">Paste Text</string>
     <string name="import_paste_hint">Paste schedule text…</string>
@@ -1039,4 +1039,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="import_routine_local">Use times from this import</string>
     <string name="import_routine_incomplete">Some times are missing. Tap to set them.</string>
     <string name="export_source_load_failed">Could not load this timetable. Please retry.</string>
+    <string name="period_table_save">Save period schedule</string>
 </resources>

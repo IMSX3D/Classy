@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -18,8 +20,8 @@ import com.imsx3d.classy.data.entity.CourseEntity
  * 承担,SleepyRoute 全系 @Serializable,不需要自写 Saver。仿 KernelSU ui/navigation3/Navigator
  * 把所有「栈意图」封成命名方法 — 不对外暴露栈的内部形态,只暴露 push/pop/popToMain/openXxx。
  *
- * [editingCourse] 是会话态:基线 §1.3 明确不纳入任何保存作用域, 旋转/进程恢复安全丢弃。
- * 纯 mutableStateOf,不 rememberSaveable — 与栈的序列化持久化刻意隔离。
+ * Editing data is an Activity ViewModel session: configuration changes retain it.
+ * Process death still drops the session; it is not serialized with the navigation stack.
  */
 class SleepyNavigator(
     val backStack: NavBackStack<NavKey>,
@@ -76,12 +78,12 @@ class SleepyNavigator(
  */
 @Composable
 fun rememberSleepyNavigator(initial: SleepyRoute = SleepyRoute.Main): SleepyNavigator {
-    val session = remember { NavSession() }
+    val session: NavSession = viewModel()
     val backStack = rememberNavBackStack(initial)
     return remember(backStack, session) { SleepyNavigator(backStack, session) }
 }
 
-class NavSession {
+class NavSession : ViewModel() {
     var editingCourse: CourseEntity? by mutableStateOf(null)
         private set
     fun beginEditCourse(course: CourseEntity) { editingCourse = course }

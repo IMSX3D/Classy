@@ -97,7 +97,7 @@
     <string name="edit_table_validation_error">日期需为 yyyy-MM-dd，时间需为 HH:mm 且开始早于结束</string>
     <string name="edit_table_delete_confirm">确认删除</string>
     <string name="edit_table_delete_msg">确定要删除课表「%1$s」吗？此操作不可撤销。</string>
-    <string name="edit_table_delete_msg_count">确定要删除课表「%1$s」吗？共 %2$d 门课程将一并删除，此操作不可撤销。</string>
+    <string name="edit_table_delete_msg_count">确定要删除课表「%1$s」吗？共 %2$d 个上课安排将一并删除，此操作不可撤销。</string>
     <string name="default_table_name">默认</string>
     <string name="import_paste">粘贴课表文本</string>
     <string name="import_paste_hint">粘贴课表文本…</string>
@@ -1057,4 +1057,5 @@
     <string name="import_routine_local">使用本次导入的时间</string>
     <string name="import_routine_incomplete">时间尚未填完整，点此设置。</string>
     <string name="export_source_load_failed">课表加载失败，请重试。</string>
+    <string name="period_table_save">保存作息表</string>
 </resources>
