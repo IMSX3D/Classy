@@ -417,38 +417,30 @@ private fun TimeSlotRowItem(
     onDelete: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(R.string.course_node_format, row.node),
-            modifier = Modifier.width(44.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.onSurface
-        )
-        TimePickerField(
-            value = row.start,
-            onValueChange = onStartChange,
-            label = stringResource(R.string.start_label),
-            modifier = Modifier.weight(1f)
-        )
-        TimePickerField(
-            value = row.end,
-            onValueChange = onEndChange,
-            label = stringResource(R.string.end_label),
-            modifier = Modifier.weight(1f)
-        )
-        if (canDelete) {
-            GlasenseIconButton(
-                icon = Icons.Outlined.RemoveCircleOutline,
-                contentDescription = stringResource(R.string.delete_period),
-                onClick = onDelete,
-                tint = colors.error,
-                compact = true)
-        } else {
-            Spacer(Modifier.width(32.dp))
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.course_node_format, row.node),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface
+            )
+            if (canDelete) {
+                GlasenseIconButton(
+                    icon = Icons.Outlined.RemoveCircleOutline,
+                    contentDescription = stringResource(R.string.delete_period),
+                    onClick = onDelete,
+                    tint = colors.error,
+                    compact = true)
+            }
         }
+        AdaptiveTimeRangeFields(
+            start = row.start,
+            end = row.end,
+            startLabel = stringResource(R.string.start_label),
+            endLabel = stringResource(R.string.end_label),
+            onStartChange = onStartChange,
+            onEndChange = onEndChange
+        )
     }
 }

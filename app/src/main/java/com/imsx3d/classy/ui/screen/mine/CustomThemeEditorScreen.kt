@@ -105,9 +105,9 @@ fun CustomThemeEditorScreen(
     )
 
     // 取色器状态:null = 关闭;非 null = 正在编辑该角色的种子
-    var pickingRole by remember { mutableStateOf<String?>(null) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var manualExpanded by remember { mutableStateOf(false) }
+    var pickingRole by rememberSaveable { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var manualExpanded by rememberSaveable { mutableStateOf(false) }
 
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(

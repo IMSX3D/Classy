@@ -1624,29 +1624,20 @@ private fun IrregularOptionsSection(
                 if (block.isIrregularTime) {
                     // §2.4 B 规则: 起止/时长三输入, 最后编辑的输入对为权威 — 改起止重算时长,
                     // 改时长反推结束时间; 三者都允许填写
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        TimePickerField(
-                            value = block.startTime,
-                            onValueChange = { v ->
-                                block.startTime = v
-                                block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
-                            },
-                            label = stringResource(R.string.start_time),
-                            modifier = Modifier.weight(1f)
-                        )
-                        TimePickerField(
-                            value = block.endTime,
-                            onValueChange = { v ->
-                                block.endTime = v
-                                block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
-                            },
-                            label = stringResource(R.string.end_time),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    com.imsx3d.classy.ui.component.AdaptiveTimeRangeFields(
+                        start = block.startTime,
+                        end = block.endTime,
+                        startLabel = stringResource(R.string.start_time),
+                        endLabel = stringResource(R.string.end_time),
+                        onStartChange = { v ->
+                            block.startTime = v
+                            block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
+                        },
+                        onEndChange = { v ->
+                            block.endTime = v
+                            block.durationText = minutesBetween(block.startTime, block.endTime)?.toString() ?: ""
+                        }
+                    )
                     NumberField(
                         label = stringResource(R.string.irregular_duration_label),
                         value = block.durationText.toIntOrNull() ?: 0,

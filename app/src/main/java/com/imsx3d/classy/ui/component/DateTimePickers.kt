@@ -1,5 +1,9 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -62,7 +66,7 @@ fun DatePickerField(
     enabled: Boolean = true
 ) {
     val colors = MaterialTheme.colorScheme
-    var showPicker by remember { mutableStateOf(false) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val fieldColors = SleepyTheme.fieldColors()
 
@@ -138,7 +142,7 @@ fun TimePickerField(
     shape: CornerBasedShape = SleepyTheme.fieldShape
 ) {
     val colors = MaterialTheme.colorScheme
-    var showPicker by remember { mutableStateOf(false) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState(
         initialHour = value.substringBefore(":").toIntOrNull() ?: 8,
         initialMinute = value.substringAfter(":").toIntOrNull() ?: 0,
@@ -171,25 +175,24 @@ fun TimePickerField(
             onDismissRequest = { showPicker = false },
             title = { Text(stringResource(R.string.select_time), color = colors.onSurface) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // 默认 TimePicker 配色 — 与 ReminderScreen 时间弹窗一致, 不再单独覆写表盘色
                     TimePicker(state = timePickerState)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
-                    DialogActionButtons(
-                        confirmText = stringResource(R.string.ok),
-                        onConfirm = {
-                            val h = timePickerState.hour.toString().padStart(2, '0')
-                            val m = timePickerState.minute.toString().padStart(2, '0')
-                            onValueChange("$h:$m")
-                            showPicker = false
-                        },
-                        dismissText = stringResource(R.string.cancel),
-                        onDismiss = { showPicker = false }
-                    )
                 }
             },
-            confirmButton = {},
+            confirmButton = {
+                DialogActionButtons(
+                    confirmText = stringResource(R.string.ok),
+                    onConfirm = {
+                        val h = timePickerState.hour.toString().padStart(2, '0')
+                        val m = timePickerState.minute.toString().padStart(2, '0')
+                        onValueChange("$h:$m")
+                        showPicker = false
+                    },
+                    dismissText = stringResource(R.string.cancel),
+                    onDismiss = { showPicker = false }
+                )
+            },
             dismissButton = {}
         )
     }

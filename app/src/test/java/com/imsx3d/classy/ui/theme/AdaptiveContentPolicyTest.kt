@@ -28,4 +28,11 @@ class AdaptiveContentPolicyTest {
     @Test fun smallFontDoesNotForceTwoPanesOnPhone() {
         assertFalse(AdaptiveContentPolicy.showCourseDetailPane(720f, 800f, 0.85f))
     }
+    @Test fun timeFieldsReflowAtReadableWidth() {
+        assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(283f, 1f))
+        assertTrue(AdaptiveContentPolicy.showTimeFieldsSideBySide(284f, 1f))
+        assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(320f, 1.5f))
+        assertTrue(AdaptiveContentPolicy.showTimeFieldsSideBySide(420f, 1.5f))
+        assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(260f, 0.85f))
+    }
 }
