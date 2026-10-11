@@ -627,7 +627,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_confirm">OK</string>
     <string name="export_copied_hint">Choose how to share</string>
-    <string name="export_course_count">%1$d courses</string>
+    <string name="export_course_count">%1$d scheduled sessions</string>
     <string name="export_failed">Export failed, please retry</string>
     <string name="export_ics_subtitle">Standard iCalendar format, importable to system calendar / Google / Apple Calendar</string>
     <string name="export_ics_title">ICS Calendar</string>
