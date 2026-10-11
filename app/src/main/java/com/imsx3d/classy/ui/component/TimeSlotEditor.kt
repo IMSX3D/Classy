@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -147,7 +148,7 @@ fun TimeSlotEditor(
     clearBindingOnEdit: Boolean = false,
     scrollPeriodTableList: Boolean = true
 ) {
-    var mode by remember {
+    var mode by rememberSaveable {
         mutableStateOf(when {
             selectedPeriodTableId != null -> Mode.PeriodTable
             resolveAutoPeriodConfig(rows, smartConfig) == smartConfig -> Mode.Auto
@@ -156,9 +157,9 @@ fun TimeSlotEditor(
     }
 
 
-    var modeError by remember { mutableStateOf<String?>(null) }
+    var modeError by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingSeed by remember { mutableStateOf<SmartPeriodConfig?>(null) }
-    var generatedNotice by remember { mutableStateOf(false) }
+    var generatedNotice by rememberSaveable { mutableStateOf(false) }
 
     // Bug 2 fix: 自动模式下，smartConfig 一旦变化就立刻 derive 出 rows 同步给上层，
     // 否则保存时 timeJson 用的还是旧的手动 rows，导致"保存的不是自动模式数据"。

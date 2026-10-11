@@ -23,6 +23,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,9 +64,9 @@ fun ColorPickerDialog(
         hsv
     }
 
-    var hue by remember { mutableStateOf(initialHSV[0]) }
-    var saturation by remember { mutableStateOf(initialHSV[1]) }
-    var value by remember { mutableStateOf(initialHSV[2]) }
+    var hue by rememberSaveable { mutableStateOf(initialHSV[0]) }
+    var saturation by rememberSaveable { mutableStateOf(initialHSV[1]) }
+    var value by rememberSaveable { mutableStateOf(initialHSV[2]) }
 
     val currentColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)))
     val currentHex = String.format("#%08X", android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)))
@@ -74,7 +78,7 @@ fun ColorPickerDialog(
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // SV 面板 — 大方块，横向拖=饱和度，纵向拖=明度
@@ -121,16 +125,16 @@ fun ColorPickerDialog(
                     )
                 }
 
-                // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
-                DialogActionButtons(
-                    confirmText = stringResource(R.string.ok),
-                    onConfirm = { onConfirm(currentHex) },
-                    dismissText = stringResource(R.string.cancel),
-                    onDismiss = onDismiss
-                )
             }
         },
-        confirmButton = {},
+        confirmButton = {
+            DialogActionButtons(
+                confirmText = stringResource(R.string.ok),
+                onConfirm = { onConfirm(currentHex) },
+                dismissText = stringResource(R.string.cancel),
+                onDismiss = onDismiss
+            )
+        },
         dismissButton = {}
     )
 }
@@ -144,6 +148,7 @@ fun SVPanel(
     onSVChange: (Float, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val currentOnSVChange by rememberUpdatedState(onSVChange)
     val pureHue = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f)))
 
     Box(
@@ -154,7 +159,7 @@ fun SVPanel(
                         change.consume()
                         val x = (change.position.x / size.width).coerceIn(0f, 1f)
                         val y = (change.position.y / size.height).coerceIn(0f, 1f)
-                        onSVChange(x, 1f - y)
+                        currentOnSVChange(x, 1f - y)
                     }
                 )
             }
@@ -163,7 +168,7 @@ fun SVPanel(
                     onTap = { offset ->
                         val x = (offset.x / size.width).coerceIn(0f, 1f)
                         val y = (offset.y / size.height).coerceIn(0f, 1f)
-                        onSVChange(x, 1f - y)
+                        currentOnSVChange(x, 1f - y)
                     }
                 )
             }
@@ -204,6 +209,7 @@ fun HueSlider(
     onHueChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val currentOnHueChange by rememberUpdatedState(onHueChange)
     Box(
         modifier = modifier
             .pointerInput(Unit) {
@@ -211,7 +217,7 @@ fun HueSlider(
                     onDrag = { change, _ ->
                         change.consume()
                         val x = (change.position.x / size.width).coerceIn(0f, 1f)
-                        onHueChange(x * 360f)
+                        currentOnHueChange(x * 360f)
                     }
                 )
             }
@@ -219,7 +225,7 @@ fun HueSlider(
                 detectTapGestures(
                     onTap = { offset ->
                         val x = (offset.x / size.width).coerceIn(0f, 1f)
-                        onHueChange(x * 360f)
+                        currentOnHueChange(x * 360f)
                     }
                 )
             }

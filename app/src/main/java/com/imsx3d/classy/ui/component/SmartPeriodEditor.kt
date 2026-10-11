@@ -59,6 +59,7 @@ import com.imsx3d.classy.ui.theme.noRippleClickable
  * - 跨组互斥（同一 transition 只能属于一个 break）
  * - 未选中的位置 = 0 分钟（连续上课）
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun AdvancedSmartPeriodEditor(
     config: SmartPeriodConfig,
@@ -84,10 +85,7 @@ fun AdvancedSmartPeriodEditor(
         )
 
         // 每节时长 + 总节数
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
-        ) {
+        AdaptiveEditorFields(Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
             NumberField(
                 label = stringResource(R.string.edit_period_duration_label),
                 unit = stringResource(R.string.unit_minutes),

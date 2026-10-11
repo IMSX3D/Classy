@@ -35,4 +35,10 @@ class AdaptiveContentPolicyTest {
         assertTrue(AdaptiveContentPolicy.showTimeFieldsSideBySide(420f, 1.5f))
         assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(260f, 0.85f))
     }
+    @Test fun descriptiveRoutineFieldsReserveMoreLabelSpace() {
+        assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(320f, 1f, 168f))
+        assertTrue(AdaptiveContentPolicy.showTimeFieldsSideBySide(348f, 1f, 168f))
+        assertFalse(AdaptiveContentPolicy.showTimeFieldsSideBySide(500f, 1.5f, 168f))
+        assertTrue(AdaptiveContentPolicy.showTimeFieldsSideBySide(516f, 1.5f, 168f))
+    }
 }

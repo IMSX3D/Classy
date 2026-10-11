@@ -5,6 +5,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -19,13 +20,14 @@ import androidx.compose.ui.unit.dp
 import com.imsx3d.classy.data.entity.*
 import com.imsx3d.classy.ui.theme.SleepyTheme
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodConfig) -> Unit,
     modifier: Modifier = Modifier) {
     var plan by remember { mutableStateOf(runCatching { RoutinePlan.from(config) }.getOrNull()) }
     var error by remember { mutableStateOf<String?>(null) }
-    var special by remember { mutableStateOf(false) }
-    var templateConfirm by remember { mutableStateOf(false) }
+    var special by rememberSaveable { mutableStateOf(false) }
+    var templateConfirm by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     fun update(next: RoutinePlan) {
         runCatching { next.toConfig() }.fold(onSuccess = {
@@ -45,7 +47,7 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(androidx.compose.ui.res.stringResource(com.imsx3d.classy.R.string.routine_auto_hint), style = MaterialTheme.typography.bodyMedium)
         error?.let { Text("未应用这次修改：$it", color = MaterialTheme.colorScheme.error) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        AdaptiveEditorFields {
             RoutineNumber("每节课 / 分钟", current.minutes, Modifier.weight(1f)) { update(current.copy(minutes = it)) }
             RoutineNumber("普通课间 / 分钟", current.gap, Modifier.weight(1f)) { update(current.copy(gap = it)) }
         }
@@ -58,12 +60,12 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
             Surface(shape = SleepyTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("时段 ${index + 1} · 第 $firstNode–${firstNode + section.count - 1} 节", style = MaterialTheme.typography.titleSmall)
+                        Text("时段 ${index + 1} · 第 $firstNode–${firstNode + section.count - 1} 节", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                         if (current.sections.size > 1) TextButton(onClick = {
                             update(current.copy(sections = current.sections.filterIndexed { i, _ -> i != index }))
                         }) { Text("移除") }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AdaptiveEditorFields {
                         key(section.start) {
                             TimePickerField(value = section.start, onValueChange = { change(section.copy(start = it)) },
                                 label = "开始时间", modifier = Modifier.weight(1f))
@@ -95,13 +97,13 @@ fun SmartPeriodEditor(config: SmartPeriodConfig, onConfigChange: (SmartPeriodCon
                 val first = current.sections.take(sectionIndex).sumOf { it.count } + 1
                 repeat(section.count) { position ->
                     fun change(next: RoutineSection) = update(current.copy(sections = current.sections.toMutableList().also { it[sectionIndex] = next }))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AdaptiveEditorFields {
                         RoutineNumber("第 ${first + position} 节 / 分钟", section.durations[position] ?: current.minutes, Modifier.weight(1f)) {
                             change(section.copy(durations = if (it == current.minutes) section.durations - position else section.durations + (position to it)))
                         }
                         if (position < section.count - 1) RoutineNumber("本节后休息 / 分钟", section.gaps[position] ?: current.gap, Modifier.weight(1f)) {
                             change(section.copy(gaps = if (it == current.gap) section.gaps - position else section.gaps + (position to it)))
-                        } else Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
