@@ -117,7 +117,7 @@ fun CourseDetailSheet(
                 topEnd = com.nevoit.glasense.theme.GlasenseTheme.specs.dialogCorner
             )
         ) {
-            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 // Header
                 SheetHeader(
                     title = course.courseName.ifBlank { stringResource(R.string.course_detail_title) },
@@ -129,6 +129,8 @@ fun CourseDetailSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -156,7 +158,9 @@ fun CourseDetailSheet(
                         )
                     }
 
-                    if (onEdit != null) {
+                }
+                if (onEdit != null) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
                         GlasenseButton(
                             text = stringResource(R.string.course_detail_edit_course),
                             enabled = !closing,
