@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.screen.mine
 
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
@@ -75,11 +76,11 @@ fun CustomThemeEditorScreen(
     // 系统返回手势: 编辑器是 AppearanceScreen 内部 overlay(不在 MainActivity overlayStack),
     // 不拦截的话返回键会命中外层 handler 把整个外观页弹掉。此处拦截先关编辑器回外观页
     // (Compose BackHandler 后组合者优先生效)。
-    BackHandler { onBack() }
+
 
     // ── 草稿:所有改动只动这里,保存才落盘 ──
     val defaultName = stringResource(R.string.theme_custom_default_name, nextThemeNumber)
-    var draft by remember(editing) {
+    var draft by rememberSaveable(editing?.id, stateSaver = CustomThemeDraftSaver) {
         mutableStateOf(
             editing ?: CustomTheme(
                 id = "",   // 保存时由调用方生成
@@ -94,6 +95,15 @@ fun CustomThemeEditorScreen(
         )
     }
 
+    val initialDraft = rememberSaveable(editing?.id, saver = CustomThemeDraftSaver) { draft }
+    var showDiscard by rememberSaveable { mutableStateOf(false) }
+    val requestBack = { if (draft != initialDraft) showDiscard = true else onBack() }
+    BackHandler { requestBack() }
+    if (showDiscard) com.imsx3d.classy.ui.component.DiscardChangesDialog(
+        onKeepEditing = { showDiscard = false },
+        onDiscard = { showDiscard = false; onBack() }
+    )
+
     // 取色器状态:null = 关闭;非 null = 正在编辑该角色的种子
     var pickingRole by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -102,7 +112,7 @@ fun CustomThemeEditorScreen(
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
         title = stringResource(if (editing == null) R.string.theme_new else R.string.theme_custom_edit),
-        onBack = onBack,
+        onBack = requestBack,
         verticalSpacing = 12.dp
     ) {
         // ── 命名 ──

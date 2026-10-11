@@ -51,5 +51,14 @@ fun ImportReviewPage(
         onDismissRequest = { if (!busy) onDismissRequest() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false,
             dismissOnBackPress = !busy, dismissOnClickOutside = false)
-    ) { body() } else body()
+    ) {
+        // WindowManager retains the departing surface for the exit animation. No delayed
+        // dismiss callback or second persistence operation is needed.
+        val view = androidx.compose.ui.platform.LocalView.current
+        androidx.compose.runtime.SideEffect {
+            (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                ?.setWindowAnimations(R.style.ClassyFullScreenTaskAnimation)
+        }
+        body()
+    } else body()
 }

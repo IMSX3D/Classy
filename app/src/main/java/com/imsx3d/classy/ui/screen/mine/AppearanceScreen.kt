@@ -77,8 +77,9 @@ fun AppearanceScreen(
     val selectedMode = themeMode
 
     // 自定义主题编辑器 overlay(创建时 editingTheme=null;微调时载入草稿)
-    var showEditor by remember { mutableStateOf(false) }
-    var editingTheme by remember { mutableStateOf<com.imsx3d.classy.data.CustomTheme?>(null) }
+    var showEditor by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var editingThemeId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    val editingTheme = CustomThemeStore.getAll(context).find { it.id == editingThemeId }
     // 编辑器保存/删除后刷新网格列表
     var customListVersion by remember { mutableIntStateOf(0) }
 
@@ -178,7 +179,7 @@ fun AppearanceScreen(
                                         onClick = { AppPrefs.setThemeKey(context, cell.preset.key); refreshWidgets() }
                                     )
                                     is ThemeGridCell.NewTheme -> NewThemeCard(
-                                        onClick = { showEditor = true; editingTheme = null }
+                                        onClick = { showEditor = true; editingThemeId = null }
                                     )
                                     is ThemeGridCell.Custom -> CustomThemeCard(
                                         theme = cell.theme,
@@ -187,7 +188,7 @@ fun AppearanceScreen(
                                             AppPrefs.setThemeKey(context, ThemePresets.CUSTOM_KEY_PREFIX + cell.theme.id)
                                             refreshWidgets()
                                         },
-                                        onEdit = { showEditor = true; editingTheme = cell.theme }
+                                        onEdit = { showEditor = true; editingThemeId = cell.theme.id }
                                     )
                                 }
                             }
@@ -260,7 +261,7 @@ fun AppearanceScreen(
         CustomThemeEditorScreen(
             editing = editorTheme,
             nextThemeNumber = remember(customListVersion) { CustomThemeStore.getAll(context).size + 1 },
-            onBack = { showEditor = false; editingTheme = null },
+            onBack = { showEditor = false; editingThemeId = null },
             onSaved = { saved ->
                 CustomThemeStore.save(context, saved)
                 AppPrefs.setThemeKey(context, ThemePresets.CUSTOM_KEY_PREFIX + saved.id)
@@ -271,7 +272,7 @@ fun AppearanceScreen(
                 // "保存了但从没被应用过"。
                 refreshWidgets()
                 showEditor = false
-                editingTheme = null
+                editingThemeId = null
             },
             onDeleted = { id ->
                 CustomThemeStore.delete(context, id)
@@ -282,7 +283,7 @@ fun AppearanceScreen(
                     refreshWidgets()
                 }
                 showEditor = false
-                editingTheme = null
+                editingThemeId = null
             }
         )
     }

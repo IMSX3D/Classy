@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ClassyFullScreenTaskAnimation">
+        <item name="android:windowEnterAnimation">@anim/task_window_enter</item>
+        <item name="android:windowExitAnimation">@anim/task_window_exit</item>
+    </style>
+</resources>

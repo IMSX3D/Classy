@@ -102,57 +102,76 @@ fun CourseListScreen(
             maxWidth.value - with(density) { horizontalInsets.toDp().value },
             maxHeight.value - with(density) { verticalInsets.toDp().value }, density.fontScale
         )
-        Row(Modifier.fillMaxSize()) {
-            if (wide || selected == null) {
-                Box(if (wide) Modifier.width(320.dp * density.fontScale.coerceAtLeast(1f)) else Modifier.weight(1f)) {
-                    SettingsScaffold(
-                        title = stringResource(R.string.course_list_title),
-                        onBack = { if (selected != null) selectedId = null else onBack() },
-                        listState = listState,
-                        actions = {
-                            androidx.compose.material3.TextButton(onClick = onAddCourse) {
-                                Text(stringResource(R.string.manage_manual_add))
-                            }
-                        },
-                        verticalSpacing = 12.dp
-                    ) {
-                        if (grouped.isEmpty()) {
-                            item { Text(stringResource(R.string.course_list_empty), color = colors.onSurfaceVariant) }
-                        } else {
-                            item { Text(stringResource(R.string.course_list_subtitle), color = colors.onSurfaceVariant) }
-                            items(grouped, key = { it.locations.first().rows.first().id }) { group ->
-                                Column(
-                                    Modifier.fillMaxWidth()
-                                        .settingsCard(if (group == selected) colors.primaryContainer else colors.surfaceContainer)
-                                        .noRippleClickable { selectedId = group.locations.first().rows.first().id }
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(group.name, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-                                    if (group.teacher.isNotBlank()) MetaRow(Icons.Outlined.Person, group.teacher)
-                                    Text(stringResource(R.string.course_list_arrangements, group.locations.sumOf { it.rows.size }),
-                                        style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+        androidx.compose.animation.AnimatedContent(
+            targetState = wide to selected,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                if (initialState.first || targetState.first) {
+                    androidx.compose.animation.ContentTransform(
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(com.imsx3d.classy.ui.nav.ForwardDuration)),
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(com.imsx3d.classy.ui.nav.ForwardDuration))
+                    )
+                } else if (targetState.second != null) {
+                    com.imsx3d.classy.ui.nav.sleepyForwardTransform
+                } else com.imsx3d.classy.ui.nav.sleepyPopTransform
+            },
+            contentKey = { (isWide, group) -> isWide to group?.locations?.first()?.rows?.first()?.id },
+            label = "course-list-detail"
+        ) { (sceneWide, sceneSelected) ->
+            // Read the animation's retained target, not the cleared live selection.
+            val sceneDetailState = remember(sceneSelected) { detailState }
+            Row(Modifier.fillMaxSize()) {
+                if (sceneWide || sceneSelected == null) {
+                    Box(if (sceneWide) Modifier.width(320.dp * density.fontScale.coerceAtLeast(1f)) else Modifier.weight(1f)) {
+                        SettingsScaffold(
+                            title = stringResource(R.string.course_list_title),
+                            onBack = { if (sceneSelected != null) selectedId = null else onBack() },
+                            listState = listState,
+                            actions = {
+                                androidx.compose.material3.TextButton(onClick = onAddCourse) {
+                                    Text(stringResource(R.string.manage_manual_add))
+                                }
+                            },
+                            verticalSpacing = 12.dp
+                        ) {
+                            if (grouped.isEmpty()) {
+                                item { Text(stringResource(R.string.course_list_empty), color = colors.onSurfaceVariant) }
+                            } else {
+                                item { Text(stringResource(R.string.course_list_subtitle), color = colors.onSurfaceVariant) }
+                                items(grouped, key = { it.locations.first().rows.first().id }) { group ->
+                                    Column(
+                                        Modifier.fillMaxWidth()
+                                            .settingsCard(if (group == sceneSelected) colors.primaryContainer else colors.surfaceContainer)
+                                            .noRippleClickable { selectedId = group.locations.first().rows.first().id }
+                                            .padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(group.name, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                                        if (group.teacher.isNotBlank()) MetaRow(Icons.Outlined.Person, group.teacher)
+                                        Text(stringResource(R.string.course_list_arrangements, group.locations.sumOf { it.rows.size }),
+                                            style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            if (wide || selected != null) {
-                Box(Modifier.weight(1f)) {
-                    if (selected != null) {
-                        SettingsScaffold(
-                            title = selected.name,
-                            onBack = { selectedId = null },
-                            listState = detailState,
-                            verticalSpacing = 12.dp
-                        ) {
-                            item { CourseGroupCard(selected) }
-                        }
-                    } else {
-                        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
-                            contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.course_list_select_hint), color = colors.onSurfaceVariant)
+                if (sceneWide || sceneSelected != null) {
+                    Box(Modifier.weight(1f)) {
+                        if (sceneSelected != null) {
+                            SettingsScaffold(
+                                title = sceneSelected.name,
+                                onBack = { selectedId = null },
+                                listState = sceneDetailState,
+                                verticalSpacing = 12.dp
+                            ) {
+                                item { CourseGroupCard(sceneSelected) }
+                            }
+                        } else {
+                            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
+                                contentAlignment = Alignment.Center) {
+                                Text(stringResource(R.string.course_list_select_hint), color = colors.onSurfaceVariant)
+                            }
                         }
                     }
                 }
