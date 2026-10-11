@@ -266,9 +266,7 @@ fun AddCourseScreen(
         })
     }
 
-    val editListState = androidx.compose.foundation.lazy.rememberLazyListState()
     var blocksLoaded by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
-    var positioned by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
     fun draftFingerprint() = courseDraftFingerprint(courseName, courseAlias, startWeek, endWeek,
         meetingBlocks, pendingEdgeInserts, pendingEdgeEdits)
     var originalDraft by rememberSaveable(editingCourse?.id) { mutableStateOf(draftFingerprint()) }
@@ -572,23 +570,32 @@ fun AddCourseScreen(
         )
     }
 
-    LaunchedEffect(blocksLoaded, editingCourse?.id) {
-        if (blocksLoaded && !positioned) {
-            val target = findTargetBlockIndex(meetingBlocks, editingCourse)
-            if (target >= 0) {
-                // Scaffold header, spacer, basic info, week range, slot heading, optional validation.
-                editListState.scrollToItem(target + 5 + if (validationIssues.isNotEmpty()) 1 else 0)
-            }
-            positioned = true
-        }
-    }
-
     if (showDiscardConfirm) {
         com.imsx3d.classy.ui.component.DiscardChangesDialog(
             onKeepEditing = { showDiscardConfirm = false },
             onDiscard = { showDiscardConfirm = false; onBack() }
         )
     }
+
+    // Do not compose an editable, top-positioned placeholder while group rows are loading.
+    // The first list measurement must already know the selected meeting block.
+    if (editingCourse != null && !blocksLoaded) {
+        SettingsScaffold(
+            title = stringResource(R.string.edit_course),
+            onBack = { requestBack() }
+        ) {
+            item { Text(stringResource(R.string.loading), modifier = Modifier.padding(16.dp)) }
+        }
+        return
+    }
+    // rememberLazyListState restores the saved position on recreation. The initial index
+    // applies only to a fresh entry; no post-layout scroll can interrupt the page transition.
+    val targetBlock = findTargetBlockIndex(meetingBlocks, editingCourse)
+    val editListState = androidx.compose.foundation.lazy.rememberLazyListState(
+        initialFirstVisibleItemIndex = if (targetBlock >= 0)
+            targetBlock + 5 + if (validationIssues.isNotEmpty()) 1 else 0
+        else 0
+    )
 
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
