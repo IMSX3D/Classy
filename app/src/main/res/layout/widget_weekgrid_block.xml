@@ -27,6 +27,19 @@
         android:layout_height="match_parent"
         android:background="@drawable/widget_cell_single" />
 
+    <!-- One continuous indicator per course, including courses spanning multiple periods. -->
+    <ImageView
+        android:id="@+id/wg_blk_indicator"
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="left"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:src="@drawable/widget_course_indicator"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/wg_blk_name"
         android:layout_width="match_parent"

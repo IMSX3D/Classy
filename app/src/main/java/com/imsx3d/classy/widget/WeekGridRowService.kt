@@ -1,5 +1,7 @@
 package com.imsx3d.classy.widget
 
+import com.imsx3d.classy.util.AppPrefs
+import android.view.View
 import com.imsx3d.classy.util.CourseCompletion
 import androidx.compose.ui.graphics.lerp
 import java.time.LocalDateTime
@@ -55,7 +57,9 @@ class WeekGridRowFactory(
         val now: LocalDateTime,
         val starts: List<String>,                  // 每节的开始时间（下标 0 = 第 1 节）
         val scheme: WidgetScheme,
-        val visibleDays: List<Int>
+        val visibleDays: List<Int>,
+        val barStyle: Boolean,
+        val colorless: Boolean
     )
 
     @Volatile
@@ -80,7 +84,9 @@ class WeekGridRowFactory(
                 now = LocalDateTime.now(),
                 starts = slots,
                 scheme = resolveSchemePublic(context, data.themeKey, data.isDark),
-                visibleDays = data.visibleDays.sorted()
+                visibleDays = data.visibleDays.sorted(),
+                barStyle = AppPrefs.getCourseColorStyle(context) == AppPrefs.COURSE_STYLE_BAR,
+                colorless = AppPrefs.isWidgetColorless(context)
             )
             android.util.Log.d("WeekGridRow", "id=$widgetId nodes=$maxNode courses=${courses.size}")
         } catch (e: Throwable) {
@@ -117,6 +123,8 @@ class WeekGridRowFactory(
         val nameColor = s.scheme.onSurface.toArgb()
         val metaColor = s.scheme.onSurfaceVariant.toArgb()
 
+        val groupRows = s.days.flatMap { it.courses }.groupBy { it.groupId }
+
         // ① 左侧时间列：1..nodeCount 每节一格（空节次也占位 → 各列天然对齐）
         for (node in 1..s.nodeCount) {
             val cell = RemoteViews(context.packageName, R.layout.widget_weekgrid_timecell)
@@ -150,10 +158,13 @@ class WeekGridRowFactory(
                 repeat(span) {
                     block.addView(R.id.wg_blk_sizer, RemoteViews(context.packageName, R.layout.widget_weekgrid_spacer))
                 }
-                val bg = CourseColorUtil.pickCourseColorCompose(
-                    course, s.scheme.isDark, s.scheme.surfaceVariant
+                val rows = groupRows[course.groupId].orEmpty()
+                val bg = if (s.barStyle) s.scheme.surface else CourseColorUtil.pickCourseColorComposeWithGroupRows(
+                    course, rows, s.scheme.isDark, s.scheme.surfaceVariant, s.colorless
                 )
-                val fg = CourseColorUtil.textColorOn(bg, s.scheme.isDark, s.scheme.onSurface)
+                val fg = if (s.barStyle) s.scheme.onSurface
+                    else CourseColorUtil.textColorOn(bg, s.scheme.isDark, s.scheme.onSurface)
+                val infoFg = if (s.barStyle) s.scheme.onSurfaceVariant else fg.copy(alpha = 0.72f)
                 val completed = day != null && CourseCompletion.isCompleted(course, day.date, day.timeJson, s.now)
                 fun tone(color: androidx.compose.ui.graphics.Color): Int =
                     (if (completed) lerp(s.scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
@@ -166,12 +177,25 @@ class WeekGridRowFactory(
                 } else {
                     block.setInt(R.id.wg_blk_bg, "setBackgroundColor", bgInt)
                 }
+                // Explicitly reset both modes: launchers can reuse the previous RemoteViews tree.
+                block.setViewVisibility(R.id.wg_blk_indicator, if (s.barStyle) View.VISIBLE else View.GONE)
+                val indicator = CourseColorUtil.softenedIndicator(
+                    CourseColorUtil.pickAccentComposeWithGroupRows(
+                        course, rows, s.scheme.isDark, s.scheme.onSurfaceVariant, s.colorless
+                    ), bg
+                )
+                block.setInt(R.id.wg_blk_indicator, "setColorFilter", tone(indicator))
+                val density = context.resources.displayMetrics.density
+                val leftPadding = ((if (s.barStyle) 5f else 1f) * density).toInt()
+                val rightPadding = density.toInt()
+                block.setViewPadding(R.id.wg_blk_name, leftPadding, 0, rightPadding, (10f * density).toInt())
+                block.setViewPadding(R.id.wg_blk_room, leftPadding, 0, rightPadding, 0)
                 block.setTextViewText(
                     R.id.wg_blk_name, CourseDisplayUtil.displayName(course, useAlias)
                 )
                 block.setTextColor(R.id.wg_blk_name, tone(fg))
                 block.setTextViewText(R.id.wg_blk_room, course.room.filter { it != '\n' })
-                block.setTextColor(R.id.wg_blk_room, tone(fg.copy(alpha = 0.72f)))
+                block.setTextColor(R.id.wg_blk_room, tone(infoFg))
                 views.addView(colId, block)
                 node = course.startNode + span
             }
