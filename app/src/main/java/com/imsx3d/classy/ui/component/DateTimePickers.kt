@@ -38,6 +38,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -152,24 +158,26 @@ fun TimePickerField(
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val fieldColors = SleepyTheme.fieldColors()
 
-    // Box + clickable 包装：OutlinedTextField 内部设 enabled=false
-    // 让 click 事件穿透到外层 Box 的 clickable。
-    // Box 必须先 clip(shape) 再 clickable — 否则涟漪是方角、且能溢出字段圆角。
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .noRippleClickable { showPicker = true }
-    ) {
+    // The decorative disabled field must not own touch or disabled semantics.
+    // A topmost full-size target handles the whole field consistently on every open.
+    Box(modifier = modifier.clip(shape)) {
         TextField(
             value = value,
             onValueChange = {},
             label = { Text(label) },
             enabled = false,
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
             shape = shape,
             colors = fieldColors
         )
+        Box(Modifier.matchParentSize()
+            .noRippleClickable { showPicker = true }
+            .semantics {
+                text = androidx.compose.ui.text.AnnotatedString(value)
+                contentDescription = label
+                role = Role.Button
+            })
     }
 
     if (showPicker) {
