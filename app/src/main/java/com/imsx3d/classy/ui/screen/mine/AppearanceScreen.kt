@@ -258,34 +258,50 @@ fun AppearanceScreen(
     ) {
         // Keep the outgoing editor's identity even when the parent clears its selection.
         val editorTheme = remember { editingTheme }
-        CustomThemeEditorScreen(
-            editing = editorTheme,
-            nextThemeNumber = remember(customListVersion) { CustomThemeStore.getAll(context).size + 1 },
-            onBack = { showEditor = false; editingThemeId = null },
-            onSaved = { saved ->
-                CustomThemeStore.save(context, saved)
-                AppPrefs.setThemeKey(context, ThemePresets.CUSTOM_KEY_PREFIX + saved.id)
-                customListVersion++
-                // 保存即应用(2026-09-21 用户反馈): 无条件把 theme_key 落到本次保存的主题 —
-                // themeKeyFlow 只听 sleepy_prefs 的 theme_key, 只写 custom_themes 文件
-                // 不会触发 SleepyThemeProvider 重组, app 配色纹丝不动。新建主题此前更是
-                // "保存了但从没被应用过"。
-                refreshWidgets()
-                showEditor = false
-                editingThemeId = null
-            },
-            onDeleted = { id ->
-                CustomThemeStore.delete(context, id)
-                customListVersion++
-                // 删除的正是当前应用主题 → 写回 default(与 unknown-key 回落语义一致)
-                if (currentKey == ThemePresets.CUSTOM_KEY_PREFIX + id) {
-                    AppPrefs.setThemeKey(context, ThemePresets.DEFAULT_KEY)
+        val liveColors = Triple(MaterialTheme.colorScheme,
+            com.nevoit.glasense.theme.GlasenseTheme.colors,
+            com.nevoit.glasense.theme.GlasenseTheme.darkTheme)
+        var exitingColors by remember {
+            mutableStateOf<Triple<androidx.compose.material3.ColorScheme,
+                com.nevoit.glasense.theme.GlasenseColors, Boolean>?>(null)
+        }
+        fun closeEditor() {
+            // Capture this callback composition before recomposition applies the new global theme.
+            exitingColors = liveColors
+            showEditor = false
+            editingThemeId = null
+        }
+        val editorColors = exitingColors ?: liveColors
+        com.nevoit.glasense.theme.GlasenseTheme(darkTheme = editorColors.third, colors = editorColors.second) {
+            MaterialTheme(colorScheme = editorColors.first) {
+            CustomThemeEditorScreen(
+                editing = editorTheme,
+                nextThemeNumber = remember(customListVersion) { CustomThemeStore.getAll(context).size + 1 },
+                onBack = { closeEditor() },
+                onSaved = { saved ->
+                    CustomThemeStore.save(context, saved)
+                    AppPrefs.setThemeKey(context, ThemePresets.CUSTOM_KEY_PREFIX + saved.id)
+                    customListVersion++
+                    // 保存即应用(2026-09-21 用户反馈): 无条件把 theme_key 落到本次保存的主题 —
+                    // themeKeyFlow 只听 sleepy_prefs 的 theme_key, 只写 custom_themes 文件
+                    // 不会触发 SleepyThemeProvider 重组, app 配色纹丝不动。新建主题此前更是
+                    // "保存了但从没被应用过"。
                     refreshWidgets()
+                    closeEditor()
+                },
+                onDeleted = { id ->
+                    CustomThemeStore.delete(context, id)
+                    customListVersion++
+                    // 删除的正是当前应用主题 → 写回 default(与 unknown-key 回落语义一致)
+                    if (currentKey == ThemePresets.CUSTOM_KEY_PREFIX + id) {
+                        AppPrefs.setThemeKey(context, ThemePresets.DEFAULT_KEY)
+                        refreshWidgets()
+                    }
+                    closeEditor()
                 }
-                showEditor = false
-                editingThemeId = null
+            )
             }
-        )
+        }
     }
 }
 

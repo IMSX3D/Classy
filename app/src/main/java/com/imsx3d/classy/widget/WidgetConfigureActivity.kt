@@ -27,6 +27,7 @@ import com.imsx3d.classy.util.AppPrefs
  *   a different table.
  */
 class WidgetConfigureActivity : ComponentActivity() {
+    private var showsEditor = false
     private var appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +62,9 @@ class WidgetConfigureActivity : ComponentActivity() {
             return
         }
 
-        // Re-edit path: show the table picker.
+        // Re-edit path: show the table picker. First-add remains a non-visual launcher handshake.
+        showsEditor = true
+        com.imsx3d.classy.ui.nav.TaskActivityTransitions.install(this)
         Log.i(TAG, "re-edit: existing binding=$existingBinding, showing edit screen")
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -80,6 +83,11 @@ class WidgetConfigureActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        if (showsEditor) com.imsx3d.classy.ui.nav.TaskActivityTransitions.afterFinish(this)
     }
 
     private fun finishWithResult(resultCode: Int) {
