@@ -94,3 +94,25 @@
 ## 最终工程验证
 
 Debug 构建、2337 项 JVM 测试（0 失败/错误/跳过）、三 ABI 签名和 diff 检查通过。Lint 完成：0 错误，555 警告、21 提示；不把现有警告描述为已全部清零。日志 E:/C015/99-整理记录/interaction-stage1-final.log。交付 E:/C015/交付/Classy-InteractionStage1-20261011。无连接 Android 设备。仅本地提交，未推送，未修改版本、tag 或 Release。
+
+
+## W1 高频入口决策复核（2026-10-12）
+
+范围是首批入口，不能据此标记全部 19 路由已完成组件复核。下列源码以 app/src/main/java/com/imsx3d/classy/ 为根；设备已有证据见 INTERACTION_STAGE2_DEVICE.md，未提供本轮新视觉通过结论。
+
+| ID / 入口 | 操作目的与载体决策 | 状态、返回和动效事实 | 源码依据 / 下一动作 |
+| --- | --- | --- | --- |
+| NAV-MAIN-01 四个主标签 | 保留同级导航，窄屏底栏/悬浮 Dock，宽屏 Rail | MainTabs 使用 when 直接替换内容，无页面内容过渡；SaveableStateProvider 保留各标签状态。Dock 选中滑块使用 SleepyThumbSpring，Material 底栏/Rail 使用库实现 | MainActivity.kt MainTabs；ui/nav/SleepyNavHost.kt MainRoute；ui/component/PillNavigationBar.kt。需修正内容直接切换；先验证轻量同级过渡，不复用父子缩放，不任意添加大幅横移 |
+| NAV-MAIN-02 快速反向及主页面返回 | 返回非课表标签时回课表；课表标签按宿主退出语义 | 同级返回目前同样直接替换。若引入同时保留两页的过渡，管理页消费导入标志/观察草稿、SaveableStateProvider 快速重复 key 均需审查 | MainActivity.kt Manage 分支在 composition 内清除 autoShowImportOnceState；需先理清一次性事件归属，再接内容过渡；不直接机械 Crossfade |
+| COURSE-VIEW-01 课表/今日→课程详情 | 保留 ModalBottomSheet：短时查看与下一步操作，保留课表上下文 | skipPartiallyExpanded=true；内容可滚动，编辑按钮与关闭有 closing 防重；Material 负责显隐与拖动。不另叠缩放 | ui/component/CourseDetailSheet.kt。保留；冲突课程单选、短横屏与大字体待实测 |
+| COURSE-EDIT-01 详情→编辑 | 保留独立任务页：多个字段、多个时段和明确保存 | closeThen 等待 sheet.hide 后触发编辑；不是人为 sleep。此串行动效增加总耗时但避免叠层，待按实际片段测量，不直接删除等待 | CourseDetailSheet.kt；MainActivity.kt onEditCourse；ui/screen/edit/AddCourseScreen.kt。保留语义，测量衔接间隙 |
+| COURSE-EDIT-02 非首时段进入/返回 | 指定时段的完整编辑任务；修改后返回用放弃确认 | 数据未就绪不显示可编辑顶部占位；rememberLazyListState initialFirstVisibleItemIndex 定位，恢复位置优先。普通返回由导航负责，未保存修改拦截；父子进出 220ms/0.92 基线 | AddCourseScreen.kt；ui/nav/SleepyMaterialTransition.kt。已完成过真机第二时段、键盘放弃检查；旋转/保存失败/取消侧滑待验证 |
+| SETTINGS-NAV-01 我的→设置→课表显示/通用 | 保留导航行+箭头→子页面，目录不弹确认 | SettingsTopic 使用 SettingsGroupRow 按压反馈；子路由共用 sleepyForwardTransform、sleepyPopTransform、predictive transform。父子进入缩放+淡入，返回揭示静止父页 | ui/screen/mine/SettingsHomeScreen.kt；SleepyNavHost.kt；SleepyMaterialTransition.kt。保留；现有参数不因统一要求盲改，PERF-01 优先测该链 |
+| SETTINGS-SELECT-01 默认视图/时间显示/副信息/灰显 | 保留两到三个互斥值的分段选择，选择即应用 | SettingsSegmentedRow 按文字和宽度选择同排/上下排；公共选择器负责选中动画，不弹确认 | ui/screen/mine/ScheduleDisplayScreen.kt；ui/component/SettingsCards.kt；SegmentedSwitcher.kt。检查选中两方向、快速切回、长英文/字号后再定通过 |
+| SETTINGS-TOGGLE-01 高刷新率/双栏/隐藏空日等 | 独立布尔值，保留即时 Switch | 公共 SettingsSwitchRow 整行点击和 Switch 各有点击入口；开关两向动效交给 Material。存在双语义点击目标可能，需设备无障碍检查，不能只看外形统一 | SettingsCards.kt；GeneralSettingsScreen.kt；ScheduleDisplayScreen.kt。保留开关类型，复核语义合并与一次触发 |
+| SETTINGS-DAYS-01 显示星期 | 多个独立显示开关，不是互斥分段；保留“至少一天”的约束说明 | 七行自己实现 Row+Switch，同公共开关行重复；最后一天尝试关闭被拒绝，当前无额外即时反馈 | ScheduleDisplayScreen.kt。拟统一开关行接口并明确受限状态/反馈；不为省空间改为单选；需回归组件刷新与至少一天规则 |
+| SETTINGS-LANGUAGE-01 语言 | 当前值展开短单选列表可保留；不需要新页面或确认 | SettingsGroupFold 使用公共无回弹尺寸与箭头；选择会 recreate，重复点已选语言仍 recreate | GeneralSettingsScreen.kt。明确需修：已选值不重复重建；语言切换真实恢复与入口连续性单列，不能假称普通导航动效覆盖 Activity 重建 |
+| SETTINGS-RESET-01 恢复默认 | 保留危险操作确认，不使用普通开关 | 红色入口+说明+确认/取消；确认清设置并重排通知/组件、recreate，取消不执行 | GeneralSettingsScreen.kt。仅虚构测试数据验收，不在用户当前偏好上点确认；恢复过程仍需单独验收 |
+| SETTINGS-SLIDER-01 网格/周视图缩放 | 连续数值保留滑杆并显示数值；自动/手动是互斥模式 | 不能给每次移动增加弹窗；模式与滑杆可用性要一致，实时刷新/提交频率需测 | ScheduleDisplayScreen.kt；SettingsSliderRow。保留载体，频繁拖动与重组性能待验证 |
+
+本批结论：12 个稳定条目已作源码决策（含保留及需修改），不是 12 条设备验收通过。明确遗漏为主标签内容硬切、同语言重复重建；星期开关复用/边界反馈和整行无障碍语义为待细化项。PERF-01 的具体函数根因仍未知。

@@ -36,8 +36,10 @@ object AppIdentity {
     /** 仓库是否已配置：为空时关于页显示"搭建中"，更新检查整条停用。 */
     val hasRepo: Boolean get() = REPO_URL.isNotBlank() && REPO_SLUG.isNotBlank()
 
-    /** Independent debug installs must not offer the production APK as an update. */
-    val hasReleaseUpdates: Boolean get() = hasRepo && !com.imsx3d.classy.BuildConfig.DEBUG
+    /** Only the production identity can install production updates. */
+    val hasReleaseUpdates: Boolean get() = hasRepo &&
+        com.imsx3d.classy.BuildConfig.APPLICATION_ID == "com.imsx3d.classy" &&
+        !com.imsx3d.classy.BuildConfig.DEBUG
 
     /** 仓库 Issues 新建页（[hasRepo] 为 true 时才可用） */
     fun newIssueUrl(): String = "https://github.com/$REPO_SLUG/issues/new"

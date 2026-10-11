@@ -89,3 +89,33 @@
 仓库外证据：E:/C015/99-整理记录/stage2-real-device/。pickers.txt、gestures-foreground.txt、repository.txt 为最终分组结果；instrumentation.txt/gestures.txt 为中断结果；settings.mp4、edit.mp4、对应 gfx 文件及页面截图/XML；device-config.json；copy-build.txt。私有数据备份仅用于本地恢复，不随 APK 交付。
 
 后续优先：真机转场性能定位；主题/日期/时间页面级取消与恢复；作息编辑、提醒草稿；真实旋转/分屏、English/明亮/大字体；4×4 桌面与小组件添加；使用独立虚构课表完成保存、复制、删除和导出多数据源场景。真实学校登录、完整导入、预测返回中途取消、所有 19 路由全链仍未覆盖。第二阶段继续保持“进行中”。
+
+
+## 第三批：真实平板与性能跟踪（2026-10-12）
+
+用户临时收回手机并连接 vivo PA2553 平板，Android 16，1968×2800、400dpi，横屏约1120×787dp，深色中文，字号1.0。停止操作原手机。新增独立 benchmark 构建（.benchmark、非 debuggable、R8、profileable、Debug 本地签名），不覆盖正式/Debug 数据；非正式包不提供生产更新。平板原本无 Classy，本批使用空数据，不能与手机有课表的 Debug 样本直接比较。
+
+### 本批代码及验证
+
+- 首页无课表提示卡横屏铺满大部分宽度；修正为共享720dp阅读容器内居中，同时处理已有课表无课程的提示。真机截屏验证无课表修正；有表无课分支仅构建验证，后续补数据实测。
+- 通用语言单选：当前语言重复选中不再写偏好/重建 Activity。真机实际点击展开列表中的已选项后仍保留展开状态；第一次误点折叠标题的截图不作为该修复证据，以 same-language-option.png 为准。
+- W1 首批12个入口决策见第一阶段台账新增段落。主标签内容目前无过渡、管理页一次性事件与重组的关系、开关行语义/星期重复实现列为待修或调查，未声称本批完成这些修改。
+- Benchmark 与 Debug 构建成功；2337 JVM测试零失败/错误/跳过，arm64两种包签名校验通过。最终修正版 Benchmark 已安装平板。
+
+### 平板实际检查
+
+横屏：侧栏导航、我的→设置→显示/通用正常进入；提示卡限宽实看通过。
+竖屏：通过系统旋转实际重建/重排，通用页截图1968×2800；原加速度旋转=1、user_rotation=1在 finally 恢复并核对。
+系统分屏：通过系统顶部多窗口菜单选择分屏，另一侧打开系统设置作为占位。dumpsys确认Classy task为multi-window，约557dp窗口切底栏；进入课表显示并返回全屏后仍在该页面。证据split-active/split-display/after-split-display与split-activity.txt。未改变系统设置项；最终退出分屏并回课表。并非wm尺寸模拟；但尚未验证有数据双栏、编辑草稿和拖动中的跨断点。
+
+### 性能结果和局限
+
+基线为修复前Benchmark，空数据、横屏、不录屏，设置→显示→返回→通用→返回，三组gfxinfo分别：222帧/5超时(2.25%)、222/4(1.80%)、220/4(1.82%)；P95分别24/19/30ms，P99为40/38/36ms。这三组未严格分离首次进入与预热，并有UIAutomator取节点，因此只能作为探索基线，不能用来声称达到最终流畅度或修复带来百分比提升。
+
+随后使用45秒Perfetto采集相同导航链。初次配置路径遭ROM读取权限拒绝，改stdin输入后成功。分析工具官方存储首域不可达，使用同一官方bucket的storage.googleapis.com地址下载。完整trace在录制退出后重新拉取，分析成功。
+
+FrameTimeline归类：App Deadline Missed=15，App Deadline Missed+Buffer Stuffing=1，Buffer Stuffing=182，None=136。不要将Buffer Stuffing直接算成应用卡顿率。主线程汇总见trace-summary.txt：measure最大22.16ms、AndroidOwner:onMeasure最大22.06ms、Recomposer:recompose最大10.28ms。它们是包含子过程的耗时，不能相加；尚未逐慢帧关联到具体业务组件，不能宣布根因已经锁定。下一轮优先将页面进入测量与重组按单帧、具体组件细分，并去除UIAutomator观测干扰。没有改转场曲线掩盖慢帧。
+
+复现资料入仓库：tools/validation/PERFORMANCE_CAPTURE.md、classy-navigation.pbtxt、classy-navigation.sql。本地完整证据：E:/C015/99-整理记录/stage2-tablet-device/；构建日志tablet-benchmark-build.log、tablet-fixes-build.log位于上一级。设备截屏/trace含系统内容，不随源码或安装包公开。
+
+本批仍不标记第二阶段完成：首标签内容过渡、带数据的平板双栏/草稿、完整页面/组件状态与真实帧归因继续推进。无推送、无版本/tag/Release更改。

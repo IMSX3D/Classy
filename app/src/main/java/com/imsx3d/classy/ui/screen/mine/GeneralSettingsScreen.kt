@@ -125,6 +125,7 @@ fun GeneralSettingsScreen(onBack: () -> Unit) {
                                     selected = selected,
                                     role = androidx.compose.ui.semantics.Role.RadioButton,
                                     onClick = {
+                                        if (language == code) return@selectable
                                         language = code
                                         AppPrefs.setLanguage(context, code)
                                         (context as? android.app.Activity)?.recreate()

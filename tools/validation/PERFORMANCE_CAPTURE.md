@@ -1,0 +1,11 @@
+# Navigation performance capture
+
+Build `:app:assembleBenchmark`: release-derived R8 optimization, non-debuggable, profileable shell access, local debug signing, separate `.benchmark` identity and data. This is not an official release. Production updates are disabled for non-production identities. No debug-only sample sources are included.
+
+Choose the user-authorized serial explicitly (`adb -s SERIAL`), never select the first connected device. Install the arm64 benchmark APK. Record build commit/APK hash, device, rotation/window bounds, refresh rate, theme, font, animation settings, battery/thermal conditions and data fixture. Existing first tablet baseline is empty data/dark Chinese/landscape. Do not compare it directly with populated phone Debug samples.
+
+Navigate to My > Settings. Warm up Display and General once. Without recording video, reset `dumpsys gfxinfo com.imsx3d.classy.benchmark reset`, open Display, wait for settling, return; open General, wait, return. Capture gfxinfo. Repeat three groups with the same delays and navigation mechanism. Record first-entry separately when needed. UIAutomator inspection adds accessibility work and is part of this baseline's limitations; use prevalidated input positions or instrumentation in subsequent controlled measurements.
+
+Capture Perfetto using `classy-navigation.pbtxt`. Feed configuration through process stdin with `adb -s SERIAL shell perfetto --txt -c - -o /data/misc/perfetto-traces/classy-navigation.perfetto-trace`; some ROMs deny reading `/data/local/tmp`. Wait for the 45-second capture to exit successfully before pulling the file. Do not collect personal actions during the recording. Store traces/screenshots outside Git. Use `classy-navigation.sql` with an official trace processor to obtain initial summaries.
+
+These aggregates are investigation aids, not root-cause proof. Correlate individual late frames with main/render-thread slices and scheduling before changing code. Slice durations are inclusive and overlap. FrameTimeline Buffer Stuffing and App Deadline Missed are distinct; do not combine them into a claimed application-jank percentage. Verify improvements against the same fixture and build type, then visually check interruptions, reverse navigation and reduced motion separately.

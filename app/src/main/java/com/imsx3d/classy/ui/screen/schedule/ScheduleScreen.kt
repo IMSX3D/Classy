@@ -169,6 +169,7 @@ fun ScheduleScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 NoCourseState(
+                    modifier = Modifier.align(Alignment.Center),
                     tableName = state.currentTable?.name ?: "",
                     onAddCourse = onManualAdd,
                     onImport = onGoImport
@@ -805,6 +806,7 @@ private fun WeekNavButton(
 
 @Composable
 private fun NoCourseState(
+    modifier: Modifier = Modifier,
     tableName: String,
     onAddCourse: () -> Unit,
     onImport: () -> Unit
@@ -812,7 +814,8 @@ private fun NoCourseState(
     val colors = MaterialTheme.colorScheme
 
     Column(
-        modifier = Modifier
+        modifier = modifier
+            .widthIn(max = com.imsx3d.classy.ui.theme.ClassyLayout.readingWidth)
             .fillMaxWidth()
             .settingsCard(colors.surfaceContainer)
             .padding(horizontal = 22.dp, vertical = 24.dp),
@@ -857,6 +860,7 @@ private fun EmptyState(
 
     Column(
         modifier = modifier
+            .widthIn(max = com.imsx3d.classy.ui.theme.ClassyLayout.readingWidth)
             .padding(horizontal = 22.dp)
             .settingsCard(colors.surfaceContainer)
             .padding(horizontal = 22.dp, vertical = 24.dp),

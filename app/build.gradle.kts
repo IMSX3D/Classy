@@ -69,6 +69,15 @@ android {
             // Never distribute a release signed with the debug key.
             signingConfig = classySigning
         }
+        create("benchmark") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            // Optimized, profileable local build; never replaces production or Debug data.
+            applicationIdSuffix = ".benchmark"
+            versionNameSuffix = "-benchmark"
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     compileOptions {
