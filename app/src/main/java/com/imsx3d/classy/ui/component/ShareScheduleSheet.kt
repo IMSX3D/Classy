@@ -1,5 +1,7 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -54,7 +56,7 @@ fun ShareScheduleSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             Text(
                 text = stringResource(R.string.share_sheet_title),
                 style = MaterialTheme.typography.titleMedium,

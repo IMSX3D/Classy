@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,28 +93,32 @@ fun ExportScreen(
 
     // 导出目标 — 本地选择, 不污染主页 selectedTableId/widget 默认表。
     // 二元选择: courseTableId(课表) / periodTableId(作息表); null,null = 未选(跟随当前课表)
-    var exportTableId by remember { mutableStateOf<Long?>(null) }
-    var exportPeriodTableId by remember { mutableStateOf<Long?>(null) }
+    var exportTableId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var exportPeriodTableId by rememberSaveable { mutableStateOf<Long?>(null) }
     val effectiveId = if (exportPeriodTableId != null) null else (exportTableId ?: state.selectedTableId)
-    val table = state.tables.find { it.id == effectiveId } ?: state.currentTable
+    val table = state.tables.find { it.id == effectiveId }
     val selectedPeriodTable = allPeriodTables.find { it.id == exportPeriodTableId }
     val tables = state.tables
 
-    // 选中表的课程: 当前表直接用 state.courses(已观察), 其他表选中时本地加载一次
+    // A source owns its loading state; never borrow courses from the active table.
     var loadedCourses by remember(effectiveId) { mutableStateOf<List<CourseEntity>?>(null) }
-    LaunchedEffect(effectiveId, state.courses) {
-        val tid = effectiveId
-        if (table != null && tid != null && tid != state.selectedTableId) {
-            loadedCourses = withContext(Dispatchers.IO) {
-                SleepyApp.get().repository.getCourses(tid)
-            }
-        } else {
+    var loadFailed by remember(effectiveId) { mutableStateOf(false) }
+    var loadAttempt by remember(effectiveId) { mutableStateOf(0) }
+    LaunchedEffect(effectiveId, loadAttempt) {
+        val id = effectiveId ?: return@LaunchedEffect
+        loadFailed = false
+        try {
+            SleepyApp.get().repository.observeCourses(id).collect { loadedCourses = it }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
             loadedCourses = null
+            loadFailed = true
         }
     }
-    val courses = loadedCourses ?: state.courses
+    val courses = loadedCourses.orEmpty()
 
-    var showTablePicker by remember { mutableStateOf(false) }
+    var showTablePicker by rememberSaveable { mutableStateOf(false) }
 
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
@@ -126,7 +131,14 @@ fun ExportScreen(
         if (table == null && selectedPeriodTable == null) {
             item {
                 Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.export_no_table), color = colors.onSurfaceVariant)
+                    Column {
+                        Text(stringResource(R.string.export_no_table), color = colors.onSurfaceVariant)
+                        if (tables.isNotEmpty() || allPeriodTables.isNotEmpty()) {
+                            androidx.compose.material3.TextButton(onClick = { showTablePicker = true }) {
+                                Text(stringResource(R.string.export_pick_table))
+                            }
+                        }
+                    }
                 }
             }
             return@SettingsScaffold
@@ -171,6 +183,8 @@ fun ExportScreen(
                     text = if (selectedPeriodTable != null) {
                         periodTablesTitle + " · " +
                             periodTableNodesCount.format(selectedPeriodTable.nodesPerDay)
+                    } else if (loadedCourses == null) {
+                        stringResource(if (loadFailed) R.string.export_source_load_failed else R.string.loading)
                     } else {
                         "${exportCourseCount.format(courses.size)} · ${exportStartDate.format(table?.startDate ?: "")}"
                     },
@@ -225,6 +239,12 @@ fun ExportScreen(
                         }
                     )
                 }
+            }
+        } else if (table != null && loadedCourses == null) {
+            item {
+                if (loadFailed) androidx.compose.material3.TextButton(onClick = { loadAttempt++ }) {
+                    Text(stringResource(R.string.holiday_data_retry))
+                } else androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
             }
         } else if (table != null) {
         item {

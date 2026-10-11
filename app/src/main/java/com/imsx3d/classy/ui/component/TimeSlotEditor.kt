@@ -46,6 +46,7 @@ import com.imsx3d.classy.util.TimeTableUtils
 import com.imsx3d.classy.util.TimeTableUtils.TimeSlotRow
 import com.imsx3d.classy.ui.component.GlasenseIconButton
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 
 /**
  * issue#23 Task 4: 进自动模式的配置归一 —— 手动行与智慧节次配置双向同步的纯逻辑。
@@ -158,7 +159,8 @@ fun TimeSlotEditor(
 
 
     var modeError by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingSeed by remember { mutableStateOf<SmartPeriodConfig?>(null) }
+    var pendingSeedJson by rememberSaveable { mutableStateOf<String?>(null) }
+    val pendingSeed = decodeSmartPeriodConfig(pendingSeedJson)
     var generatedNotice by rememberSaveable { mutableStateOf(false) }
 
     // Bug 2 fix: 自动模式下，smartConfig 一旦变化就立刻 derive 出 rows 同步给上层，
@@ -176,13 +178,14 @@ fun TimeSlotEditor(
         if (resolved == null) {
             val seed = missingTimeAutoSeed(rows)
             if (seed != null) {
-                pendingSeed = seed
+                pendingSeedJson = Json.encodeToString(seed)
                 modeError = null
             } else {
                 modeError = "当前节次不连续或时间有重叠，请先在逐节编辑中调整。原时间已保留。"
             }
         } else {
             modeError = null
+            if (clearBindingOnEdit && (selectedPeriodTableId ?: 0L) > 0L) onSelectPeriodTable(null)
             onSmartConfigChange(resolved)
             mode = Mode.Auto
         }
@@ -193,7 +196,7 @@ fun TimeSlotEditor(
         ModeTabSwitch(
             current = mode,
             onChange = { next ->
-                if (clearBindingOnEdit && (selectedPeriodTableId ?: 0L) > 0L && next != Mode.PeriodTable) onSelectPeriodTable(null)
+                if (clearBindingOnEdit && (selectedPeriodTableId ?: 0L) > 0L && next == Mode.Manual) onSelectPeriodTable(null)
                 if (next == Mode.Auto) switchToAuto() else mode = next
             },
             hasPeriodTableTab = periodTableOptions.isNotEmpty() || selectedPeriodTableId != null
@@ -224,16 +227,17 @@ fun TimeSlotEditor(
         }
     }
     pendingSeed?.let { seed ->
-        AlertDialog(onDismissRequest = { pendingSeed = null },
+        AlertDialog(onDismissRequest = { pendingSeedJson = null },
             title = { Text("自动设置缺失的作息时间") },
             text = { Text("已保留 ${seed.totalPeriods} 个节次。将以 ${seed.startTime} 开始、每节 45 分钟、课间 10 分钟生成可编辑示例，替换当前普通节次时间。请随后按学校作息设置午休和下午开始时间；课程内容不会改变。") },
             confirmButton = { TextButton(onClick = {
+                if (clearBindingOnEdit && (selectedPeriodTableId ?: 0L) > 0L) onSelectPeriodTable(null)
                 onSmartConfigChange(seed)
                 generatedNotice = true
-                pendingSeed = null
+                pendingSeedJson = null
                 mode = Mode.Auto
             }) { Text("进入自动安排") } },
-            dismissButton = { TextButton(onClick = { pendingSeed = null }) { Text("取消") } })
+            dismissButton = { TextButton(onClick = { pendingSeedJson = null }) { Text("取消") } })
     }
 }
 

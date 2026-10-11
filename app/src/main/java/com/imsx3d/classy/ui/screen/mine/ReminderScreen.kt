@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -222,11 +223,11 @@ fun ReminderScreen(onBack: () -> Unit) {
     var tomorrowTime by remember { mutableStateOf(AppPrefs.getTomorrowReminderTime(context)) }
     var beforeClassEnabled by remember { mutableStateOf(AppPrefs.isBeforeClassEnabled(context)) }
     var beforeClassMinutes by remember { mutableStateOf(AppPrefs.getBeforeClassMinutes(context)) }
-    var timePickerTarget by remember { mutableStateOf<DailyReminderTimeTarget?>(null) }
-    var minutesDialog by remember { mutableStateOf(false) }
+    var timePickerTarget by rememberSaveable { mutableStateOf<DailyReminderTimeTarget?>(null) }
+    var minutesDialog by rememberSaveable { mutableStateOf(false) }
     // 提前分钟输入态：用 TextFieldValue 而不是 String —— String 版内部初值是 selection=0，
     // 自动聚焦后光标停在"10"前面，再敲数字会变成"510"（UI-26a 真机发现）。
-    var minutesInput by remember { mutableStateOf(TextFieldValue(beforeClassMinutes.toString())) }
+    var minutesInput by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(beforeClassMinutes.toString())) }
     var fluidEnabled by remember { mutableStateOf(AppPrefs.isBeforeClassFluidEnabled(context)) }
     var bannerEnabled by remember { mutableStateOf(AppPrefs.isBeforeClassBannerEnabled(context)) }
     var fluidPrimary by remember { mutableStateOf(AppPrefs.getBeforeClassFluidPrimary(context)) }
@@ -247,18 +248,6 @@ fun ReminderScreen(onBack: () -> Unit) {
     val beforeClassPreviewText = schedulePreview?.let {
         buildBeforeClassPreviewText(context, it)
     } ?: stringResource(R.string.reminder_before_class_preview)
-
-    // debounce：分钟输入停止 500ms 后才持久化并重排提醒，
-    //   避免每敲一键就触发一次全量 cancelAll + scheduleAll（查库 + 重排全部闹钟）。
-    LaunchedEffect(minutesInput.text) {
-        val raw = minutesInput.text
-        if (raw.isBlank()) return@LaunchedEffect
-        delay(500)
-        val v = raw.toIntOrNull()?.coerceIn(1, 999) ?: return@LaunchedEffect
-        beforeClassMinutes = v
-        AppPrefs.setBeforeClassMinutes(context, v)
-        SleepyApp.get().notificationScheduler.scheduleAll()
-    }
 
     // 输入框唯一的写入口：只留数字、最多 3 位，且光标恒在末尾（数字字段的追加式输入语义）
     fun setMinutesInput(text: String) {
@@ -617,7 +606,16 @@ fun ReminderScreen(onBack: () -> Unit) {
                     Spacer(modifier = Modifier.height(4.dp))
                     com.imsx3d.classy.ui.component.DialogActionButtons(
                         confirmText = stringResource(R.string.action_confirm),
-                        onConfirm = { minutesDialog = false },
+                        confirmEnabled = minutesInput.text.toIntOrNull() in 1..999,
+                        onConfirm = {
+                            val minutes = minutesInput.text.toIntOrNull()
+                            if (minutes != null && minutes in 1..999) {
+                                beforeClassMinutes = minutes
+                                AppPrefs.setBeforeClassMinutes(context, minutes)
+                                SleepyApp.get().notificationScheduler.scheduleAll()
+                                minutesDialog = false
+                            }
+                        },
                         dismissText = stringResource(R.string.action_cancel),
                         onDismiss = { minutesDialog = false }
                     )

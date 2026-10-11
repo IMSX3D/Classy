@@ -53,14 +53,24 @@ fun AllTablesScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val failureMessage = stringResource(R.string.editor_action_failed)
+    val actions = androidx.compose.runtime.remember(failureMessage) {
+        com.imsx3d.classy.ui.component.EditorActionState(failureMessage)
+    }
+    androidx.activity.compose.BackHandler(enabled = actions.busy) { }
 
     // UI-7b: 页头统一成「我的」页那套 32sp 大标题 + 返回行（原来 M3 小标题顶栏）
     SettingsScaffold(
         title = stringResource(R.string.all_tables),
-        onBack = onBack,
+        onBack = { if (!actions.busy) onBack() },
         verticalSpacing = 12.dp
     ) {
-        item { Spacer(modifier = Modifier.height(4.dp)) }
+        item {
+            if (actions.busy) Text(stringResource(R.string.editor_working))
+            actions.error?.let { Text(it, color = colors.error) }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         itemsIndexed(state.tables, key = { _, table -> table.id }) { _, table ->
             val isCurrent = table.id == state.selectedTableId
@@ -73,7 +83,7 @@ fun AllTablesScreen(
                         .fillMaxWidth()
                         .semantics { selected = isCurrent; role = Role.RadioButton }
                         .noRippleClickable {
-                            if (!isCurrent) {
+                            if (!isCurrent && !actions.busy) {
                                 // v7.10.16w 用户 2026-09-10: 选表后留在本页(选中态就地高亮),
                                 // 不再强制弹回 — 用户可能还要复制/编辑其他副本。返回键/← 离开。
                                 viewModel.selectTable(table.id)
@@ -141,7 +151,8 @@ fun AllTablesScreen(
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
                         contentColor = if (isCurrent) colors.onPrimaryContainer else colors.primary
                     ),
-                    onClick = { viewModel.duplicateTable(table.id) }) {
+                    enabled = !actions.busy,
+                    onClick = { actions.launch(scope) { viewModel.awaitDuplicateTable(table.id) } }) {
                         Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.all_tables_duplicate))
@@ -150,6 +161,7 @@ fun AllTablesScreen(
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
                         contentColor = if (isCurrent) colors.onPrimaryContainer else colors.primary
                     ),
+                    enabled = !actions.busy,
                     onClick = { onOpenEditTable(table.id) }) {
                         Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
@@ -162,7 +174,8 @@ fun AllTablesScreen(
         item {
             GlasenseButton(
                 text = stringResource(R.string.all_tables_new),
-                onClick = onCreateNewTable,
+                onClick = { if (!actions.busy) onCreateNewTable() },
+                enabled = !actions.busy,
                 leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) }
             )
         }

@@ -245,7 +245,7 @@ fun AddCourseScreen(
     // rememberSaveable: 旋转/配置变更时 Activity 重建, remember 会丢明细列表导致弹窗消失
     var pendingConflictDetails by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
     // 改组色弹层状态(issue#22 spec §6.2 恢复): 编辑模式才有组色源, 新建模式无组
-    var showGroupColorPicker by remember { mutableStateOf(false) }
+    var showGroupColorPicker by rememberSaveable { mutableStateOf(false) }
     // 组色源色值: 同组 colorMode=GROUP 中 id 最小行的 color — UI 显示 + 改组色弹层初值。
     // 编辑回填 LaunchedEffect 里更新;新建模式恒空串(显示"自动(黄金角)",不显示改组色入口)
     var groupSourceColorHex by rememberSaveable { mutableStateOf("") }
@@ -1887,7 +1887,7 @@ private fun ColorSection(
 ) {
     val colors = MaterialTheme.colorScheme
     val useDifferent = block.colorModeState != com.imsx3d.classy.data.entity.CourseColorMode.GROUP
-    var showColorPicker by remember { mutableStateOf(false) }
+    var showColorPicker by rememberSaveable { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(

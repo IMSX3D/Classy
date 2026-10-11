@@ -1,5 +1,8 @@
 package com.imsx3d.classy.ui.screen.mine
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -796,7 +799,7 @@ private fun HolidayRangeEditDialog(
         textContentColor = colors.onSurfaceVariant,
         title = { Text(stringResource(if (isNew) R.string.holiday_add_title else R.string.holiday_edit_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DatePickerField(
                     value = startText,
                     onValueChange = { startText = it },

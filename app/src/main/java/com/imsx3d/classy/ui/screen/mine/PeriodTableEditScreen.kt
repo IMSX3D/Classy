@@ -102,7 +102,8 @@ fun PeriodTableEditScreen(
         return
     }
 
-    val periodTable = periodTables.find { it.id == periodTableId }
+    var deletingTable by remember(periodTableId) { mutableStateOf<PeriodTableEntity?>(null) }
+    val periodTable = deletingTable ?: periodTables.find { it.id == periodTableId }
     if (periodTable == null) {
         Scaffold(containerColor = colors.background) { padding ->
             Column(
@@ -396,7 +397,7 @@ fun PeriodTableEditScreen(
     if (pendingPreview != null && pendingSave != null) {
         val boundCount = scheduleState.tables.count { it.periodTableId == periodTable.id }
         AlertDialog(
-            onDismissRequest = { pendingPreview = null; pendingSave = null },
+            onDismissRequest = { if (!actions.busy) { pendingPreview = null; pendingSave = null } },
             title = { Text(stringResource(R.string.period_table_save_preview_title), color = colors.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -443,8 +444,6 @@ fun PeriodTableEditScreen(
                         confirmText = stringResource(R.string.period_table_preview_confirm),
                         onConfirm = {
                             val toSave = pendingSave!!
-                            pendingPreview = null
-                            pendingSave = null
                             // issue#40: 已确认保存 — 新建行的丢弃标记解除, 返回不再清行
                             actions.launch(scope) {
                                 viewModel.awaitUpdatePeriodTableContent(toSave)
@@ -465,7 +464,7 @@ fun PeriodTableEditScreen(
     // v1.0.56 T7: 删除确认弹窗(原管理页逻辑整体迁移, 语义不变)
     if (showDeleteConfirm) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
+            onDismissRequest = { if (!actions.busy) showDeleteConfirm = false },
             title = { Text(stringResource(R.string.period_table_delete_confirm), color = colors.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -477,12 +476,19 @@ fun PeriodTableEditScreen(
                         confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.delete),
                         onConfirm = {
-                            showDeleteConfirm = false
                             actions.launch(scope) {
-                                val ok = viewModel.deletePeriodTable(periodTable.id)
+                                deletingTable = periodTable
+                                val ok = try {
+                                    viewModel.deletePeriodTable(periodTable.id)
+                                } catch (failure: Exception) {
+                                    deletingTable = null
+                                    throw failure
+                                }
                                 if (ok) {
                                     onBack()
                                 } else {
+                                    deletingTable = null
+                                    showDeleteConfirm = false
                                     val bound = scheduleState.tables.count { it.periodTableId == periodTable.id }
                                     deleteBlockedMsg = deleteBlockedFormat.format(bound)
                                 }

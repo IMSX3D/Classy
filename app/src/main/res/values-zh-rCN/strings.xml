@@ -1056,4 +1056,5 @@
     <string name="import_routine_title">作息时间</string>
     <string name="import_routine_local">使用本次导入的时间</string>
     <string name="import_routine_incomplete">时间尚未填完整，点此设置。</string>
+    <string name="export_source_load_failed">课表加载失败，请重试。</string>
 </resources>

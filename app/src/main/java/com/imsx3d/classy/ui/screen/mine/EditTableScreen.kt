@@ -98,8 +98,11 @@ fun EditTableScreen(
         return
     }
 
-    // tableId == null means edit current table
-    val table = if (tableId != null) state.tables.find { it.id == tableId } else state.currentTable
+    // Keep this task's deleted entity visible until its navigation exit completes.
+    var deletingTable by remember(tableId) {
+        mutableStateOf<com.imsx3d.classy.data.entity.TimeTableEntity?>(null)
+    }
+    val table = deletingTable ?: (if (tableId != null) state.tables.find { it.id == tableId } else state.currentTable)
 
     if (table == null) {
         Scaffold(containerColor = colors.background) { padding ->
@@ -380,7 +383,7 @@ fun EditTableScreen(
 
     if (showDeleteConfirm) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
+            onDismissRequest = { if (!actions.busy) showDeleteConfirm = false },
             confirmButton = {},
             // 防呆: 删表=连带删全部课程, 明示数量让用户知道要失去多少数据
             // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
@@ -403,10 +406,15 @@ fun EditTableScreen(
                         confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.delete),
                         onConfirm = {
-                            showDeleteConfirm = false
                             actions.launch(scope) {
-                                viewModel.awaitDeleteTable(table.id)
-                                onDeleted()
+                                deletingTable = table
+                                try {
+                                    viewModel.awaitDeleteTable(table.id)
+                                    onDeleted()
+                                } catch (failure: Exception) {
+                                    deletingTable = null
+                                    throw failure
+                                }
                             }
                         },
                         dismissText = stringResource(R.string.cancel),
@@ -422,7 +430,7 @@ fun EditTableScreen(
     if (pendingRebind != null) {
         val targetId = pendingRebind
         AlertDialog(
-            onDismissRequest = { pendingRebind = null },
+            onDismissRequest = { if (!actions.busy) pendingRebind = null },
             title = { Text(stringResource(R.string.period_table_bind_preview_title), color = colors.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -437,7 +445,6 @@ fun EditTableScreen(
                         confirmEnabled = !actions.busy,
                         confirmText = stringResource(R.string.period_table_preview_confirm),
                         onConfirm = {
-                            pendingRebind = null
                             actions.launch(scope) {
                                 viewModel.saveTableEditor(table.copy(
                                     name = name.ifBlank { table.name },

@@ -1038,4 +1038,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="import_routine_title">Class times</string>
     <string name="import_routine_local">Use times from this import</string>
     <string name="import_routine_incomplete">Some times are missing. Tap to set them.</string>
+    <string name="export_source_load_failed">Could not load this timetable. Please retry.</string>
 </resources>

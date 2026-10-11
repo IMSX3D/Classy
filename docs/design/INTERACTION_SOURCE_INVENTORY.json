@@ -1,0 +1,683 @@
+{
+  "scope": "src/main UI only; lexical inventory, not device acceptance",
+  "activities": [
+    ".MainActivity",
+    ".ui.screen.imports.ImportReceiverActivity",
+    ".ui.screen.imports.JwImportActivity",
+    ".widget.WidgetConfigureActivity",
+    ".widget.PinWidgetActivity",
+    ".widget.WidgetLabActivity"
+  ],
+  "files": [
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/AdaptiveTimeRangeFields.kt",
+      "composables": [
+        "AdaptiveTimeRangeFields",
+        "AdaptiveEditorFields"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/ColorPickerDialog.kt",
+      "composables": [
+        "ColorPickerDialog",
+        "SVPanel",
+        "HueSlider"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/ConflictCard.kt",
+      "composables": [
+        "ConflictClusterCard",
+        "DashOutline",
+        "ConflictCourseCard",
+        "ConflictBadge",
+        "ConflictCoursePickerDialog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/CourseCompletionState.kt",
+      "composables": [
+        "rememberCourseClock",
+        "CourseCompletionProvider"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/CourseDetailSheet.kt",
+      "composables": [
+        "CourseDetailSheet",
+        "DefaultTopPickerSection",
+        "SheetHeader",
+        "TimeChip",
+        "DetailRow"
+      ],
+      "dialogs": 0,
+      "sheets": 1,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/CourseMoveDialog.kt",
+      "composables": [
+        "CourseMoveDialog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/CourseTableView.kt",
+      "composables": [
+        "CardsGridView",
+        "SingleTimeHeadCell",
+        "CourseOverlayCard",
+        "DayMarkBadge",
+        "DayHeadCell",
+        "FullWeekView",
+        "WeekStrip",
+        "DaySummaryCell",
+        "DetailPanel",
+        "DayColumn",
+        "DetailDayCard",
+        "LessonRow",
+        "SectionHead"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/DateTimePickers.kt",
+      "composables": [
+        "DatePickerField",
+        "TimePickerField"
+      ],
+      "dialogs": 2,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/DialogActionButtons.kt",
+      "composables": [
+        "DialogActionButtons",
+        "BlockButton"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/DiscardChangesDialog.kt",
+      "composables": [
+        "DiscardChangesDialog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/GlasenseSnackbarHost.kt",
+      "composables": [
+        "GlasenseSnackbarHost"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/GridCourseInteraction.kt",
+      "composables": [
+        "BoxScope"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/ImportReviewPage.kt",
+      "composables": [
+        "ImportReviewPage"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/ImportRoutineField.kt",
+      "composables": [
+        "ImportRoutineField"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/PeriodTableShareSheet.kt",
+      "composables": [
+        "PeriodTableShareSheet"
+      ],
+      "dialogs": 0,
+      "sheets": 1,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/PillNavigationBar.kt",
+      "composables": [
+        "PillNavigationBar",
+        "DockNavigationBar"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/RoutineEditor.kt",
+      "composables": [
+        "SmartPeriodEditor",
+        "RoutinePreviewRow",
+        "RoutineNumber"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/SegmentedSwitcher.kt",
+      "composables": [],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/SettingsCards.kt",
+      "composables": [
+        "SectionHeader",
+        "SettingsPageHeader",
+        "SettingsScaffold",
+        "SettingsGroupCard",
+        "Modifier",
+        "SettingsGroupRow",
+        "SettingsSwitchRow",
+        "SettingsGroupFold",
+        "SettingsRowDivider",
+        "SettingsNoteRow",
+        "segmentedTabWidth",
+        "SettingsSegmentedRow",
+        "SettingsRowSegmented",
+        "DisplayModeOption",
+        "GlasenseIconButton",
+        "GlasenseButton",
+        "GlasenseSlider",
+        "SettingsSliderRow",
+        "BoxScope",
+        "GlasenseRadio",
+        "GlasenseProgressBar",
+        "GlasenseSpinner"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/ShareScheduleSheet.kt",
+      "composables": [
+        "ShareScheduleSheet"
+      ],
+      "dialogs": 0,
+      "sheets": 1,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/SleepyMotion.kt",
+      "composables": [
+        "sleepyExpandEnter",
+        "sleepyExpandExit",
+        "sleepyIndicatorSpec"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/SmartPeriodEditor.kt",
+      "composables": [
+        "AdvancedSmartPeriodEditor",
+        "BreakGroupSection",
+        "DurationGroupSection",
+        "AssignmentGroupSection",
+        "PositionCard",
+        "PreviewList",
+        "NumberField",
+        "AddBreakChip"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/SupportingText.kt",
+      "composables": [
+        "SupportingText"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/TimeSlotEditor.kt",
+      "composables": [
+        "TimeSlotEditor",
+        "ModeTabSwitch",
+        "PeriodTableBindTab",
+        "BindChoiceRow",
+        "ManualTimeSlotEditor",
+        "TimeSlotRowItem"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/component/WhatsNewDialog.kt",
+      "composables": [
+        "WhatsNewDialog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/edit/AddCourseScreen.kt",
+      "composables": [
+        "AddCourseScreen",
+        "ValidationCard",
+        "CardSection",
+        "SwitchRow",
+        "MeetingBlockEditor",
+        "MeetingBlockSummary",
+        "IrregularOptionsSection",
+        "EdgeCandidatePickerDialog",
+        "NewEdgeSlotDialog",
+        "SlotEditDialog",
+        "GroupColorSection",
+        "ColorSection",
+        "GroupColorSwatch",
+        "MultiDayPicker",
+        "NumberField",
+        "AutoColorDot",
+        "CustomColorDot"
+      ],
+      "dialogs": 7,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/imports/ExitDraftState.kt",
+      "composables": [
+        "ExitDraftConfirmationDialog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/imports/ImportDraftSheet.kt",
+      "composables": [
+        "ImportDraftSheet",
+        "ImportDraftRow"
+      ],
+      "dialogs": 0,
+      "sheets": 1,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/imports/ImportSheet.kt",
+      "composables": [
+        "ImportSheet",
+        "ImportMethodRow",
+        "FormatRow",
+        "FormatDetailDialog",
+        "ImportPreviewDialog",
+        "PreviewMetricCard",
+        "PreviewInfoRow",
+        "ImportConfirmDialog"
+      ],
+      "dialogs": 4,
+      "sheets": 1,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt",
+      "composables": [
+        "JwWebViewLoginScreen",
+        "JwWebView",
+        "CaptureBar"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/imports/SchoolSelectScreen.kt",
+      "composables": [
+        "SchoolSelectScreen",
+        "CustomUrlEntryRow",
+        "SectionHeader",
+        "AlphabetIndexBar",
+        "SchoolRow",
+        "SchoolStatusBadge",
+        "UrlDirectRow",
+        "EmptyState"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/manage/ManagementPage.kt",
+      "composables": [
+        "ManagementPage",
+        "ManageCard"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/AboutScreen.kt",
+      "composables": [
+        "AboutScreen",
+        "RowChevron",
+        "InitialAvatar",
+        "Footnote",
+        "UpdateBanner"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/AllTablesScreen.kt",
+      "composables": [
+        "AllTablesScreen"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/AppearanceScreen.kt",
+      "composables": [
+        "AppearanceScreen",
+        "SystemThemeCard",
+        "PresetThemeCard",
+        "ColorSwatch",
+        "NewThemeCard",
+        "DashedCircleWithPlus",
+        "CustomThemeCard",
+        "CourseAppearanceChoices"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/ControlGalleryScreen.kt",
+      "composables": [
+        "ControlGalleryScreen"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/CourseListScreen.kt",
+      "composables": [
+        "CourseListScreen",
+        "CourseMasterPane",
+        "CourseGroupCard",
+        "MetaRow",
+        "ArrangementRow"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/CustomThemeEditorScreen.kt",
+      "composables": [
+        "CustomThemeEditorScreen",
+        "ActionEntry",
+        "RoleRow",
+        "DraftPreview"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/EditTableScreen.kt",
+      "composables": [
+        "EditTableScreen",
+        "CardSection"
+      ],
+      "dialogs": 2,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/ExportScreen.kt",
+      "composables": [
+        "ExportScreen",
+        "PickerRow",
+        "ExportItem",
+        "Divider"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/GeneralSettingsScreen.kt",
+      "composables": [
+        "GeneralSettingsScreen"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/HolidaySettingsScreen.kt",
+      "composables": [
+        "HolidaySettingsScreen",
+        "HolidayTransferCard",
+        "HolidayOrphanCard",
+        "HolidayTransferRow",
+        "HolidayRemovedCard",
+        "HolidayRangeEditDialog"
+      ],
+      "dialogs": 2,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/LicenseScreen.kt",
+      "composables": [
+        "LicenseScreen",
+        "AttributionCard",
+        "SectionHeader",
+        "LicenseCard"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/MineScreen.kt",
+      "composables": [
+        "MineScreen",
+        "StatItem",
+        "StatColumnDivider",
+        "RowHairline",
+        "SettingsRow"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/PeriodTableEditScreen.kt",
+      "composables": [
+        "PeriodTableEditScreen"
+      ],
+      "dialogs": 4,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/PeriodTablesScreen.kt",
+      "composables": [
+        "PeriodTablesScreen"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 1
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/ReminderScreen.kt",
+      "composables": [
+        "ReminderScreen",
+        "ReminderTimeValueRow"
+      ],
+      "dialogs": 2,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/ScheduleDisplayScreen.kt",
+      "composables": [
+        "ScheduleDisplayScreen"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/SettingsHomeScreen.kt",
+      "composables": [
+        "SettingsHomeScreen",
+        "SettingsTopic"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/UpdateChangelogDialog.kt",
+      "composables": [
+        "UpdateChangelogDialog",
+        "MarkdownChangelog"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/schedule/ScheduleScreen.kt",
+      "composables": [
+        "ScheduleScreen",
+        "TableSwitcherDialog",
+        "TopBar",
+        "WeekNavButton",
+        "NoCourseState",
+        "EmptyState"
+      ],
+      "dialogs": 1,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/today/TodayScreen.kt",
+      "composables": [
+        "TodayScreen",
+        "TodayContent",
+        "TodayHeroHeader",
+        "StatPill",
+        "SectionLabel",
+        "EmptyToday",
+        "TodayCourseCard"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetAddPanel.kt",
+      "composables": [
+        "WidgetAddPanel"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetEditAliasSection.kt",
+      "composables": [
+        "Content",
+        "OptionRow"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetEditScheduleSection.kt",
+      "composables": [
+        "Content",
+        "DefaultRow",
+        "TableRow"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetEditScreen.kt",
+      "composables": [
+        "WidgetEditScreen"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetEditSection.kt",
+      "composables": [
+        "Content"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/widget/WidgetManagementScreen.kt",
+      "composables": [
+        "WidgetManagementScreen",
+        "PlacedWidgetRow"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
+    }
+  ]
+}

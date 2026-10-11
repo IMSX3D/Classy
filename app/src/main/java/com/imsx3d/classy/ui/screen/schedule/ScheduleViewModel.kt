@@ -227,25 +227,33 @@ class ScheduleViewModel : ViewModel() {
      * (此前两步写两次覆盖快照, 撤回只删掉课程行留下空表壳)。
      */
     fun duplicateTable(id: Long) {
-        viewModelScope.launch {
-            val source = repo.getTable(id) ?: return@launch
-            val courses = repo.getCourses(id)
-            val existingNames = repo.getAllTables().map { it.name }
-            var index = 2
-            var name = "${source.name}2"
-            while (name in existingNames) { index++; name = "${source.name}$index" }
-            repo.atomicEdit {
-                val newId = repo.insertTable(
-                    source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis())
-                )
-                if (courses.isNotEmpty()) {
-                    // groupId 整组映射到新 UUID — 同一门课的节次共享新组 ID, 副本内仍可整组编辑
-                    val groupMap = courses.associate { it.groupId to java.util.UUID.randomUUID().toString() }
-                    repo.insertCourses(courses.map { it.copy(id = 0, groupId = groupMap[it.groupId] ?: it.groupId, tableId = newId) })
-                }
+        viewModelScope.launch { awaitDuplicateTable(id) }
+    }
+
+    suspend fun awaitDuplicateTable(id: Long) {
+        val source = requireNotNull(repo.getTable(id)) { "Timetable no longer exists" }
+        val courses = repo.getCourses(id)
+        val existingNames = repo.getAllTables().map { it.name }
+        var index = 2
+        var name = "${source.name}2"
+        while (name in existingNames) { index++; name = "${source.name}$index" }
+        repo.atomicEdit {
+            val newId = repo.insertTable(
+                source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis())
+            )
+            if (courses.isNotEmpty()) {
+                // groupId 整组映射到新 UUID — 同一门课的节次共享新组 ID, 副本内仍可整组编辑
+                val groupMap = courses.associate { it.groupId to java.util.UUID.randomUUID().toString() }
+                repo.insertCourses(courses.map { it.copy(id = 0, groupId = groupMap[it.groupId] ?: it.groupId, tableId = newId) })
             }
-            com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(com.imsx3d.classy.SleepyApp.get())
         }
+        // Copy already committed: a launcher refresh failure must not invite another copy.
+        try {
+            com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(com.imsx3d.classy.SleepyApp.get())
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) { }
+
     }
 
     /** Create a new empty table with auto-generated name.

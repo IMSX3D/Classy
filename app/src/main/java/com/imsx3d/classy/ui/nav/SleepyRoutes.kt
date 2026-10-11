@@ -34,14 +34,13 @@ sealed interface SleepyRoute : NavKey {
 }
 
 /**
- * 是否是「正在填内容的表单页」(新增/编辑课程、编辑课表、编辑作息表)。
- *
- * 组件点击直达课表要回到主页面(见 MainActivity.openScheduleOnceState),但**不能**把
- * 这几类页面一并弹掉 —— 用户可能填了一半,弹栈 = 输入丢失。二级设置页(外观/通用/
- * 提醒/节假日…)都是即改即生效,没有未保存态,可以放心弹。
- * 宁可这次少跳一步,也不丢用户已经填的内容。
+ * External widget navigation must not pop routes that may own unsubmitted input.
+ * Besides full editors, theme/reminder/holiday/copy dialogs can hold local drafts.
+ * Protect their host conservatively; ordinary navigation still follows its own back rules.
  */
 fun NavKey.holdsUnsavedInput(): Boolean = when (this) {
-    is SleepyRoute.AddCourse, is SleepyRoute.EditTable, is SleepyRoute.PeriodEdit -> true
+    is SleepyRoute.AddCourse, is SleepyRoute.EditTable, is SleepyRoute.PeriodEdit,
+    SleepyRoute.Appearance, SleepyRoute.Reminder, SleepyRoute.Holiday,
+    SleepyRoute.PeriodTables -> true
     else -> false
 }
