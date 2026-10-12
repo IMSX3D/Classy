@@ -172,3 +172,13 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 模拟器API35：1600×1100/density160、900×480/density160、字体1.5，明亮/深色导航截图rail-wide-emulator.png、rail-short-emulator.png、rail-short-dark-emulator.png。三套RemoteViews在160×250、300×140、200×200dp，白/黑底，关闭outline裁切后实际绘制四角透明且填满宿主，仪器测试通过。完整仪器套件17/17，JVM2337/2337；lint0错误、555警告、21提示。旧源码契约强制NavigationRail容器与本轮新设计冲突，移除这一过时断言，保留Material项及Compact分支要求。
 
 边界：红米K80 Ultra/HyperOS3未连接；目标2×2元数据已核对，但不能从视频确认该桌面每格实测尺寸及最小跨度，所以旧正式版红米长方形的OEM层原因仍是待验证，不声称已查明具体系统缺陷。真实分屏/完整配置矩阵及PERF-01仍未通过；本轮修复不表示所有页面性能完成。
+
+## 2026-10-12 vivo 手机恢复连接：首批基线
+
+用户明确换回vivo手机并要求继续，重新授权10AF9A2KMF004Y3（此前临时换平板的限制不再适用）。ADB识别V2507A/PD2507、Android16、1080×2400、density480、font_scale1.0、animator_duration_scale1.0。独立Benchmark 5c1f74d安装成功，不覆盖正式版。此包首次安装为空数据库，空态不能代表有课表全链验收。
+
+四个主标签、我的→小组件、展开添加样式已截图检查；状态栏及底部Dock未见遮挡。Today首次uiautomator dump提示无法idle，复用了旧XML，该XML不能单独作为Today通过证据。点击小号添加只显示“已请求添加”，OEM未显示确认且页面没有绑定项；WIDGET-01添加流程仍待定位，不能算成功。
+
+无录屏、3轮固定坐标主标签点击（每次约0.5秒间隔）gfxinfo聚合528帧、11次deadline missed（2.08%）、P95 19ms/P99 30ms；只是单批空数据样本，非性能验收通过，也不能和不同设备/数据的旧样本直接比较。仍需有数据逐链多组trace归因。
+
+证据：E:/C015/99-整理记录/stage2-vivo-phone-device/phone-*.png及phone-main-tabs-gfxinfo.txt。未修改系统设置，未新建/移动/删除桌面组件，手机留在测试版我的页面。后续：测试数据操作链、OEM添加入口及四组件实际显示、键盘/返回/动画逐链验证。
