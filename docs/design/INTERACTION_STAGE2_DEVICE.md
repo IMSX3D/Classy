@@ -227,3 +227,12 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 尚未覆盖：真实vivo课前各组合逐项到点、重启/长期锁屏/极端省电、自启动权限被拒、所有厂商胶囊与红米宿主；不承诺所有厂商限制下100%到达。后台许可是系统策略，不会通过常驻进程或全局关闭省电绕开。
 
 本批最终验证：2337 JVM通过；完整常规仪器18项通过（另2项冷启动分阶段测试默认跳过，显式运行通过）；追加课前关闭与快速开关后曾复现服务竞态，修复后专项首次通过，并连续3轮通过（22.572/30.520/26.891秒），日志reminder-race-fixed-result及reminder-race-repeat-{1,2,3}.txt。Debug/正式Release与lint通过，0错误/556警告/21提示。最后UI与服务改动源码包含在本地交付APK中；真机22:00投递证据早于最后服务竞态修复，不能伪称最终包已重复完成所有定时验证。
+# 2026-10-12 通知当面演示与提示重叠修复
+
+- vivo 正式包：用户关闭勿扰后，22:25 今日摘要实际送达，用户确认听到声音；22:35 测试课程课前提醒实际送达，用户确认横幅和声音。证据 live-demo-summary.txt / live-demo-beforeclass.txt。
+- id2000持续通知存在，但通知栏所见为普通卡片，没有证明原子岛生效；SUPERX_VALUE=false。厂商原生岛/卡片仍未通过，不能将通知投递成功算作岛适配成功。
+- 提示重叠根因：课程编辑私有 SwitchRow 的文字列未分配剩余宽度，长说明侵入开关区域。改用 SettingsSwitchRow，并审查/修正自定义颜色、作息时段标题、新增节次及学校计数行同类宽度风险。
+- 最终正式APK覆盖安装返回Success后，重进同一个测试课程：irregular-copy-after.png与edit-bottom-check.png确认说明换行、开关不遮字。之前用户复报时仍是旧安装包，不能只凭源码修复报告设备通过。
+- 临时Classy-Notification-Test课程已通过明确命名的删除确认移除，今日恢复3节原课程；今日摘要07:00、明日时间22:00保留，未修改用户勿扰。证据temp-course-removed及reminder-settings-restored。
+- Debug/Release、JVM、lint构建成功：supporting-copy-final-build.log；InteractionStageTwoTest全5项通过（supporting-copy-final-tests.txt），包含260dp/1.5倍字号/中英文提示与开关边界及文字溢出断言。本轮未追加真平板验收。
+- 上述证据位于E:/C015/99-整理记录/及其stage2-vivo-phone-device目录。

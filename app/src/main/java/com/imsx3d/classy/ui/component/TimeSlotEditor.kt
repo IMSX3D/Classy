@@ -364,6 +364,7 @@ private fun ManualTimeSlotEditor(
         ) {
             Text(
                 text = stringResource(R.string.n_periods, rows.size),
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )

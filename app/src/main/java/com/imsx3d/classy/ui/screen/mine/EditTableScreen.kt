@@ -249,7 +249,7 @@ fun EditTableScreen(
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(Modifier.weight(1f).padding(end = 8.dp)) {
                         Text(
                             text = stringResource(R.string.edit_table_time_slots),
                             style = MaterialTheme.typography.titleMedium,

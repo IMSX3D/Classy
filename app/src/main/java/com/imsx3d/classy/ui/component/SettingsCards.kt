@@ -328,7 +328,8 @@ fun SettingsGroupRow(
     // UI-20a：破坏性动作行（如「恢复默认设置」）用 `error` 色标题 —— 符合 C3「颜色管状态」
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 16.dp
 ) {
     val colors = MaterialTheme.colorScheme
     Row(
@@ -338,7 +339,7 @@ fun SettingsGroupRow(
             .heightIn(min = GroupRowMinHeight)
             // UI-10c: 上下 6dp —— 48dp 行高 - 36dp 分段控件 = 12dp，正好两侧各 6dp；
             // 文字行（24dp 行高）与开关行（32dp 本体）也都被 minHeight 兜成同一个 48dp。
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = horizontalPadding, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         // UI-9a: 间距 12→8dp —— 三段 tab 的行（「网格卡片副信息」）原来标题差几个像素就换行
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -392,13 +393,15 @@ fun SettingsSwitchRow(
     subtitle: String? = null,
     titleBadge: String? = null,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    horizontalPadding: Dp = 16.dp
 ) {
     val colors = MaterialTheme.colorScheme
     SettingsGroupRow(
         title = title,
         subtitle = subtitle,
         titleBadge = titleBadge,
+        horizontalPadding = horizontalPadding,
         modifier = Modifier.semantics(mergeDescendants = true) {
             role = Role.Switch
             toggleableState = ToggleableState(checked)

@@ -239,12 +239,15 @@ fun SchoolSelectScreen(
             ) {
                 Text(
                     text = stringResource(R.string.school_count_total, schools.size),
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant
                 )
                 if (query.isNotBlank()) {
                     Text(
                         text = stringResource(R.string.school_match_count, filtered.size),
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.primary
                     )

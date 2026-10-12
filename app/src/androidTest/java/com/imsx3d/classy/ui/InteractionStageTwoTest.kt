@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -25,6 +26,39 @@ import org.junit.runner.RunWith
 class InteractionStageTwoTest {
     @get:Rule val compose = createComposeRule()
     private fun label(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
+
+    @Test fun longSupportingCopyKeepsClearOfSwitchAtLargeFont() {
+        val descriptions = listOf(
+            "单独设置本时段的起止时间，不受节次时间限制",
+            "Set separate start and end times for this session, independently of the period schedule."
+        )
+        var copy by mutableStateOf(descriptions.first())
+        var inset by mutableStateOf(0.dp)
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 1.5f)) {
+                SleepyThemeProvider {
+                    Box(Modifier.width(260.dp).padding(top = 48.dp)) {
+                        SettingsGroupRow("Custom time", subtitle = copy, horizontalPadding = inset,
+                            trailing = {
+                                androidx.compose.material3.Switch(false, {}, Modifier.testTag("switch"))
+                            })
+                    }
+                }
+            }
+        }
+        for (padding in listOf(0.dp, 16.dp)) for (description in descriptions) {
+            compose.runOnIdle { copy = description; inset = padding }
+            val text = compose.onNodeWithText(description, useUnmergedTree = true)
+            val textBounds = text.fetchSemanticsNode().boundsInRoot
+            val switchBounds = compose.onNodeWithTag("switch").fetchSemanticsNode().boundsInRoot
+            assertTrue("Description must not overlap the switch", textBounds.right < switchBounds.left)
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            text.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue(layouts.isNotEmpty())
+            assertFalse("Supporting copy must wrap without clipping", layouts.single().hasVisualOverflow)
+        }
+    }
 
     @Test fun dateCancelDoesNotCommitAndReopenUsesCurrentField() {
         var value by mutableStateOf("2026-10-11")

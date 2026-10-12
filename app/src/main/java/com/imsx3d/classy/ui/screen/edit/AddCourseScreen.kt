@@ -36,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +65,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imsx3d.classy.SleepyApp
 import com.imsx3d.classy.data.entity.CourseEntity
 import com.imsx3d.classy.data.entity.TimeTableEntity
+import com.imsx3d.classy.ui.component.SettingsSwitchRow
 import com.imsx3d.classy.ui.component.SettingsScaffold
 import com.imsx3d.classy.ui.screen.schedule.ScheduleViewModel
 import com.imsx3d.classy.ui.component.SegmentedSwitcher
@@ -1140,26 +1140,13 @@ private fun SwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurface
-            )
-            Text(
-                text = sub,
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
+    SettingsSwitchRow(
+        title = label,
+        subtitle = sub,
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        horizontalPadding = 0.dp
+    )
 }
 
 @Composable
@@ -1890,37 +1877,18 @@ private fun ColorSection(
     var showColorPicker by rememberSaveable { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.course_color),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.onSurfaceVariant
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // 文案只描述开=什么 (2026-09-15 用户令): 静态「自定义颜色」, 不随开关态变
-                Text(
-                    text = stringResource(R.string.color_custom_switch),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Switch(
-                    checked = useDifferent,
-                    onCheckedChange = { on ->
-                        block.colorModeState = if (on) {
-                            // 第一次打开: 落 AUTO(自动散色), 用户可再切自定义
-                            com.imsx3d.classy.data.entity.CourseColorMode.AUTO
-                        } else {
-                            com.imsx3d.classy.data.entity.CourseColorMode.GROUP
-                        }
-                    }
-                )
+        SettingsSwitchRow(
+            title = stringResource(R.string.color_custom_switch),
+            checked = useDifferent,
+            horizontalPadding = 0.dp,
+            onCheckedChange = { on ->
+                block.colorModeState = if (on) {
+                    com.imsx3d.classy.data.entity.CourseColorMode.AUTO
+                } else {
+                    com.imsx3d.classy.data.entity.CourseColorMode.GROUP
+                }
             }
-        }
+        )
         if (!useDifferent) {
             // OFF = 跟随组色: 仅显示组色 (改组色入口在基础信息卡组色节)
             Row(
