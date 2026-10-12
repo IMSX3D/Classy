@@ -6,10 +6,8 @@ import android.content.ClipboardManager
 import android.content.Context.CLIPBOARD_SERVICE
 import android.net.Uri
 import com.imsx3d.classy.BuildConfig
-import org.json.JSONArray
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,17 +26,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -50,24 +44,25 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.imsx3d.classy.ui.component.ImportReviewPage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -91,9 +86,7 @@ import com.imsx3d.classy.ui.theme.noRippleClickable
 import kotlinx.coroutines.launch
 import com.imsx3d.classy.ui.component.GlasenseSnackbarHost
 import com.imsx3d.classy.ui.theme.primaryFilledButtonColors
-import com.imsx3d.classy.ui.component.sleepyExpandExit
 import com.imsx3d.classy.ui.component.settingsCard
-import com.imsx3d.classy.ui.component.sleepyExpandEnter
 import com.imsx3d.classy.ui.component.DialogActionButtons
 import com.imsx3d.classy.ui.component.GlasenseButton
 
@@ -103,9 +96,9 @@ import com.imsx3d.classy.ui.component.GlasenseButton
  * 结构（自上而下）：
  *  - 标题栏 "导入课表"
  *  - 教务直连（一行可点）
- *  - 从文本导入（默认折叠，展开后是输入框 + 预览按钮）
+ *  - 从文本导入（进入独立输入页）
  *  - 从文件导入（一行可点，触发系统选择器）
- *  - 支持的导入类型（说明列表）
+ *  - 支持的导入类型（按需打开说明页）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,8 +121,9 @@ fun ImportSheet(
     val importSuccessMessage = stringResource(R.string.import_success)
     val defaultTableName = stringResource(R.string.default_table_name)
 
-    var textExpanded by remember { mutableStateOf(false) }
-    var inputText by remember { mutableStateOf("") }
+    var showTextEntry by rememberSaveable { mutableStateOf(false) }
+    var showFormats by rememberSaveable { mutableStateOf(false) }
+    var inputText by rememberSaveable { mutableStateOf("") }
     var detailFormat by remember { mutableStateOf<ImportFormat?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -245,33 +239,6 @@ fun ImportSheet(
         }
     }
 
-    // 2026-09-18 用户: 报错必须统一弹窗(不再是 Snackbar 一闪即逝) — 文件导入场景
-    // 无 WebView/dump 可导, 单确定按钮。成功/状态类提示仍走 snackbar 不动。
-    if (errorMsg != null) {
-        AlertDialog(
-            onDismissRequest = { errorMsg = null },
-            title = { Text(stringResource(R.string.jw_error_dialog_title)) },
-            text = {
-                Column {
-                    Text(
-                        text = errorMsg!!,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 320.dp)
-                            .verticalScroll(rememberScrollState())
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    DialogActionButtons(
-                        confirmText = stringResource(R.string.jw_err_dismiss),
-                        onConfirm = { errorMsg = null }
-                    )
-                }
-            },
-            confirmButton = {},
-            dismissButton = {}
-        )
-    }
-
     ModalBottomSheet(
         onDismissRequest = { if (!isLoading && !closing) { clearExternalImport(); onDismiss() } },
         sheetState = sheetState,
@@ -287,7 +254,8 @@ fun ImportSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .testTag("import-source-choices")
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // 标题与草稿入口
@@ -299,12 +267,12 @@ fun ImportSheet(
             ) {
                 Text(
                     text = stringResource(R.string.import_title),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     color = colors.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(
-                    onClick = { showDrafts = true },
+                    onClick = { if (!isLoading && !closing) showDrafts = true },
                     modifier = Modifier
                         .size(48.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
@@ -318,80 +286,21 @@ fun ImportSheet(
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.import_preview_sub),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
             // 行 1：教务直连
             ImportMethodRow(
-                icon = Icons.Outlined.QrCode2,
+                icon = Icons.Outlined.School,
                 label = stringResource(R.string.import_jw),
                 onClick = {
-                    closeThen(onJwImportRequested)
+                    if (!isLoading && !closing) closeThen(onJwImportRequested)
                 }
             )
 
-            // 行 2：从文本导入（可折叠）
             ImportMethodRow(
                 icon = Icons.Outlined.Description,
                 label = stringResource(R.string.import_paste),
-                trailing = if (textExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                onClick = { textExpanded = !textExpanded }
+                trailing = Icons.Outlined.ChevronRight,
+                onClick = { if (!isLoading && !closing) showTextEntry = true }
             )
-            AnimatedVisibility(
-                visible = textExpanded,
-                // UI-30a：这里原来只有展开没有淡入（全库唯一一处），与其它折叠统一
-                enter = sleepyExpandEnter(),
-                exit = sleepyExpandExit()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 56.dp, top = 4.dp, bottom = 8.dp, end = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp),
-                        placeholder = { Text(stringResource(R.string.import_paste_hint), color = colors.onSurfaceVariant) },
-                        enabled = !isLoading,
-                        shape = SleepyTheme.fieldShape,
-                        colors = fieldColors
-                    )
-                    Button(
-                colors = primaryFilledButtonColors(),
-                        onClick = {
-                            scope.launch {
-                                isLoading = true
-                                try {
-                                    val p = buildImportPreview(inputText, state, context) { msg -> errorMsg = msg }
-                                    if (p != null) {
-                                        preview = p
-                                        // 不要 onDismiss() —— dialog 叠在 sheet 上显示; 用户在 dialog 操作完后再关 sheet。
-                                    }
-                                } finally {
-                                    isLoading = false
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
-                        enabled = !isLoading && inputText.isNotBlank(),
-                        shape = SleepyTheme.Buttons.shape,
-                    ) {
-                        Text(
-                            text = if (isLoading) stringResource(R.string.import_parsing) else stringResource(R.string.import_preview),
-                            color = colors.onPrimary,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                }
-            }
 
             // 行 3：从文件导入
             ImportMethodRow(
@@ -399,25 +308,83 @@ fun ImportSheet(
                 label = stringResource(R.string.import_file),
                 onClick = {
                     // OpenDocument() 接受 MIME 数组, 让 picker 只显示 json / 文本文件
-                    filePicker.launch(arrayOf("application/json", "text/plain", "text/csv", "text/html", "*/*"))
+                    if (!isLoading && !closing) filePicker.launch(arrayOf("application/json", "text/plain", "text/csv", "text/html", "*/*"))
                 }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
+            TextButton(
+                onClick = { if (!isLoading && !closing) showFormats = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.import_supported_formats))
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // 错误反馈通道: 上面 errorMsg → snackbar.showSnackbar 依赖此 host,
+        // 之前 sheet 内无 host → 导入失败提示被静默吞掉。默认 M3 配色, 与其余 5 处一致。
+        // (原 BoxWithConstraints 包裹层已删: scope 内 maxWidth/maxHeight 从未被消费, lint UnusedBoxWithConstraintsScope)
+        GlasenseSnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
+    }
+
+    // Source selection stays compact; keyboard input and long help are full-page tasks.
+    // Keep this session alive beneath the task so cancelling a preview restores the input.
+    if (showTextEntry) {
+        ImportReviewPage(
+            onDismissRequest = { showTextEntry = false },
+            title = { Text(stringResource(R.string.import_paste)) },
+            busy = isLoading || closing,
+            text = {
+                TextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp),
+                    minLines = 6,
+                    placeholder = { Text(stringResource(R.string.import_paste_hint)) },
+                    enabled = !isLoading && !closing,
+                    shape = SleepyTheme.fieldShape,
+                    colors = fieldColors
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isLoading = true
+                            try {
+                                buildImportPreview(inputText, state, context) { errorMsg = it }
+                                    ?.let { preview = it }
+                            } finally { isLoading = false }
+                        }
+                    },
+                    enabled = !isLoading && !closing && inputText.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = primaryFilledButtonColors()
+                ) { Text(stringResource(if (isLoading) R.string.import_parsing else R.string.import_preview)) }
+                TextButton(onClick = { showTextEntry = false }, enabled = !isLoading && !closing,
+                    modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+
+    if (showFormats) {
+        ImportReviewPage(
+            onDismissRequest = { showFormats = false },
+            title = { Text(stringResource(R.string.import_supported_formats)) },
+            text = {
             // 支持的导入类型
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .settingsCard(colors.surfaceContainer)
-                    .padding(14.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.import_supported_formats),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
                 FormatRow(
                     name = stringResource(R.string.format_wakeup_share),
                     desc = stringResource(R.string.format_wakeup_desc),
@@ -460,17 +427,13 @@ fun ImportSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // 错误反馈通道: 上面 errorMsg → snackbar.showSnackbar 依赖此 host,
-        // 之前 sheet 内无 host → 导入失败提示被静默吞掉。默认 M3 配色, 与其余 5 处一致。
-        // (原 BoxWithConstraints 包裹层已删: scope 内 maxWidth/maxHeight 从未被消费, lint UnusedBoxWithConstraintsScope)
-        GlasenseSnackbarHost(
-            hostState = snackbar,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            },
+            confirmButton = {
+                TextButton(onClick = { showFormats = false }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.back))
+                }
+            }
         )
-
     }
 
     if (showDrafts) {
@@ -489,6 +452,34 @@ fun ImportSheet(
     detailFormat?.let { fmt ->
         FormatDetailDialog(format = fmt, onDismiss = { detailFormat = null })
     }
+
+    // 2026-09-18 用户: 报错必须统一弹窗(不再是 Snackbar 一闪即逝) — 文件导入场景
+    // 无 WebView/dump 可导, 单确定按钮。成功/状态类提示仍走 snackbar 不动。
+    if (errorMsg != null) {
+        AlertDialog(
+            onDismissRequest = { errorMsg = null },
+            title = { Text(stringResource(R.string.jw_error_dialog_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = errorMsg!!,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DialogActionButtons(
+                        confirmText = stringResource(R.string.jw_err_dismiss),
+                        onConfirm = { errorMsg = null }
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
+
 
     // 预览对话框
     preview?.let { currentPreview ->
@@ -567,6 +558,7 @@ fun ImportSheet(
         }
         ImportPreviewDialog(
             preview = currentPreview,
+            busy = isLoading || closing,
             onDismiss = { if (!isLoading) { preview = null; clearExternalImport() } },
             onApply = { mode ->
                 if (isLoading) return@ImportPreviewDialog
@@ -689,12 +681,12 @@ private fun ImportMethodRow(
             .fillMaxWidth()
             .clip(SleepyTheme.shapes.medium)
             .noRippleClickable(onClick)
-            .padding(vertical = 14.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(36.dp)
                 .clip(SleepyTheme.shapes.medium)
                 .background(colors.primaryContainer),
             contentAlignment = Alignment.Center
@@ -726,42 +718,15 @@ private fun ImportMethodRow(
 
 @Composable
 private fun FormatRow(name: String, desc: String, onDetail: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(
-            text = "•",
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.primary,
-            modifier = Modifier.padding(end = 8.dp, top = 2.dp)
-        )
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurface,
-            modifier = Modifier.width(110.dp)
-        )
-        Text(
-            text = desc,
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Icons.Outlined.Info,
-            contentDescription = stringResource(R.string.format_detail_content_desc),
-            tint = colors.onSurfaceVariant,
-            modifier = Modifier
-                .padding(start = 6.dp, top = 2.dp)
-                .size(16.dp)
-                .clip(SleepyTheme.shapes.small)
-                .noRippleClickable(onClick = onDetail)
-        )
-    }
+    com.imsx3d.classy.ui.component.SettingsGroupRow(
+        title = name,
+        subtitle = desc,
+        onClick = onDetail,
+        trailing = {
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    )
 }
 
 /**
@@ -994,14 +959,14 @@ private data class ImportPreview(
 @Composable
 private fun ImportPreviewDialog(
     preview: ImportPreview,
+    busy: Boolean,
     onDismiss: () -> Unit,
     onApply: (ImportApplyMode) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    AlertDialog(
+    ImportReviewPage(
         onDismissRequest = onDismiss,
-        titleContentColor = colors.onSurface,
-        textContentColor = colors.onSurfaceVariant,
+        busy = busy,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.import_preview_title), style = MaterialTheme.typography.titleLarge)
@@ -1201,89 +1166,35 @@ private fun ImportPreviewDialog(
                     }
                 }
             }
+            Spacer(Modifier.height(16.dp))
+            Column(Modifier.fillMaxWidth().settingsCard(colors.surfaceContainer)) {
+                val choices = if (preview.targetTableId == 0L) {
+                    listOf(ImportApplyMode.ImportAsNew to R.string.import_as_new)
+                } else listOf(
+                    ImportApplyMode.ImportAsNew to R.string.import_as_new,
+                    ImportApplyMode.AppendNonConflict to R.string.import_append_only,
+                    ImportApplyMode.AppendAsNew to R.string.import_append_as_new,
+                    ImportApplyMode.AppendAll to R.string.import_append_conflict,
+                    ImportApplyMode.ReplaceCurrent to R.string.import_overwrite
+                )
+                choices.forEach { (mode, label) ->
+                    com.imsx3d.classy.ui.component.SettingsGroupRow(
+                        title = stringResource(label),
+                        titleColor = if (mode == ImportApplyMode.ReplaceCurrent || mode == ImportApplyMode.AppendAll)
+                            colors.error else colors.onSurface,
+                        onClick = if (busy) null else ({ onApply(mode) }),
+                        trailing = if (mode == ImportApplyMode.AppendAll || mode == ImportApplyMode.AppendNonConflict) null
+                            else { { Icon(Icons.Outlined.ChevronRight, contentDescription = null) } }
+                    )
+                }
+            }
+
         },
         confirmButton = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (preview.targetTableId == 0L) {
-                    // 没有任何课表时只允许 "作为新课表导入"
-                    Button(
-                colors = primaryFilledButtonColors(),
-                        onClick = { onApply(ImportApplyMode.ImportAsNew) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = SleepyTheme.shapes.medium,
-                    ) {
-                        Text(stringResource(R.string.import_as_new), maxLines = 1)
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                colors = primaryFilledButtonColors(),
-                            onClick = { onApply(ImportApplyMode.AppendNonConflict) },
-                            modifier = Modifier.weight(1f),
-                            shape = SleepyTheme.shapes.medium,
-                        ) {
-                            Text(stringResource(R.string.import_append_only), maxLines = 1)
-                        }
-                        Button(
-                colors = primaryFilledButtonColors(),
-                            onClick = { onApply(ImportApplyMode.ImportAsNew) },
-                            modifier = Modifier.weight(1f),
-                            shape = SleepyTheme.shapes.medium,
-                        ) {
-                            Text(stringResource(R.string.import_as_new), maxLines = 1)
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // 追加冲突课表 — 危险动作(同格多层), errorContainer 色块底, 与覆盖按钮同款
-                        Button(
-                            onClick = { onApply(ImportApplyMode.AppendAll) },
-                            modifier = Modifier.weight(1f),
-                            shape = SleepyTheme.shapes.medium,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.errorContainer,
-                                contentColor = colors.onErrorContainer
-                            )
-                        ) {
-                            Text(stringResource(R.string.import_append_conflict), maxLines = 1)
-                        }
-                        Button(
-                colors = primaryFilledButtonColors(),
-                            onClick = { onApply(ImportApplyMode.AppendAsNew) },
-                            modifier = Modifier.weight(1f),
-                            shape = SleepyTheme.shapes.medium,
-                        ) {
-                            Text(stringResource(R.string.import_append_as_new), maxLines = 1)
-                        }
-                    }
-                    // 描线→色块 (2026-08-25 统一指令): 覆盖课表为危险动作,
-                    //   errorContainer 色块底 + onErrorContainer 文字
-                    Button(
-                        onClick = { onApply(ImportApplyMode.ReplaceCurrent) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = SleepyTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.errorContainer,
-                            contentColor = colors.onErrorContainer
-                        )
-                    ) {
-                        Text(stringResource(R.string.import_overwrite))
-                    }
-                }
-                // UI-31d：这个弹窗是"四选一"的特殊形态（不适用标准 取消/确定 双键行），
-                // 但取消键本身仍统一为色块按钮，不再用裸文字按钮
-                GlasenseButton(
-                    text = stringResource(R.string.cancel),
-                    onClick = onDismiss
-                )
+            TextButton(onClick = onDismiss, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.cancel))
             }
-        },
-        dismissButton = {}
+        }
     )
 }
 

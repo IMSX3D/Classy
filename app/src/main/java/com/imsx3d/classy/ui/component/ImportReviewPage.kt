@@ -10,6 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.imsx3d.classy.R
@@ -31,9 +34,15 @@ fun ImportReviewPage(
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                Column(Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxWidth()
-                    .padding(16.dp)) {
-                    ProvideTextStyle(MaterialTheme.typography.headlineSmall) { title() }
+                Row(Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismissRequest, enabled = !busy) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    }
+                    Box(Modifier.weight(1f).padding(start = 4.dp)) {
+                        ProvideTextStyle(MaterialTheme.typography.titleLarge) { title() }
+                    }
                 }
                 Column(Modifier.weight(1f).widthIn(max = ClassyLayout.readingWidth)
                     .fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) { text() }
@@ -55,9 +64,16 @@ fun ImportReviewPage(
         // WindowManager retains the departing surface for the exit animation. No delayed
         // dismiss callback or second persistence operation is needed.
         val view = androidx.compose.ui.platform.LocalView.current
+        val lightSurface = MaterialTheme.colorScheme.background.luminance() > 0.5f
         androidx.compose.runtime.SideEffect {
             (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
-                ?.setWindowAnimations(R.style.ClassyFullScreenTaskAnimation)
+                ?.let { window ->
+                    window.setWindowAnimations(R.style.ClassyFullScreenTaskAnimation)
+                    androidx.core.view.WindowCompat.getInsetsController(window, view).apply {
+                        isAppearanceLightStatusBars = lightSurface
+                        isAppearanceLightNavigationBars = lightSurface
+                    }
+                }
         }
         body()
     } else body()

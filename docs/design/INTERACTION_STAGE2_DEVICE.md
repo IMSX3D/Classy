@@ -236,3 +236,19 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 临时Classy-Notification-Test课程已通过明确命名的删除确认移除，今日恢复3节原课程；今日摘要07:00、明日时间22:00保留，未修改用户勿扰。证据temp-course-removed及reminder-settings-restored。
 - Debug/Release、JVM、lint构建成功：supporting-copy-final-build.log；InteractionStageTwoTest全5项通过（supporting-copy-final-tests.txt），包含260dp/1.5倍字号/中英文提示与开关边界及文字溢出断言。本轮未追加真平板验收。
 - 上述证据位于E:/C015/99-整理记录/及其stage2-vivo-phone-device目录。
+
+## 2026-10-12 导入入口与预览载体重审
+
+基线1871768后的本批代码。vivo正式签名APK安装Success后已检查：入口从近全屏缩为按内容展开的方式面板；长帮助独立打开；文本页有顶部返回及浅色系统栏深色图标；键盘打开时预览/取消可达；错误提示可见，取消文件选择回入口。用只读测试文本进入冲突预览，再返回文本，输入保留。未执行导入/追加/覆盖，用户原24个上课安排未更改。
+
+证据E:/C015/99-整理记录/stage2-vivo-phone-device：import-entry-before、import-entry-final、import-task-final、import-keyboard-final、import-preview-final、import-preview-return-final；错误/帮助/文件取消证据import-invalid-after、import-formats-after、import-file-cancel早于最后预览载体调整，不能混同最终全链重复测试。
+
+最终Debug/Release/仪器APK/lint构建通过，日志import-flow-accepted-build.log。ImportEntryFlowTest三项+既有InteractionStageTwoTest五项通过，日志import-flow-tests-passed.txt；覆盖入口密度、帮助返回、合法预览返回保留输入、错误文本恢复。模拟器原配置360×640dp、字体1.5、English；中文正式手机截图补充。
+
+早期测试因不支持的几何断言API、异步解析等待及多个窗口返回节点匹配失败，已修正后重跑；这些测试失败不隐去，也不作为产品已通过的证据。用户手机只操作预览与取消，不用真实数据测试覆盖提交。
+
+边界：真平板、实际系统分屏/旋转、深色实机、减弱动画/快速反向录屏与帧跟踪、成功写入各模式及进程死亡恢复尚未本批补验。格式详情长文弹窗、草稿列表、周选择及其他入口继续重审，不因本批成功关闭CHOICE-01或PERF-01。
+
+交付E:/C015/交付/Classy-导入交互重审-20261012/Classy-0.0.9-import-flow-arm64.apk，SHA256 BC5035551C3C94C2055067A580FE20044C21CA3CB6A222A06A5B8401B8425A4F。版本0.0.9不变，不推送、不改tag/Release。
+
+最终补验：800×1200dp与600×480dp模拟器窗口（均1.5倍字号）各3项导入链测试通过，日志import-flow-wide-final.txt、import-flow-short-final.txt。恢复模拟器原540×960px/240dpi配置；这不是实际系统分屏或真平板验收。
