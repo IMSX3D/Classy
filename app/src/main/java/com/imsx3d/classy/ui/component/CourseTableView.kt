@@ -264,7 +264,7 @@ fun CardsGridView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.surfaceContainerHigh, gridBgShape)
+            .background(colors.surfaceContainerHigh.copy(alpha = if (LocalScheduleBackground.current) .55f else 1f), gridBgShape)
             .padding(d(6f))
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

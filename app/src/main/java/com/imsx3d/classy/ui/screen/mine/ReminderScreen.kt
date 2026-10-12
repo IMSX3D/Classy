@@ -169,19 +169,9 @@ private fun buildDailyPreviewText(
         dateLabel
     )
     val courseName = first.course.courseName.ifBlank { context.getString(R.string.default_course_name) }
-    val room = first.course.room.ifBlank { context.getString(R.string.notif_room_unknown) }
-    val teacher = first.course.teacher.trim().takeIf { it.isNotEmpty() }?.let {
-        context.getString(R.string.reminder_preview_teacher, it)
-    }.orEmpty()
-    return context.getString(
-        R.string.reminder_daily_preview_dynamic,
-        dateLabel,
-        day.courses.size,
-        courseName,
-        first.startTime,
-        room,
-        teacher
-    )
+    return context.getString(R.string.reminder_preview_count, dateLabel, day.courses.size) + "\n" +
+        com.imsx3d.classy.widget.notification.NotificationCopy.firstClass(courseName, first.startTime, first.course.room)
+
 }
 
 private fun buildBeforeClassPreviewText(
@@ -195,18 +185,9 @@ private fun buildBeforeClassPreviewText(
         DateUtils.localizedDay(next.date.dayOfWeek.value, context)
     )
     val courseName = next.course.courseName.ifBlank { context.getString(R.string.default_course_name) }
-    val room = next.course.room.ifBlank { context.getString(R.string.notif_room_unknown) }
-    val teacher = next.course.teacher.trim().takeIf { it.isNotEmpty() }?.let {
-        context.getString(R.string.reminder_preview_teacher, it)
-    }.orEmpty()
-    return context.getString(
-        R.string.reminder_before_class_preview_dynamic,
-        dateLabel,
-        courseName,
-        next.startTime,
-        room,
-        teacher
-    )
+    return "$dateLabel\n" + com.imsx3d.classy.widget.notification.NotificationCopy.expanded(
+        courseName, next.startTime, next.course.room, next.course.teacher)
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -231,7 +212,6 @@ fun ReminderScreen(onBack: () -> Unit) {
     var fluidEnabled by remember { mutableStateOf(AppPrefs.isBeforeClassFluidEnabled(context)) }
     var bannerEnabled by remember { mutableStateOf(AppPrefs.isBeforeClassBannerEnabled(context)) }
     var fluidPrimary by remember { mutableStateOf(AppPrefs.getBeforeClassFluidPrimary(context)) }
-    var fieldsMenuExpanded by remember { mutableStateOf(false) }
     var schedulePreview by remember { mutableStateOf<ReminderSchedulePreview?>(null) }
 
     // 示例只读取当前课表，不参与提醒调度；无可分析课表时保留资源中的通用示例。
@@ -453,65 +433,19 @@ fun ReminderScreen(onBack: () -> Unit) {
                         )
                         if (fluidEnabled) {
                             SettingsRowDivider()
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.reminder_fluid_fields),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = colors.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                androidx.compose.foundation.layout.Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(SleepyTheme.fieldShape)
-                                        .noRippleClickable { fieldsMenuExpanded = true }
-                                ) {
-                                    TextField(
-                                        value = fluidPrimaryLabel(context, fluidPrimary),
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        enabled = false,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        label = { Text(stringResource(R.string.reminder_fluid_fields_hint)) },
-                                        trailingIcon = {
-                                            Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = colors.onSurfaceVariant)
-                                        },
-                                        shape = SleepyTheme.fieldShape,
-                                        colors = SleepyTheme.fieldColors()
-                                    )
-                                    DropdownMenu(
-                                        expanded = fieldsMenuExpanded,
-                                        onDismissRequest = { fieldsMenuExpanded = false },
-                                        // 菜单浮在 surfaceContainer 卡片上, 用 Highest 拉开对比(默认 High 与卡片几乎同色=隐形)
-                                        containerColor = colors.surfaceContainerHighest
-                                    ) {
-                                        listOf(
-                                            "name" to R.string.reminder_fluid_field_name,
-                                            "time" to R.string.reminder_fluid_field_time,
-                                            "room" to R.string.reminder_fluid_field_room
-                                        ).forEach { (key, labelRes) ->
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(labelRes)) },
-                                                onClick = {
-                                                    fluidPrimary = key
-                                                    AppPrefs.setBeforeClassFluidPrimary(context, key)
-                                                    SleepyApp.get().notificationScheduler.scheduleAll()
-                                                    fieldsMenuExpanded = false
-                                                },
-                                                leadingIcon = {
-                                                    com.imsx3d.classy.ui.component.GlasenseRadio(
-                                                        selected = key == fluidPrimary
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
+                            val primaryKeys = listOf("name", "time", "room")
+                            com.imsx3d.classy.ui.component.SettingsSegmentedRow(
+                                title = stringResource(R.string.reminder_fluid_fields),
+                                options = listOf(stringResource(R.string.reminder_fluid_field_name),
+                                    stringResource(R.string.reminder_fluid_field_time),
+                                    stringResource(R.string.reminder_fluid_field_room)),
+                                selectedKey = primaryKeys.indexOf(fluidPrimary).coerceAtLeast(0),
+                                onSelect = { index ->
+                                    fluidPrimary = primaryKeys[index]
+                                    AppPrefs.setBeforeClassFluidPrimary(context, fluidPrimary)
+                                    SleepyApp.get().notificationScheduler.scheduleAll()
                                 }
-                            }
+                            )
                             SettingsNoteRow(stringResource(R.string.reminder_fluid_note), topPadding = 8.dp)
                         }
                     }

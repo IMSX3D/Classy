@@ -114,6 +114,12 @@ internal val MIGRATION_8_9_STATEMENTS: List<String> = listOf(
     "ALTER TABLE time_tables ADD COLUMN preBindSnapshotJson TEXT NOT NULL DEFAULT ''"
 )
 
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE time_tables ADD COLUMN jwSourceJson TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 /** 当前已注册的全部 Migration — AppDatabase.Companion.get() 链入 */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_3_4,
@@ -121,7 +127,8 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_5_6,
     MIGRATION_6_7,
     MIGRATION_7_8,
-    MIGRATION_8_9
+    MIGRATION_8_9,
+    MIGRATION_9_10
 )
 
 /** issue#26: v5→v6 逐条 SQL — 单一事实来源, CourseAliasMigrationTest 用 sqlite-jdbc 直接执行同一份 */

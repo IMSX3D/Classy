@@ -56,7 +56,10 @@ data class TimeTableEntity(
      * 解绑后"使用本表作息"读到的是镜像副本, 用户手工作息永久丢失。
      * 快照仅当 periodTableId 由 null → 非 null 时写入一次; 绑→绑换目标不刷新快照。
      */
-    @ColumnInfo(name = "preBindSnapshotJson", defaultValue = "") val preBindSnapshotJson: String = ""
+    @ColumnInfo(name = "preBindSnapshotJson", defaultValue = "") val preBindSnapshotJson: String = "",
+
+    /** School provenance and last accepted remote baseline; no account credentials. */
+    @ColumnInfo(name = "jwSourceJson", defaultValue = "") val jwSourceJson: String = ""
 ) {
     /**
      * issue#40 有效时间表水合(设计 §5.1): 绑定存在 → 节次时间/智慧节次/节次数

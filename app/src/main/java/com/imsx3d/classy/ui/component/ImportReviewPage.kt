@@ -28,6 +28,7 @@ fun ImportReviewPage(
     error: String? = null,
     busy: Boolean = false,
     useWindow: Boolean = true,
+    scrollContent: Boolean = true,
 ) {
     val body: @Composable () -> Unit = {
         BackHandler { if (!busy) onDismissRequest() }
@@ -45,7 +46,7 @@ fun ImportReviewPage(
                     }
                 }
                 Column(Modifier.weight(1f).widthIn(max = ClassyLayout.readingWidth)
-                    .fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) { text() }
+                    .fillMaxWidth().then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(16.dp)) { text() }
                 Column(Modifier.widthIn(max = ClassyLayout.readingWidth).fillMaxWidth()
                     .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (busy) SupportingText(stringResource(R.string.editor_working))

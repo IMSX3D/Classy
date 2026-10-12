@@ -6,6 +6,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class JwImportDraftTest {
+    @Test fun `refresh target survives restore while legacy drafts create a table`() {
+        val draft = snapshot.copy(refreshTableId = 42L)
+        assertEquals(draft, JwImportDraftCodec.fromJson(JwImportDraftCodec.toJson(draft)))
+        val legacy = org.json.JSONObject(JwImportDraftCodec.toJson(snapshot)).apply { remove("refreshTableId") }
+        assertNull(JwImportDraftCodec.fromJson(legacy.toString())!!.refreshTableId)
+    }
+
 
     @Test fun `routine source survives draft save and restore including explicit unbound`() {
         for (id in listOf(null, -1L, 7L)) {

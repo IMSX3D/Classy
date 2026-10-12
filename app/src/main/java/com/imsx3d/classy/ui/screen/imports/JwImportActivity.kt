@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -90,6 +91,7 @@ import com.imsx3d.classy.ui.component.GlasenseSnackbarHost
 class JwImportActivity : ComponentActivity() {
 
     companion object {
+        const val EXTRA_REFRESH_TABLE_ID = "extra_refresh_table_id"
         const val EXTRA_DRAFT_ID = "extra_import_draft_id"
     }
 
@@ -125,6 +127,10 @@ class JwImportActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 val draftRepository = SleepyApp.get().importDraftRepository
                 val incomingDraftId = intent.getStringExtra(EXTRA_DRAFT_ID)
+                var refreshTableId by rememberSaveable { mutableStateOf(intent.getLongExtra(EXTRA_REFRESH_TABLE_ID, 0L).takeIf { it > 0 }) }
+                // Resolve the destination before composing a school list or form.
+                // Otherwise a restored draft/linked refresh briefly shows the wrong page.
+                var initialDestinationReady by remember { mutableStateOf(incomingDraftId == null && refreshTableId == null) }
                 // 组合树, 滚动位置/搜索词全部销毁。各 stage 分支内容包独立 key 的
                 // SaveableStateProvider(key = stage 类名), WebView 登录返回学校列表时
                 // 列表滚动位置与 rememberSaveable 态原样恢复。
@@ -175,6 +181,7 @@ class JwImportActivity : ComponentActivity() {
                     if (parsedCourses.isEmpty()) return JwImportDraftSnapshot(
                         school = school, courses = emptyList(), periods = emptyList(),
                         phase = JwImportDraftPhase.WEBVIEW_LOGIN,
+                        refreshTableId = refreshTableId,
                     )
                     return JwImportDraftSnapshot(
                         school = school,
@@ -184,6 +191,7 @@ class JwImportActivity : ComponentActivity() {
                         tableName = configTableName,
                         smartConfigJson = Json.encodeToString(configSmartConfig),
                         selectedPeriodTableId = configBindPeriodTableId,
+                        refreshTableId = refreshTableId,
                     )
                 }
 
@@ -387,13 +395,30 @@ class JwImportActivity : ComponentActivity() {
                     requestExit()
                 }
 
+                LaunchedEffect(Unit) {
+                    try {
+                    if (incomingDraftId == null && refreshTableId != null && selectedSchool == null) {
+                        val table = SleepyApp.get().repository.getTable(refreshTableId!!)
+                        val school = table?.jwSourceJson?.let(com.imsx3d.classy.data.jw.JwRefresh::decode)?.school
+                        if (school != null && school.hasUrl) {
+                            selectedSchool = school
+                            exitDraftState = exitDraftState.copy(activeImport = true)
+                            stage = Stage.WebViewLogin
+                        }
+                    }
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (_: Exception) { errorMsg = getString(R.string.jw_refresh_failed) }
+                    finally { if (incomingDraftId == null) initialDestinationReady = true }
+                }
                 LaunchedEffect(incomingDraftId) {
                     val id = incomingDraftId ?: return@LaunchedEffect
+                    try {
                     val snapshot = withContext(Dispatchers.IO) { draftRepository.get(id) }
                     if (snapshot == null) {
                         errorMsg = getString(R.string.import_drafts_empty)
                         return@LaunchedEffect
                     }
+                    refreshTableId = snapshot.refreshTableId
                     draftId = id
                     parsedSchool = snapshot.school
                     selectedSchool = snapshot.school
@@ -426,16 +451,40 @@ class JwImportActivity : ComponentActivity() {
                     configBindPeriodTableId = snapshot.selectedPeriodTableId
                     exitDraftState = exitDraftState.copy(activeImport = true)
                     stage = Stage.ConfigureConfirm
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (_: Exception) { errorMsg = getString(R.string.editor_action_failed) }
+                    finally { initialDestinationReady = true }
                 }
 
                 // Closing must not replace the committed form with an empty composition.
                 LaunchedEffect(importFinished) { if (importFinished) finish() }
-                androidx.compose.animation.AnimatedContent(
+                if (!initialDestinationReady) {
+                    androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.CircularProgressIndicator()
+                        }
+                    }
+                } else androidx.compose.animation.AnimatedContent(
                     targetState = stage,
                     transitionSpec = { com.imsx3d.classy.ui.nav.sleepyForwardTransform },
                     label = "jw-import-stage"
                 ) { visibleStage ->
                 when {
+                    visibleStage is Stage.ConfigureConfirm && refreshTableId != null && parsedCourses.isNotEmpty() && parsedSchool != null -> {
+                        JwRefreshReviewPage(
+                            tableId = refreshTableId!!,
+                            school = parsedSchool!!,
+                            incoming = jwViewModel.toCourseEntities(parsedCourses, refreshTableId!!, "#FF6750A4"),
+                            onBack = { requestExit() },
+                            onFinished = {
+                                draftId?.let { id -> kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                                    runCatching { draftRepository.delete(id) }
+                                } }
+                                importFinished = true
+                                exitDraftState = exitDraftState.copy(activeImport = false)
+                            }
+                        )
+                    }
                     visibleStage is Stage.ConfigureConfirm && parsedCourses.isNotEmpty() -> {
                         val school = parsedSchool
                         if (school == null) {
@@ -579,7 +628,8 @@ class JwImportActivity : ComponentActivity() {
                                                     nodesPerDay = maxNode,
                                                     smartConfigJson = Json.encodeToString(configSmartConfig),
                                                     periodTable = autoPeriodEntity,
-                                                    boundPeriodTableId = configBindPeriodTableId?.takeIf { it > 0 }
+                                                    boundPeriodTableId = configBindPeriodTableId?.takeIf { it > 0 },
+                                                    sourceSchool = school
                                                 )
                                                 Log.d("JwImport", "importAsNewTable tableId=$tableId courses=${parsedCourses.size}")
                                                 statusMsg = getString(R.string.jw_import_success, parsedCourses.size)
@@ -697,6 +747,7 @@ error = confirmError ?: importActions.error
                                                 termStartDate = termStartDate,
                                                 tableName = getString(R.string.jw_import_title, sch.name),
                                                 smartConfigJson = Json.encodeToString(inferredSmartConfig),
+                                                refreshTableId = refreshTableId,
                                             )
                                             draftId = withContext(Dispatchers.IO) {
                                                 val existingId = draftId

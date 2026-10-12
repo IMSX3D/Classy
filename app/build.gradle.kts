@@ -12,6 +12,7 @@ plugins {
 android {
     namespace = "com.imsx3d.classy"
     compileSdk = 37
+    sourceSets.getByName("androidTest").assets.srcDir("schemas")
 
     defaultConfig {
         applicationId = "com.imsx3d.classy"

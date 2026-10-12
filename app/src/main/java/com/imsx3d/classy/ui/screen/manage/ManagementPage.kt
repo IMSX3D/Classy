@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Class
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Schedule
@@ -60,13 +61,14 @@ fun ManagementPage(
     onImported: () -> Unit,
     drafts: List<ImportDraft> = emptyList(),
     onRestoreDraft: (String) -> Unit = {},
-    onDeleteDraft: (String) -> Unit = {},
+    onDeleteDraft: suspend (String) -> Unit = {},
     viewModel: ScheduleViewModel = viewModel(),
     autoShowImportSheet: Boolean = false,
     onAutoShowImportHandled: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
+    val context = androidx.compose.ui.platform.LocalContext.current
     val table = state.currentTable
 
     var showImportSheet by remember { mutableStateOf(false) }
@@ -152,6 +154,16 @@ fun ManagementPage(
                             title = stringResource(R.string.course_list_title),
                             subtitle = stringResource(R.string.course_list_subtitle),
                             onClick = onOpenCourseList
+                        )
+                        ManageCard(
+                            icon = Icons.Outlined.Refresh,
+                            title = stringResource(R.string.schedule_refresh_school),
+                            subtitle = stringResource(R.string.jw_refresh_short),
+                            onClick = {
+                                context.startActivity(android.content.Intent(context,
+                                    com.imsx3d.classy.ui.screen.imports.JwImportActivity::class.java)
+                                    .putExtra(com.imsx3d.classy.ui.screen.imports.JwImportActivity.EXTRA_REFRESH_TABLE_ID, table.id))
+                            }
                         )
                         ManageCard(
                             icon = Icons.Outlined.Edit,

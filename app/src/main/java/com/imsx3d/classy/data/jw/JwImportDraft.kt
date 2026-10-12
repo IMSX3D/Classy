@@ -20,6 +20,7 @@ data class JwImportDraftSnapshot(
     val phase: JwImportDraftPhase = JwImportDraftPhase.CONFIGURE_CONFIRM,
     /** -1 creates an imported routine, null uses local times, positive IDs bind a saved routine. */
     val selectedPeriodTableId: Long? = -1L,
+    val refreshTableId: Long? = null,
 )
 
 data class JwImportDraftPeriod(
@@ -50,6 +51,7 @@ object JwImportDraftCodec {
         put("termStartDate", snapshot.termStartDate)
         put("tableName", snapshot.tableName)
         put("smartConfigJson", snapshot.smartConfigJson)
+        put("refreshTableId", snapshot.refreshTableId ?: JSONObject.NULL)
         put("selectedPeriodTableId", snapshot.selectedPeriodTableId ?: JSONObject.NULL)
     }.toString()
 
@@ -85,6 +87,7 @@ object JwImportDraftCodec {
             tableName = root.optString("tableName", ""),
             smartConfigJson = root.optString("smartConfigJson", ""),
             phase = phase,
+            refreshTableId = root.optLong("refreshTableId", 0L).takeIf { it > 0 },
             selectedPeriodTableId = when {
                 !root.has("selectedPeriodTableId") -> -1L
                 root.isNull("selectedPeriodTableId") -> null

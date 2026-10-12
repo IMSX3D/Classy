@@ -15,7 +15,7 @@ import com.imsx3d.classy.data.entity.TimeTableEntity
 
 @Database(
     entities = [CourseEntity::class, TimeTableEntity::class, PeriodTableEntity::class, ImportDraftEntity::class],
-    version = 9,                            // 8 → 9: C2 绑定前快照, 解绑恢复 (issue#40)
+    version = 10,                            // 9 → 10: school refresh provenance; existing routines remain unchanged
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -125,6 +125,8 @@ fun AppearanceScreen(
             }
         }
 
+        item { com.imsx3d.classy.ui.component.ScheduleBackgroundSettings() }
+
         if (com.imsx3d.classy.BuildConfig.DEBUG) {
             item {
                 SettingsGroupCard {

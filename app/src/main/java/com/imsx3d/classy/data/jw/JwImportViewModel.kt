@@ -645,7 +645,8 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
         // v1.0.56 T10: 非 null = 教务解析出了独立节次 → 同事务自动建同名作息表并绑定。
         // 名字走全局唯一名顺延(课表∪作息表), 撞名自动加后缀。
         periodTable: com.imsx3d.classy.data.entity.PeriodTableEntity? = null,
-        boundPeriodTableId: Long? = null
+        boundPeriodTableId: Long? = null,
+        sourceSchool: JwSchoolInfo? = null
     ): Long = withContext(Dispatchers.IO) {
         if (courses.isEmpty()) throw IllegalArgumentException("课程列表为空，请确认已到达课表页面")
 
@@ -699,7 +700,12 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
                 val gid = nameToGroup.getOrPut(c.courseName) { java.util.UUID.randomUUID().toString() }
                 c.copy(groupId = gid)
             }
-            courseDao.insertAll(entities)
+            val rowIds = courseDao.insertAll(entities)
+            sourceSchool?.let { school ->
+                val saved = entities.mapIndexed { index, c -> c.copy(id = rowIds[index]) }
+                tableDao.update(boundTable.copy(id = generatedId,
+                    jwSourceJson = JwRefresh.encode(school, saved, saved.associate { JwRefresh.key(it) to it.id }, saved)))
+            }
             generatedId
         }
         newId

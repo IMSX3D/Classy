@@ -109,7 +109,7 @@ fun ImportSheet(
     onImported: () -> Unit,
     drafts: List<ImportDraft> = emptyList(),
     onRestoreDraft: (String) -> Unit = {},
-    onDeleteDraft: (String) -> Unit = {},
+    onDeleteDraft: suspend (String) -> Unit = {},
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -441,8 +441,7 @@ fun ImportSheet(
             drafts = drafts,
             onDismiss = { showDrafts = false },
             onRestore = { id ->
-                showDrafts = false
-                onRestoreDraft(id)
+                closeThen { onRestoreDraft(id) }
             },
             onDelete = onDeleteDraft
         )
@@ -787,10 +786,8 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
         ImportFormat.PLAIN, ImportFormat.PLAIN_LEGACY -> R.string.format_plain_example
     }
 
-    AlertDialog(
+    com.imsx3d.classy.ui.component.ImportReviewPage(
         onDismissRequest = onDismiss,
-        titleContentColor = colors.onSurface,
-        textContentColor = colors.onSurfaceVariant,
         title = { Text(stringResource(titleRes), style = MaterialTheme.typography.titleLarge) },
         text = {
             // UI-31d：外层 Column 包住「可滚动正文 + 色块按钮行」——
@@ -799,8 +796,7 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 440.dp)
-                    .verticalScroll(rememberScrollState()),
+                    ,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
@@ -817,13 +813,13 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
                     Row {
                         Text(
                             text = "•",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = colors.primary,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
                             text = item,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
                     }
@@ -869,7 +865,7 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
                         )
                         Text(
                             text = stringResource(R.string.ai_prompt_text).replace("\\n", "\n"),
-                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = MaterialTheme.typography.labelSmall.fontSize),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                             color = colors.onPrimaryContainer,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -913,15 +909,11 @@ private fun FormatDetailDialog(format: ImportFormat, onDismiss: () -> Unit) {
                     }
                 }
             }
-                Spacer(Modifier.height(8.dp))
-                com.imsx3d.classy.ui.component.DialogActionButtons(
-                    confirmText = stringResource(R.string.format_help_close),
-                    onConfirm = onDismiss
-                )
             }
         },
-        confirmButton = {},
-        dismissButton = {}
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.format_help_close)) }
+        }
     )
 }
 

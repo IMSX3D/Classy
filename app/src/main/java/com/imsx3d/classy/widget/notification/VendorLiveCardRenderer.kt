@@ -63,8 +63,8 @@ object VendorLiveCardRenderer {
             else -> state.room
         }.ifBlank { state.courseName }
 
-        val detailText = if (primary == "name") state.detailText
-            else listOf(state.courseName, state.detailText).filter { it.isNotBlank() }.joinToString("  ·  ")
+        val detailText = listOf(state.courseName, state.startTime, state.room, state.teacher)
+            .filter { it.isNotBlank() && it != primaryText }.distinct().joinToString(" · ")
 
         val style = NotificationCompat.ProgressStyle()
             .setStyledByProgress(true)
@@ -82,16 +82,18 @@ object VendorLiveCardRenderer {
             .setColor(themePrimaryArgb)
             .setContentTitle(primaryText)
             .setContentText(detailText)
-            .setSubText(state.room)
             .setStyle(style)
             .setProgress(100, state.progress, false)
             .setOngoing(true)
+            // A timed course reminder should appear at the reminder time, not after
+            // the system's foreground-service notification deferral window.
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setRequestPromotedOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(contentIntent)
-            .setShortCriticalText(primaryText.take(7))
+            .setShortCriticalText(state.startTime.takeIf { it.isNotBlank() } ?: primaryText.take(7))
 
         when (vendor) {
             // Upstream #80: private focus extras demote the progress notification on HyperOS.
@@ -151,7 +153,9 @@ object VendorLiveCardRenderer {
                 putString("content", "${primaryText} ${state.progress}%")
             })
         }
-        builder.setExtras(extras)
+        // Preserve the standard promotion request and short critical text.
+        // setExtras replaces these AndroidX fields and prevents live promotion.
+        builder.addExtras(extras)
     }
 
     private fun addMeizuExtras(
@@ -183,7 +187,7 @@ object VendorLiveCardRenderer {
                 )
             )
         }
-        builder.setExtras(Bundle().apply {
+        builder.addExtras(Bundle().apply {
             putBoolean("is_live", true)
             putInt("notification.live.operation", if (state.updateSequence <= 1) 0 else 1)
             putInt("notification.live.type", 2)

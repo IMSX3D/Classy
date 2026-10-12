@@ -101,6 +101,7 @@ fun MineScreen(
                     DateUtils.SemesterStatus.IN_RANGE -> DateUtils.currentWeek(table!!.startDate).toString()
                     null -> "—"
                 }
+                com.imsx3d.classy.ui.component.SemesterOverviewCard(table?.name.orEmpty(), table?.startDate) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     StatItem(state.tables.size.toString(), stringResource(R.string.mine_stat_tables), modifier = Modifier.weight(1f))
                     StatColumnDivider()
@@ -111,6 +112,7 @@ fun MineScreen(
                     )
                     StatColumnDivider()
                     StatItem(week, stringResource(R.string.mine_stat_week), modifier = Modifier.weight(1f))
+                }
                 }
             }
 

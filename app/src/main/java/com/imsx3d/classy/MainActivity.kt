@@ -475,7 +475,7 @@ internal fun MainTabs(
                     ctx.startActivity(Intent(ctx, JwImportActivity::class.java).putExtra(JwImportActivity.EXTRA_DRAFT_ID, id))
                 },
                 onDeleteDraft = { id ->
-                    draftScope.launch { SleepyApp.get().importDraftRepository.delete(id) }
+                    SleepyApp.get().importDraftRepository.delete(id)
                 },
                 // v7.10.16w 用户 2026-09-10: 导入完成留在管理页 — 此前硬跳课表页(周/网格),
                 // 打断"复制副本→追加导入→继续操作"的管理动线。当前课表摘要卡就地刷新可见。

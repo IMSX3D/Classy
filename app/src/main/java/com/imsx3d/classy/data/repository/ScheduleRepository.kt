@@ -585,6 +585,37 @@ class ScheduleRepository(private val db: AppDatabase) {
 
     suspend fun totalCourseCount(): Int = courseDao.totalCount()
 
+    suspend fun prepareJwRefresh(tableId: Long, incoming: List<CourseEntity>, school: com.imsx3d.classy.data.jw.JwSchoolInfo)
+        = readConsistently {
+            val table = checkNotNull(tableDao.getById(tableId)) { "missing" }
+            val effective = table.hydratedWith(table.periodTableId?.let { periodTableDao.getById(it) })
+            com.imsx3d.classy.data.jw.JwRefresh.plan(table, effective, courseDao.getByTable(tableId), incoming, school)
+        }
+
+    /** Compare-and-commit: the reviewed table, courses and shared routine must still match. */
+    suspend fun applyJwRefresh(plan: com.imsx3d.classy.data.jw.JwRefreshPlan,
+                              addKeys: Set<String>, removeIds: Set<Long>) = atomicEdit {
+        val table = checkNotNull(tableDao.getById(plan.table.id)) { "missing" }
+        check(table == plan.table && courseDao.getByTable(table.id) == plan.before &&
+            table.hydratedWith(table.periodTableId?.let { periodTableDao.getById(it) }) == plan.effectiveTable) { "stale" }
+        check(addKeys.all { key -> plan.additions.any { it.key == key } } &&
+            removeIds.all { id -> plan.removals.any { it.course.id == id } }) { "selection" }
+        if (removeIds.isNotEmpty()) courseDao.deleteByIds(removeIds.toList())
+        val links = plan.retained.toMutableMap()
+        val groups = plan.before.associate { (it.courseName to it.teacher) to it.groupId }.toMutableMap()
+        plan.additions.filter { it.key in addKeys }.forEach { add ->
+            val c = add.course
+            val group = groups.getOrPut(c.courseName to c.teacher) { java.util.UUID.randomUUID().toString() }
+            links[add.key] = courseDao.insert(c.copy(id = 0, tableId = table.id, groupId = group))
+        }
+        val after = courseDao.getByTable(table.id)
+        val source = com.imsx3d.classy.data.jw.JwRefresh.encode(plan.school, plan.incoming, links, after,
+            com.imsx3d.classy.data.jw.JwRefresh.decode(table.jwSourceJson))
+        // No routine, binding, semester, appearance or naming field is touched.
+        tableDao.update(table.copy(jwSourceJson = source))
+        pruneDefaultTopPrefs()
+    }
+
     /** 覆盖式导入（先删后插） */
     suspend fun replaceCourses(tableId: Long, courses: List<CourseEntity>): Unit = atomicEdit() {
         val withGroupIds = assignGroupIds(courses)

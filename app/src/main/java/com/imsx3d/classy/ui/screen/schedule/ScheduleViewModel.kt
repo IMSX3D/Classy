@@ -239,7 +239,8 @@ class ScheduleViewModel : ViewModel() {
         while (name in existingNames) { index++; name = "${source.name}$index" }
         repo.atomicEdit {
             val newId = repo.insertTable(
-                source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis())
+                source.copy(id = 0, name = name, isDefault = false, createdAt = System.currentTimeMillis(),
+                    jwSourceJson = "") // A duplicate gets new row IDs; associate its source on first refresh.
             )
             if (courses.isNotEmpty()) {
                 // groupId 整组映射到新 UUID — 同一门课的节次共享新组 ID, 副本内仍可整组编辑

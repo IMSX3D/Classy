@@ -9,4 +9,6 @@
     <string name="reminder_background_vivo">退出后收不到提醒？请在“电量 → 后台耗电管理”中选择“允许后台耗电”，并在系统中允许自启动。</string>
     <string name="reminder_background_help">退出后收不到提醒？请在系统中允许 Classy 后台运行和自启动。不同手机的设置名称可能不同。</string>
     <string name="reminder_background_settings">后台运行设置</string>
+    <string name="reminder_promotion_blocked">系统尚未允许突出显示实时通知，当前会显示普通课程卡片。开启后能否进入原子岛等区域，仍由手机系统决定。</string>
+    <string name="reminder_promotion_settings">实时通知设置</string>
 </resources>

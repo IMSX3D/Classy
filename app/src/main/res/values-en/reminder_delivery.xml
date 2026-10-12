@@ -9,4 +9,6 @@
     <string name="reminder_background_vivo">Missing reminders after closing the app? Under Battery → Background power management, allow background usage. Also allow auto-start in system settings.</string>
     <string name="reminder_background_help">Missing reminders after closing the app? Allow Classy to run in the background and auto-start in system settings. Names vary by device.</string>
     <string name="reminder_background_settings">Background settings</string>
+    <string name="reminder_promotion_blocked">Promoted live notifications are off. A regular course card is available; island display still depends on your phone.</string>
+    <string name="reminder_promotion_settings">Live notification settings</string>
 </resources>

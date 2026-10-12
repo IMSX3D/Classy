@@ -252,3 +252,20 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 交付E:/C015/交付/Classy-导入交互重审-20261012/Classy-0.0.9-import-flow-arm64.apk，SHA256 BC5035551C3C94C2055067A580FE20044C21CA3CB6A222A06A5B8401B8425A4F。版本0.0.9不变，不推送、不改tag/Release。
 
 最终补验：800×1200dp与600×480dp模拟器窗口（均1.5倍字号）各3项导入链测试通过，日志import-flow-wide-final.txt、import-flow-short-final.txt。恢复模拟器原540×960px/240dpi配置；这不是实际系统分屏或真平板验收。
+# 2026-10-13 课表刷新、外观与通知批次
+
+源码基线af671c6；本批新增实现的最终提交见Git历史。证据根目录E:/C015/99-整理记录，截图在stage2-vivo-phone-device；含用户桌面/通知/图库的原始证据不公开。
+
+- 教务：独立Debug包使用授权学校账号，首次关联及再次拉取成功。24条安排、作息和原课表字段的哈希前后不变；来源基线建立后第二次显示0新增/0移除。账号密码不写入仓库或报告。正式包仅覆盖升级和页面检查，不在用户表上执行删除/差异测试。
+- 数据：SchoolRefreshMigrationTest验证真实v9数据升级v10后旧列逐项保留；JwRefreshRepositoryTest四项覆盖首关联/幂等、本地编辑、过期快照/越界、共享作息并发保护。初次关联不能可靠推断远端删除的本地课程，默认保留，由用户确认。
+- 交互：草稿删除取消/失败重试、导入文本/预览返回、长课表名/菜单、概览卡、刷新预览选择状态恢复均通过专项测试。新刷新预览只在数据就绪后组成LazyColumn；刷新/恢复草稿入口加载来源后再呈现目标页，避免学校列表闪现。后者属于本批末尾补修。
+- 配置：English/1.5字号，1200×1600px/160dpi与960×540px/160dpi各6项UI测试通过；另原生API36专项在API35模拟器跳过。已恢复模拟器540×960px/240dpi。本轮没有连接真平板；尺寸测试不是实际系统分屏/旋转验收。
+- 外观：vivo新顶栏深色前景丢失已修复并复验；课表背景明暗、周选择、概览卡和分享方式已截图。背景限定静态图片、居中裁切、主题遮罩与移除；玻璃没有生产开关。存储测试验证有界解码、坏图/21MB输入保留旧图及临时文件清理。
+- 通知根因：vivo/魅族setExtras覆盖了AndroidX写入的android.requestPromotedOngoing与短文字。改为addExtras，补FOREGROUND_SERVICE_IMMEDIATE。实际设备框架采用“已请求且不请求colorized”的规则；不能依据早期Android16源码错误地加colorized。那次尝试已撤回。
+- 通知结果：mainline-native-final-proof.txt两项通过；vivo的权限、hasPromotableCharacteristics和投递后FLAG_PROMOTED_ONGOING均为true，通知栏截图已看到课程进度卡。30秒探针自动撤除，服务已停止。原子岛外观仍未证实；当时顶部是系统热点胶囊，未改热点/睡眠模式。mainline-native-own-card.png只裁出应用自身卡片。模拟器真实定时投递与四组开关回归通过（mainline-notification-final-regression.txt实际2项通过、2项按条件跳过）。
+- 性能：近发布benchmark的设置→显示/通用→返回，预热后三组基线超时17/922、15/928、16/926，P95为14/13/14ms；新版16/924、16/924、16/926，P95均13ms，P99均22ms。未证明稳定提升。Perfetto最慢应用帧24.53ms，其中AndroidOwner测量14.113ms、主要为CPU运行，尚未归因到具体业务组件。简化SettingsScaffold实验没有稳定收益，已全部撤回；最终benchmark重新安装后深色箭头正常。PERF-01保持开放。
+- 构建：Debug/Release/Benchmark/仪器APK、2339项JVM及lint通过；最终日志mainline-delivery-final-build.log。通知专项晚于生产通知修复，既有UI/数据测试早于最后入口加载补修，不能说整个矩阵重新全跑。
+
+未关闭：PERF-01、全入口/状态/配置矩阵、原子岛视觉、真实平板与长期省电投递。桌面小组件本批没有修改；自动添加此前未通过，不能记为本批成果。
+
+最终安装包：E:/C015/交付/Classy-主线优化-20261013/Classy-0.0.9-ui-refresh-arm64.apk。SHA256：236F42335735FAD2A9DF2C10C7B66F95268337AAEA7B9979929159EEDD3EE8A0。最后文字调整将厂商名开关改为“实时课程卡片”，其构建/资源校验通过；末尾导入专项5项通过，linked-refresh-entry-final确认已关联学校直达登录，退出删除本次临时草稿。正式包原课表可读，提醒07:00/22:00/提前10分钟保持，未改用户勿扰。

@@ -476,7 +476,7 @@ private suspend fun sendScheduleSummary(
         val first = courses.first()
         val firstTime = getCourseStartTime(first, requireNotNull(table))
         val firstRoom = first.room.ifBlank { context.getString(R.string.notif_room_unknown) }
-        text = context.getString(R.string.notif_daily_text_first, first.courseName, firstTime, firstRoom)
+        text = NotificationCopy.firstClass(first.courseName, firstTime, first.room)
     }
 
     val notif = NotificationCompat.Builder(context, CourseNotificationScheduler.CHANNEL_DAILY)
@@ -579,11 +579,8 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
         // primaryText / roomTeacherText / timeTeacherText 三个死变量已删
         // (计算后从未被使用——SDK>=26 路径直接交给 FluidCloudService, fallback 用上面的 fluidText/text)
 
-        val text = if (teacher.isBlank()) {
-            context.getString(R.string.notif_before_class_text, courseName, startTime, roomStr)
-        } else {
-            context.getString(R.string.notif_before_class_text_with_teacher, courseName, startTime, roomStr, teacher)
-        }
+        val text = NotificationCopy.timeAndPlace(startTime, room)
+        val expandedText = NotificationCopy.expanded(courseName, startTime, room, teacher)
 
         // == 流体云 / Live Update ==
         // 所有 SDK>=26 统一走 FluidCloudService：service 的 Handler 每 15s 循环
@@ -621,9 +618,9 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
         }.ifBlank { courseName }
         val notif = NotificationCompat.Builder(context, if (fallbackFluid) CourseNotificationScheduler.CHANNEL_FLUID else CourseNotificationScheduler.CHANNEL_BEFORE_CLASS)
             .setSmallIcon(R.drawable.ic_notification_time)
-            .setContentTitle(if (fallbackFluid) primaryText else context.getString(R.string.notif_before_class_title))
+            .setContentTitle(if (fallbackFluid) primaryText else courseName)
             .setContentText(if (fallbackFluid) fluidText else text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(if (fallbackFluid) fluidText else text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(if (fallbackFluid) fluidText else expandedText))
             .setTicker(if (fallbackFluid) fluidText else text)
             .setSubText(if (fallbackFluid) fluidText else null)
             .setOngoing(fallbackFluid)

@@ -21,6 +21,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,65 +43,49 @@ data class ImportDraft(
     val savedAt: String? = null
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportDraftSheet(
     drafts: List<ImportDraft>,
     onDismiss: () -> Unit,
     onRestore: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    onDelete: suspend (String) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.import_drafts),
-                style = MaterialTheme.typography.headlineSmall,
-                color = colors.onSurface,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            if (drafts.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 160.dp)
-                        .padding(vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.import_drafts_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 520.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(drafts, key = { it.id }) { draft ->
-                        ImportDraftRow(
-                            draft = draft,
-                            onRestore = { onRestore(draft.id) },
-                            onDelete = { onDelete(draft.id) }
-                        )
-                    }
+    var pendingDelete by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var busy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var failed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    com.imsx3d.classy.ui.component.ImportReviewPage(
+        onDismissRequest = onDismiss, busy = busy, scrollContent = false,
+        title = { Text(stringResource(R.string.import_drafts)) },
+        text = {
+            if (drafts.isEmpty()) Text(stringResource(R.string.import_drafts_empty))
+            else LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(drafts, key = { it.id }) { draft ->
+                    ImportDraftRow(draft,
+                        onRestore = { if (!busy) onRestore(draft.id) },
+                        onDelete = { if (!busy) { failed = false; pendingDelete = draft.id } })
                 }
             }
-        }
+        }, confirmButton = {})
+    pendingDelete?.let { id ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!busy) pendingDelete = null },
+            title = { Text(stringResource(R.string.import_draft_delete)) },
+            text = { Column {
+                Text(stringResource(R.string.import_draft_delete_confirm))
+                if (failed) Text(stringResource(R.string.editor_action_failed), color = MaterialTheme.colorScheme.error)
+            } },
+            confirmButton = { androidx.compose.material3.TextButton(enabled = !busy, onClick = {
+                busy = true; failed = false
+                scope.launch {
+                    try { onDelete(id); pendingDelete = null }
+                    catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (_: Exception) { failed = true }
+                    finally { busy = false }
+                }
+            }) { Text(stringResource(R.string.import_draft_delete)) } },
+            dismissButton = { androidx.compose.material3.TextButton(enabled = !busy,
+                onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) } })
     }
 }
 

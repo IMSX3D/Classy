@@ -34,11 +34,13 @@ internal fun ReminderDeliveryStatus() {
     var notifications by remember { mutableStateOf(true) }
     var blockedChannels by remember { mutableStateOf(false) }
     var exact by remember { mutableStateOf(true) }
+    var promotionBlocked by remember { mutableStateOf(false) }
     var quietMode by remember { mutableStateOf(false) }
     DisposableEffect(lifecycle) {
         fun refresh() {
             notifications = NotificationManagerCompat.from(context).areNotificationsEnabled()
             val manager = context.getSystemService(NotificationManager::class.java)
+            promotionBlocked = Build.VERSION.SDK_INT >= 36 && AppPrefs.isBeforeClassFluidEnabled(context) && !manager.canPostPromotedNotifications()
             quietMode = manager.currentInterruptionFilter in listOf(
                 NotificationManager.INTERRUPTION_FILTER_PRIORITY,
                 NotificationManager.INTERRUPTION_FILTER_NONE,
@@ -81,6 +83,18 @@ internal fun ReminderDeliveryStatus() {
                 context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
             }) { Text(stringResource(R.string.reminder_system_notifications)) }
+            if (promotionBlocked) {
+                SettingsNoteRow(stringResource(R.string.reminder_promotion_blocked))
+                TextButton(onClick = {
+                    if (Build.VERSION.SDK_INT >= 36) {
+                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        if (intent.resolveActivity(context.packageManager) != null) context.startActivity(intent)
+                        else context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+                    }
+                }) { Text(stringResource(R.string.reminder_promotion_settings)) }
+            }
             if (quietMode) SettingsNoteRow(stringResource(R.string.reminder_quiet_mode))
             if (!exact) {
                 SettingsNoteRow(stringResource(R.string.reminder_exact_needed))
