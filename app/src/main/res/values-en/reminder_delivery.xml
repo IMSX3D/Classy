@@ -1,0 +1,12 @@
+<resources>
+    <string name="reminder_notifications_blocked">System notifications are off. Reminders cannot be shown.</string>
+    <string name="reminder_channels_blocked">Some reminder categories are blocked. Enable them in notification settings.</string>
+    <string name="reminder_notifications_allowed">System notifications are on. Manage sound and banners in system settings.</string>
+    <string name="reminder_system_notifications">System notification settings</string>
+    <string name="reminder_exact_needed">Reminders may be delayed. Allow alarms and reminders for on-time delivery.</string>
+    <string name="reminder_allow_exact">Allow on-time reminders</string>
+    <string name="reminder_quiet_mode">Do Not Disturb is on. Reminders may appear without sound or banners.</string>
+    <string name="reminder_background_vivo">Missing reminders after closing the app? Under Battery → Background power management, allow background usage. Also allow auto-start in system settings.</string>
+    <string name="reminder_background_help">Missing reminders after closing the app? Allow Classy to run in the background and auto-start in system settings. Names vary by device.</string>
+    <string name="reminder_background_settings">Background settings</string>
+</resources>

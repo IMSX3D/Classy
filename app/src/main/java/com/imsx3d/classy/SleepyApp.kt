@@ -38,8 +38,6 @@ class SleepyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        androidx.core.app.NotificationManagerCompat.from(this)
-            .cancel(CourseNotificationScheduler.NOTIFY_BEFORE_CLASS_BASE)
         // 预热 SharedPreferences: 首次 getSharedPreferences 后台异步加载整文件,
         // 避免冷启动后首个 Compose 屏在主线程同步做磁盘反序列化 (AppPrefs 全部
         // getter 都在调用方线程直读, 严格模式 diskRead / 低端机卡顿来源)。
@@ -54,7 +52,7 @@ class SleepyApp : Application() {
             object : androidx.lifecycle.DefaultLifecycleObserver {
                 override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
                     CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                        try { notificationScheduler.ensureActiveFluidCloud() } catch (_: Throwable) {}
+                        try { notificationScheduler.reschedule() } catch (_: Throwable) {}
                     }
                 }
             }
@@ -62,15 +60,8 @@ class SleepyApp : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             WidgetUpdater.notifyDataChanged(this@SleepyApp)
         }
-        // 提醒出厂默认是开（用户 2026-09-28 定）：开机/装包之外的冷启动也要把排程补上，
-        // 否则"默认开着"在首次安装后形同虚设（要等重启或进一次提醒页才排）。
-        // 仅当 master 为开时才调 —— scheduleAll 内部会先 cancelAll，
-        // 关闭态不该让它有机会动到任何闹钟。
-        if (AppPrefs.isReminderEnabled(this)) {
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                runCatching { notificationScheduler.scheduleAll() }
-            }
-        }
+        // Alarm delivery may cold-start Application. Never cancel/recreate its generation here:
+        // the receiving alarm must remain valid. Foreground entry and BootReceiver restore schedules.
         // Use XML previews like upstream #92; also clear previews cached by older Classy builds.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

@@ -63,6 +63,9 @@ object VendorLiveCardRenderer {
             else -> state.room
         }.ifBlank { state.courseName }
 
+        val detailText = if (primary == "name") state.detailText
+            else listOf(state.courseName, state.detailText).filter { it.isNotBlank() }.joinToString("  ·  ")
+
         val style = NotificationCompat.ProgressStyle()
             .setStyledByProgress(true)
             .setProgress(state.progress.coerceIn(0, 100))
@@ -77,8 +80,8 @@ object VendorLiveCardRenderer {
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification_time)
             .setColor(themePrimaryArgb)
-            .setContentTitle(state.courseName)
-            .setContentText(state.detailText)
+            .setContentTitle(primaryText)
+            .setContentText(detailText)
             .setSubText(state.room)
             .setStyle(style)
             .setProgress(100, state.progress, false)
@@ -93,8 +96,8 @@ object VendorLiveCardRenderer {
         when (vendor) {
             // Upstream #80: private focus extras demote the progress notification on HyperOS.
             LiveCardVendor.XIAOMI -> Unit
-            LiveCardVendor.VIVO, LiveCardVendor.IQOO -> addVivoExtras(builder, state, contentIntent, context)
-            LiveCardVendor.MEIZU -> addMeizuExtras(builder, state, contentIntent, context, themePrimaryArgb)
+            LiveCardVendor.VIVO, LiveCardVendor.IQOO -> addVivoExtras(builder, state, contentIntent, context, primaryText, detailText)
+            LiveCardVendor.MEIZU -> addMeizuExtras(builder, state, contentIntent, context, themePrimaryArgb, primaryText)
             LiveCardVendor.OPPO, LiveCardVendor.ONEPLUS, LiveCardVendor.REALME,
             LiveCardVendor.HUAWEI, LiveCardVendor.HONOR, LiveCardVendor.SAMSUNG,
             LiveCardVendor.GENERIC -> Unit
@@ -106,7 +109,9 @@ object VendorLiveCardRenderer {
         builder: NotificationCompat.Builder,
         state: CourseLiveCardState,
         contentIntent: PendingIntent,
-        context: Context
+        context: Context,
+        primaryText: String,
+        detailText: String
     ) {
         val extras = Bundle().apply {
             putInt(
@@ -123,8 +128,8 @@ object VendorLiveCardRenderer {
             putInt("notification.superx.changedRecord", state.updateSequence)
             putParcelable("notification.superx.clickResp", contentIntent)
             putBundle("notification.superx.baseInfos", Bundle().apply {
-                putCharSequence("title", state.courseName)
-                putCharSequence("content", state.detailText)
+                putCharSequence("title", primaryText)
+                putCharSequence("content", detailText)
                 putInt("progressState", if (state.isActive) 0 else 1)
             })
             putBundle("notification.superx.infos", Bundle().apply {
@@ -137,13 +142,13 @@ object VendorLiveCardRenderer {
             putBundle("notification.superx.shortInfos", Bundle().apply {
                 putParcelable("image", Icon.createWithResource(context, R.drawable.ic_notification_time))
                 putParcelable("imageClickResp", contentIntent)
-                putCharSequence("describeShort", state.courseName)
+                putCharSequence("describeShort", primaryText)
                 putCharSequence("coreInfoShort", state.room)
             })
             putBundle("notification.superx.capsule", Bundle().apply {
                 putInt("state", if (state.isActive) 1 else 0)
                 putParcelable("icon", Icon.createWithResource(context, R.drawable.ic_notification_time))
-                putString("content", "${state.courseName} ${state.progress}%")
+                putString("content", "${primaryText} ${state.progress}%")
             })
         }
         builder.setExtras(extras)
@@ -154,7 +159,8 @@ object VendorLiveCardRenderer {
         state: CourseLiveCardState,
         contentIntent: PendingIntent,
         context: Context,
-        themeColor: Int
+        themeColor: Int,
+        primaryText: String
     ) {
         val isDarkTheme = AppPrefs.isDarkMode(
             context,
@@ -165,7 +171,7 @@ object VendorLiveCardRenderer {
         val capsule = Bundle().apply {
             putInt("notification.live.capsuleStatus", 1)
             putInt("notification.live.capsuleType", 5)
-            putString("notification.live.capsuleContent", "${state.courseName} ${state.progress}%")
+            putString("notification.live.capsuleContent", "${primaryText} ${state.progress}%")
             putParcelable("notification.live.capsuleIcon", Icon.createWithResource(context, R.drawable.ic_notification_time))
             putInt("notification.live.capsuleBgColor", themeColor)
             // UI-4s: 内容色按底色亮度配对 —— 原来硬编码白字，深色主题下底色是**浅色主色**

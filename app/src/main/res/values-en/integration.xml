@@ -4,8 +4,8 @@
     <string name="widget_day_today">Today</string>
     <string name="widget_day_tomorrow">Tomorrow</string>
     <string name="widget_add_title">Add to home screen</string>
-    <string name="widget_add_help">Choose a style, then confirm in the system dialog.</string>
-    <string name="widget_pin_requested">Request sent. Confirm in the system dialog, then check your home screen.</string>
+    <string name="widget_add_help">Choose a style and follow the system prompt. If no prompt appears, use the manual steps below.</string>
+    <string name="widget_pin_requested">Request sent. If no confirmation appears, open the help below to add from your home screen.</string>
     <string name="widget_pin_unsupported">This launcher requires manual setup. Open the help below.</string>
     <string name="widget_pin_failed">The request failed. Open the help below to add manually.</string>
     <string name="widget_diagnostics">Help adding widgets</string>

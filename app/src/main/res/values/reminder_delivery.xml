@@ -1,0 +1,12 @@
+<resources>
+    <string name="reminder_notifications_blocked">系统通知未开启，提醒暂时无法显示。</string>
+    <string name="reminder_channels_blocked">部分提醒类别已被系统关闭，请在通知设置中开启。</string>
+    <string name="reminder_notifications_allowed">系统通知已开启，可在系统设置中调整声音和横幅。</string>
+    <string name="reminder_system_notifications">系统通知设置</string>
+    <string name="reminder_exact_needed">未允许准时提醒，通知可能延迟。请开启“闹钟和提醒”权限。</string>
+    <string name="reminder_allow_exact">允许准时提醒</string>
+    <string name="reminder_quiet_mode">系统勿扰已开启，提醒可能没有声音或横幅。</string>
+    <string name="reminder_background_vivo">退出后收不到提醒？请在“电量 → 后台耗电管理”中选择“允许后台耗电”，并在系统中允许自启动。</string>
+    <string name="reminder_background_help">退出后收不到提醒？请在系统中允许 Classy 后台运行和自启动。不同手机的设置名称可能不同。</string>
+    <string name="reminder_background_settings">后台运行设置</string>
+</resources>

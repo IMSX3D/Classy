@@ -18,6 +18,12 @@ import com.imsx3d.classy.util.AppPrefs
  * user's before-class reminder window. The capsule text remains static.
  */
 class FluidCloudService : Service() {
+    private var enteredForeground = false
+
+    override fun onCreate() {
+        super.onCreate()
+        current = this
+    }
     private val handler = Handler(Looper.getMainLooper())
     private var courseName = ""
     private var room = ""
@@ -107,10 +113,51 @@ class FluidCloudService : Service() {
             // 必须给系统一个交代：startForegroundService 起来的服务，5 秒内既没 startForeground()
             // 也没 stopSelf() → Android 12+ 抛 ForegroundServiceDidNotStartInTimeException 直接崩进程。
             stopSelfCleanly("start post failed")
+            // A successful startForegroundService call does not guarantee that the
+            // service can enter foreground. Preserve a plain reminder in that case.
+            if (!AppPrefs.isBeforeClassBannerEnabled(this)) postFallback()
+            return START_NOT_STICKY
+        }
+        // A toggle may turn off while Android is still creating this service.
+        // Fulfil startForegroundService first, then stop; cancelling a pending
+        // creation with stopService can produce ForegroundServiceDidNotStartInTime.
+        if (stopRequested || !AppPrefs.isReminderEnabled(this) ||
+            !AppPrefs.isBeforeClassEnabled(this) || !AppPrefs.isBeforeClassFluidEnabled(this)) {
+            stopSelfCleanly("reminder disabled during start")
             return START_NOT_STICKY
         }
         handler.postDelayed(updater, UPDATE_INTERVAL_MS)
         return START_NOT_STICKY
+    }
+
+    private fun postFallback() {
+        if (!AppPrefs.isReminderEnabled(this) || !AppPrefs.isBeforeClassEnabled(this) ||
+            !AppPrefs.isBeforeClassFluidEnabled(this)) return
+        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        val remaining = classEpoch - System.currentTimeMillis()
+        if (remaining <= 0) return
+        val primary = when (AppPrefs.getBeforeClassFluidPrimary(this)) {
+            "time" -> startTime
+            "room" -> room
+            else -> courseName
+        }.ifBlank { courseName }
+        val notification = NotificationCompat.Builder(this, CourseNotificationScheduler.CHANNEL_FLUID)
+            .setSmallIcon(R.drawable.ic_notification_time)
+            .setContentTitle(primary)
+            .setContentText(listOf(courseName, startTime, room).filter { it.isNotBlank() }.joinToString(" · "))
+            .setContentIntent(PendingIntent.getActivity(this, 0,
+                Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_OPEN_TAB, MainActivity.TAB_SCHEDULE),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            .setSilent(true)
+            .setTimeoutAfter(remaining)
+            .setAutoCancel(true)
+            .build()
+        runCatching {
+            androidx.core.app.NotificationManagerCompat.from(this)
+                .notify(CourseNotificationScheduler.NOTIFY_LIVE_FALLBACK, notification)
+        }.onFailure { android.util.Log.w(TAG, "Plain reminder unavailable", it) }
     }
 
     private fun postProgressNotification() {
@@ -144,6 +191,7 @@ class FluidCloudService : Service() {
         if (android.os.Build.VERSION.SDK_INT >= 26) {
             // 前台服务路径: startForeground 本身不需要 POST_NOTIFICATIONS 运行时权限
             startForeground(CourseNotificationScheduler.NOTIFY_BEFORE_CLASS_BASE, notification)
+            enteredForeground = true
         } else {
             // Lint MissingPermission: 前台服务由 startForegroundService 启动链路触发,
             //   但 API<26 notify 分支仍需权限校验兜底(权限被拒时静默跳过, 不抛 SecurityException)
@@ -163,12 +211,29 @@ class FluidCloudService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(updater)
+        if (current === this) current = null
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
+        // Accessed on the main thread with Service lifecycle callbacks.
+        private var current: FluidCloudService? = null
+        private var stopRequested = false
+
+        suspend fun start(context: android.content.Context, intent: Intent) =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                stopRequested = false
+                ContextCompat.startForegroundService(context, intent)
+            }
+
+        suspend fun requestStop() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
+            stopRequested = true
+            current?.let { service ->
+                if (service.enteredForeground) service.stopSelfCleanly("reminder rescheduled or disabled")
+            }
+        }
         private const val TAG = "FluidCloudService"
         private const val UPDATE_INTERVAL_MS = 15_000L
         // MODE_A / MODE_B 死常量已删（从未被读取——服务固定走 ProgressStyle 进度条模式）

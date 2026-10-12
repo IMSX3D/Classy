@@ -61,6 +61,8 @@ class CourseNotificationScheduler(private val context: Context) {
         // Notification IDs
         const val NOTIFY_DAILY = 1001
         const val NOTIFY_TOMORROW_DAILY = 1002
+        const val NOTIFY_BANNER = 2001
+        const val NOTIFY_LIVE_FALLBACK = 2002
         const val NOTIFY_BEFORE_CLASS_BASE = 2000 // + courseId offset
     }
 
@@ -119,8 +121,16 @@ class CourseNotificationScheduler(private val context: Context) {
         cancelCourseAlarmIds(alarmManager, (recorded + current).distinct())
         check(prefs.edit().putStringSet("occurrences", emptySet()).putStringSet("ids", emptySet())
             .putString("generation", java.util.UUID.randomUUID().toString()).commit())
-        NotificationManagerCompat.from(context).cancel(NOTIFY_BEFORE_CLASS_BASE)
-        context.stopService(Intent(context, FluidCloudService::class.java))
+        NotificationManagerCompat.from(context).apply {
+            cancel(NOTIFY_BEFORE_CLASS_BASE)
+            cancel(NOTIFY_BANNER)
+            cancel(NOTIFY_LIVE_FALLBACK)
+            if (!AppPrefs.isReminderEnabled(context) || !AppPrefs.isDailyReminderEnabled(context) ||
+                !AppPrefs.isTodayReminderEnabled(context)) cancel(NOTIFY_DAILY)
+            if (!AppPrefs.isReminderEnabled(context) || !AppPrefs.isDailyReminderEnabled(context) ||
+                !AppPrefs.isTomorrowReminderEnabled(context)) cancel(NOTIFY_TOMORROW_DAILY)
+        }
+        FluidCloudService.requestStop()
     }
 
     /**
@@ -191,7 +201,7 @@ class CourseNotificationScheduler(private val context: Context) {
         if (!LocalTime.now().isBefore(target)) next = next.plusDays(1)
         val epoch = next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        setRepeatingAlarm(alarmManager, epoch, AlarmManager.INTERVAL_DAY, pending)
+        setReminderAlarm(alarmManager, epoch, pending)
     }
 
     // ==================== Before-class scheduler ====================
@@ -206,7 +216,7 @@ class CourseNotificationScheduler(private val context: Context) {
         if (LocalTime.now().isAfter(target)) next = next.plusDays(1)
         val epoch = next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        setRepeatingAlarm(alarmManager, epoch, AlarmManager.INTERVAL_DAY, pending)
+        setReminderAlarm(alarmManager, epoch, pending)
 
         // Also immediately schedule for today (in case app was opened after midnight)
         scheduleTodayBeforeClassAlarmsLocked()
@@ -284,12 +294,7 @@ class CourseNotificationScheduler(private val context: Context) {
                 }
                 val pending = occurrencePendingIntent(key, intent)
 
-                // Use exact alarm for precision, fall back to inexact on Android 12+ without grant
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, epoch, pending)
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pending)
-                }
+                setReminderAlarm(alarmManager, epoch, pending)
             }
         }
     }
@@ -312,28 +317,22 @@ class CourseNotificationScheduler(private val context: Context) {
         val minutes = AppPrefs.getBeforeClassMinutes(app)
         val today = LocalDate.now()
         val table = resolveCurrentTable() ?: return
-        val nodes = TimeTableUtils.parseNodes(table.timeJson)
         val now = System.currentTimeMillis()
 
-        // 找出现在处于课前窗口内的第一节课
-        val hit = com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(
-            app, table, today, SleepyApp.get().repository.getCourses(table.id))
-            .firstOrNull { c ->
-                val st = if (c.ownTime && c.startTime.isNotBlank()) c.startTime
-                    else nodes.find { it.node == c.startNode }?.let { String.format("%02d:%02d", it.start.hour, it.start.minute) }
-                val p = st?.split(":")
-                val h = p?.getOrNull(0)?.toIntOrNull(); val m = p?.getOrNull(1)?.toIntOrNull()
-                if (h == null || m == null || h !in 0..23 || m !in 0..59) return@firstOrNull false
-                val classStart = today.atTime(h, m).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                val notifyEpoch = classStart - minutes * 60_000L
-                now in notifyEpoch..classStart  // 现在在窗口内
-            } ?: return
-
-        // 计算这节课的精确窗口，启动 FluidCloudService
-        val st = if (hit.ownTime && hit.startTime.isNotBlank()) hit.startTime
-            else nodes.find { it.node == hit.startNode }!!.let { String.format("%02d:%02d", it.start.hour, it.start.minute) }
-        val p = st.split(":")
-        val classStart = today.atTime(p[0].toInt(), p[1].toInt()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        // Include tomorrow: a long reminder window can begin before midnight.
+        val courses = SleepyApp.get().repository.getCourses(table.id)
+        val candidate = (0L..1L).flatMap { offset ->
+            val date = today.plusDays(offset)
+            com.imsx3d.classy.widget.HolidayTransferHelper.coursesOn(app, table, date, courses)
+                .mapNotNull { course ->
+                    val time = runCatching { LocalTime.parse(getCourseStartTime(course, table)) }.getOrNull()
+                        ?: return@mapNotNull null
+                    val epoch = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    if (now >= epoch - minutes * 60_000L && now < epoch) course to epoch else null
+                }
+        }.minByOrNull { it.second } ?: return
+        val (hit, classStart) = candidate
+        val st = getCourseStartTime(hit, table)
         val notifyEpoch = classStart - minutes * 60_000L
         val svc = Intent(app, FluidCloudService::class.java).apply {
             putExtra("courseName", hit.courseName)
@@ -344,7 +343,7 @@ class CourseNotificationScheduler(private val context: Context) {
             putExtra("classEpoch", classStart)
         }
         try {
-            androidx.core.content.ContextCompat.startForegroundService(app, svc)
+            FluidCloudService.start(app, svc)
             android.util.Log.d("CourseScheduler", "ensureActiveFluidCloud: started for ${hit.courseName} notify=$notifyEpoch class=$classStart now=$now")
         } catch (t: Throwable) {
             android.util.Log.w("CourseScheduler", "ensureActiveFluidCloud start failed", t)
@@ -381,11 +380,22 @@ class CourseNotificationScheduler(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-    private fun setRepeatingAlarm(am: AlarmManager, epoch: Long, interval: Long, pi: PendingIntent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
-            am.setInexactRepeating(AlarmManager.RTC_WAKEUP, epoch, interval, pi)
-        } else {
-            am.setRepeating(AlarmManager.RTC_WAKEUP, epoch, interval, pi)
+    private fun setReminderAlarm(am: AlarmManager, epoch: Long, pi: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pi)
+                return
+            }
+        } catch (_: SecurityException) { /* Permission may be revoked between query and call. */ }
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pi)
+    }
+
+    /** Rearm only this summary; do not invalidate simultaneous course alarms. */
+    suspend fun rearmSummary(tomorrow: Boolean) = schedulingMutex.withLock {
+        createChannels()
+        if (AppPrefs.isReminderEnabled(context) && AppPrefs.isDailyReminderEnabled(context)) {
+            if (tomorrow && AppPrefs.isTomorrowReminderEnabled(context)) scheduleTomorrowReminder()
+            if (!tomorrow && AppPrefs.isTodayReminderEnabled(context)) scheduleDaily()
         }
     }
 
@@ -399,14 +409,14 @@ class CourseNotificationScheduler(private val context: Context) {
 /** Same-day schedule summary — fires at the user-chosen morning/daytime time. */
 class DailyNotifyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (!hasNotifPermission(context)) return
         if (!AppPrefs.isReminderEnabled(context) ||
             !AppPrefs.isDailyReminderEnabled(context) ||
             !AppPrefs.isTodayReminderEnabled(context)
         ) return
 
         runAsync {
-            sendScheduleSummary(
+            SleepyApp.get().notificationScheduler.rearmSummary(tomorrow = false)
+            if (hasNotifPermission(context)) sendScheduleSummary(
                 context = context,
                 targetDate = LocalDate.now(),
                 isTomorrowPreview = false
@@ -418,14 +428,14 @@ class DailyNotifyReceiver : BroadcastReceiver() {
 /** Previous-evening schedule preview — follows the same no-course behavior as the same-day summary. */
 class TomorrowNotifyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (!hasNotifPermission(context)) return
         if (!AppPrefs.isReminderEnabled(context) ||
             !AppPrefs.isDailyReminderEnabled(context) ||
             !AppPrefs.isTomorrowReminderEnabled(context)
         ) return
 
         runAsync {
-            sendScheduleSummary(
+            SleepyApp.get().notificationScheduler.rearmSummary(tomorrow = true)
+            if (hasNotifPermission(context)) sendScheduleSummary(
                 context = context,
                 targetDate = LocalDate.now().plusDays(1),
                 isTomorrowPreview = true
@@ -540,7 +550,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, intent: Intent) {
+    private suspend fun showNotification(context: Context, intent: Intent) {
         android.util.Log.d("BeforeClassNotify", "entered extras=${intent.extras?.keySet()}")
         if (!hasNotifPermission(context)) {
             android.util.Log.w("BeforeClassNotify", "POST_NOTIFICATIONS denied")
@@ -582,6 +592,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
 
         // FluidCloudService 接管流体云：前台服务每 15s 循环 re-post ProgressStyle 通知推进进度条。
         // SDK>=26（含 Android 16）统一走此路径。
+        var liveStarted = false
         if (fluid && Build.VERSION.SDK_INT >= 26) {
             val serviceIntent = Intent(context, FluidCloudService::class.java).apply {
                 putExtra("courseName", courseName)
@@ -592,24 +603,33 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
                 putExtra("classEpoch", intent.getLongExtra("classEpoch", System.currentTimeMillis()))
             }
             try {
-                ContextCompat.startForegroundService(context, serviceIntent)
-                return
+                FluidCloudService.start(context, serviceIntent)
+                liveStarted = true
             } catch (e: RuntimeException) {
                 android.util.Log.w("BeforeClassNotify", "Foreground service unavailable; using notification", e)
             }
         }
 
-        // == Fallback: standard notification ==
-        val notif = NotificationCompat.Builder(context, if (fluid) CourseNotificationScheduler.CHANNEL_FLUID else CourseNotificationScheduler.CHANNEL_BEFORE_CLASS)
+        // Banner and live card are independent settings. A successful silent live card
+        // must not swallow the enabled banner. Use separate IDs so updates cannot replace it.
+        if (liveStarted && !banner) return
+        val fallbackFluid = fluid && !banner
+        val primaryText = when (AppPrefs.getBeforeClassFluidPrimary(context)) {
+            "time" -> startTime
+            "room" -> roomStr
+            else -> courseName
+        }.ifBlank { courseName }
+        val notif = NotificationCompat.Builder(context, if (fallbackFluid) CourseNotificationScheduler.CHANNEL_FLUID else CourseNotificationScheduler.CHANNEL_BEFORE_CLASS)
             .setSmallIcon(R.drawable.ic_notification_time)
-            .setContentTitle(if (fluid) courseName else context.getString(R.string.notif_before_class_title))
-            .setContentText(if (fluid) fluidText else text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(if (fluid) fluidText else text))
-            .setTicker(if (fluid) fluidText else text)
-            .setSubText(if (fluid) fluidText else null)
-            .setOngoing(fluid)
+            .setContentTitle(if (fallbackFluid) primaryText else context.getString(R.string.notif_before_class_title))
+            .setContentText(if (fallbackFluid) fluidText else text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(if (fallbackFluid) fluidText else text))
+            .setTicker(if (fallbackFluid) fluidText else text)
+            .setSubText(if (fallbackFluid) fluidText else null)
+            .setOngoing(fallbackFluid)
+            .setTimeoutAfter(if (fallbackFluid) (intent.getLongExtra("classEpoch", 0L) - System.currentTimeMillis()).coerceAtLeast(1L) else 0L)
             .setOnlyAlertOnce(false)
-            .setPriority(if (fluid) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH)
+            .setPriority(if (fallbackFluid) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent(context))
             .setAutoCancel(true)
             .build()
@@ -618,7 +638,7 @@ class BeforeClassNotifyReceiver : BroadcastReceiver() {
         //   onReceive 校验后到此处之间权限可能被撤销 → 内联 checkSelfPermission 再查一次
         if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             NotificationManagerCompat.from(context)
-                .notify(CourseNotificationScheduler.NOTIFY_BEFORE_CLASS_BASE, notif)
+                .notify(if (banner) CourseNotificationScheduler.NOTIFY_BANNER else CourseNotificationScheduler.NOTIFY_BEFORE_CLASS_BASE, notif)
         }
     }
 }
@@ -632,7 +652,8 @@ class BootReceiver : BroadcastReceiver() {
             || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
             || intent.action == Intent.ACTION_TIME_CHANGED
             || intent.action == Intent.ACTION_TIMEZONE_CHANGED
-            || intent.action == Intent.ACTION_DATE_CHANGED) {
+            || intent.action == Intent.ACTION_DATE_CHANGED
+            || intent.action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED) {
             val appContext = context.applicationContext
             runAsync {
                 SleepyApp.get().notificationScheduler.reschedule()

@@ -1011,7 +1011,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="widget_alias_hint">Courses without an alias keep their original name</string>
     <string name="widget_single_hint">Change the timetable for this widget only</string>
     <string name="widget_refresh_section">Refresh</string>
-    <string name="widget_manual_help">Hold an empty area of your home screen, open Widgets and find Classy. Some OPPO, OnePlus or realme phones place Plugins at the bottom of Cards. If needed, copy diagnostics for feedback; timetable content is not included.</string>
+    <string name="widget_manual_help">Hold an empty area of your home screen, open Widgets, search for Classy, then hold and drag a widget onto the home screen. On vivo, search in Atomic Widgets. Some OPPO, OnePlus or realme phones place Plugins at the bottom of Cards. If needed, copy diagnostics for feedback; timetable content is not included.</string>
     <string name="glass_sample_entry">Dock material preview (test)</string>
     <string name="unsaved_title">Discard unsaved changes?</string>
     <string name="unsaved_body">Leaving will discard your unsaved changes.</string>

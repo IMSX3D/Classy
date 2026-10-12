@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_add_title">添加到桌面</string>
-    <string name="widget_add_help">选择样式后，在系统弹窗中确认添加。</string>
-    <string name="widget_pin_requested">已请求添加，请完成系统确认后到桌面查看。</string>
+    <string name="widget_add_help">选择样式后按系统提示添加；没有提示时，可按下方指引手动添加。</string>
+    <string name="widget_pin_requested">已请求添加。如未出现确认框，请展开“添加遇到问题”，按指引从桌面添加。</string>
     <string name="widget_pin_unsupported">当前桌面不支持直接添加，请展开下方帮助手动添加。</string>
     <string name="widget_pin_failed">添加请求未成功，请展开下方帮助手动添加。</string>
     <string name="widget_diagnostics">添加遇到问题</string>

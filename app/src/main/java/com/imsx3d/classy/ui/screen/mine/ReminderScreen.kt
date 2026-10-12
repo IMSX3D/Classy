@@ -325,6 +325,7 @@ fun ReminderScreen(onBack: () -> Unit) {
         title = stringResource(R.string.reminder_title),
         onBack = onBack
     ) {
+        item { ReminderDeliveryStatus() }
         // ① 提醒总开关（UI-26a：整页从「ReminderCard + 左侧图标盒」换成与其它设置页同一套
         //    SettingsGroupCard + 标准行。旧版式的行文字落在 84dp（16 页边 + 16 卡边 + 4 + 36 图标盒
         //    + 12 间距），而全库标准是 32dp；图标本身只在重复标题、没有回答新问题，按 §〇 一并去掉。）
