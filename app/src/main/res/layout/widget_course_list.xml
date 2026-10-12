@@ -6,6 +6,11 @@
      @see com.imsx3d.classy.widget.CourseRowWidgetService -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<FrameLayout
+    android:id="@+id/widget_list_card"
+    android:layout_gravity="center"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_scroll_clip"
     android:outlineProvider="background"
@@ -74,4 +79,6 @@
             android:textColor="#FF49454F"
             android:visibility="gone" />
     </LinearLayout>
+</FrameLayout>
+
 </FrameLayout>

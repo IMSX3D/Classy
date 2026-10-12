@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Shared by all four production widgets and previews, independent of launcher clipping. -->
+    <dimen name="widget_corner_radius">28dp</dimen>
     <!-- Keep text and scrolling viewports inside launcher-rounded corners. -->
     <dimen name="widget_content_inset">16dp</dimen>
 </resources>

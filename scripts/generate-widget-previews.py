@@ -3,11 +3,15 @@ Both previewImage and previewLayout use these assets to avoid launcher-dependent
 """
 from pathlib import Path
 import argparse
+import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('--font', default='C:/Windows/Fonts/msyh.ttc')
 args = parser.parse_args()
+# Preview canvas uses 2.25 pixels per dp (small 160dp; regular 320dp wide).
+DIMENS = ET.parse(ROOT/'app/src/main/res/values/widget_spacing.xml').getroot()
+CORNER = float(next(n.text for n in DIMENS if n.get('name') == 'widget_corner_radius').removesuffix('dp')) * 2.25
 BG = '#F7F8FA'
 INK = '#303038'
 MUTED = '#697079'
@@ -19,7 +23,7 @@ def font(size): return ImageFont.truetype(args.font, size)
 def label(d, xy, value, size=22, fill=INK): d.text(xy, value, font=font(size), fill=fill)
 def card(w,h):
  im=Image.new('RGBA',(w,h),(0,0,0,0));d=ImageDraw.Draw(im)
- d.rounded_rectangle((0,0,w-1,h-1),radius=26,fill=BG)
+ d.rounded_rectangle((0,0,w-1,h-1),radius=CORNER,fill=BG)
  return im,d
 def course(d,x,y,width,index,slot,lang):
  d.rounded_rectangle((x,y+4,x+5,y+85),radius=2,fill=COLORS[index])

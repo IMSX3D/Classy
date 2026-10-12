@@ -19,11 +19,9 @@ import com.imsx3d.classy.util.WeekDisplayStatus
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
-/**
- * 卡片圆角（dp）—— 与 App 的 Glasense 卡片规范同值（`GlasenseTheme.specs.cardShape` = 12dp）。
- * UI-4（2026-09-26）：原为 20dp，组件比 App 里任何卡片都圆，形态上与 App 割裂。
- */
-private const val WIDGET_CORNER_DP = 12f
+/** Same outer radius as the live RemoteViews and picker previews. */
+private fun widgetCornerPx(context: Context) =
+    context.resources.getDimension(com.imsx3d.classy.R.dimen.widget_corner_radius)
 
 /**
  * Canvas bitmap 渲染器 — 各 Receiver.loadDataSync 拉数据后由本对象渲染，
@@ -308,7 +306,7 @@ object WidgetBitmapRenderers {
         // 背景圆角
         p.color = s.bg
         canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()),
-            WIDGET_CORNER_DP * density, WIDGET_CORNER_DP * density, p)
+            widgetCornerPx(context), widgetCornerPx(context), p)
 
         val pad = 10f * density
         var y = pad
@@ -741,7 +739,7 @@ object WidgetBitmapRenderers {
         // 背景
         p.color = s.bg
         canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()),
-            WIDGET_CORNER_DP * density, WIDGET_CORNER_DP * density, p)
+            widgetCornerPx(context), widgetCornerPx(context), p)
 
         val outerPad = 6f * density
         val innerW = w - outerPad * 2
@@ -1026,7 +1024,7 @@ object WidgetBitmapRenderers {
         // 背景
         p.color = s.bg
         canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()),
-            WIDGET_CORNER_DP * density, WIDGET_CORNER_DP * density, p)
+            widgetCornerPx(context), widgetCornerPx(context), p)
 
         val outerPad = 6f * density
         val innerW = w - outerPad * 2
@@ -1200,7 +1198,7 @@ object WidgetBitmapRenderers {
         // 背景
         p.color = s.bg
         canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()),
-            WIDGET_CORNER_DP * density, WIDGET_CORNER_DP * density, p)
+            widgetCornerPx(context), widgetCornerPx(context), p)
 
         val ctx = SleepyApp.get()
         val pad = 12f * density

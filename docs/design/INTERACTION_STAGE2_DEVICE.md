@@ -148,3 +148,15 @@ FrameTimeline归类：App Deadline Missed=15，App Deadline Missed+Buffer Stuffi
 尚未通过的边界：PERF-01持续慢帧；OEM周网格正常尺寸/拖放；预测返回手势中途取消；进程死亡完整草稿恢复（当前按既有安全退出）；数据库失败UI注入；学校真实登录/导入；全部页面×语言/主题/字号/窗口组合。已通过的局部测试不替代这些项目，不宣布第二阶段整体完成。
 
 ART诊断补充：固定坐标无录屏，编译前超时4/224、5/224、4/224；speed编译后4/226、4/232、5/224，无显著改善。这是包含临时诊断依赖的测试包，不能冒充最终APK发布性能。
+
+
+## 2026-10-12 平板安全区、组件圆角与小号比例修复
+
+用户材料：Redmi K80 Ultra / Android16 / HyperOS3.0.305.0，视频中2×2宿主轮廓为矩形；未连接该红米，不能宣称红米实机通过。授权平板上当前已有用户添加的四种Benchmark组件，本轮保留其位置与绑定，没有新增或删除。
+
+- INSETS-TABLET-01已复现：宽屏MainRoute的Row无系统安全边距，NavigationRail仅照顾自身，ScheduleScreen顶部日期/图标与状态栏重叠。Row统一windowInsetsPadding(safeDrawing)，同时消费紧凑Scaffold已应用的padding，防后代重复避让。平板横屏四标签、竖屏课表、设置子页与小号组件点击进入通过截图；`user-insets-before` 对比 `insets-fixed-*`。手机窄屏模拟器空态启动截图仅证明状态栏避让，不代表所有窄屏大字号内容已验收；实际系统分屏本轮未完成。
+- WIDGET-CORNER-01：生产RemoteViews旧12dp圆角不能依赖OEM再次裁圆。四种组件、Canvas备用绘制、预览统一使用widget_corner_radius=28dp，16dp内容安全内边距保留。生成脚本读同一资源并重新生成中英预览，避免预览与实物不同。
+- WIDGET-SQUARE-01：Android12+小号今日根据宿主上报的尺寸，在透明容器内居中放置min(width,height)方形卡面。多尺寸RemoteViews让宿主选择实际方向；无sizes列表按现有尺寸解析回退。其余三种维持自由填满，桌面占位格与40dp自由缩放下限不改。系统仍可能分配长方形格子，剩余区域留空。Android8–11保留原有填满行为；红米具体拖动、旋转、宿主尺寸真实性仍需该设备验证。
+- 真平板四种实物已刷新：`widget-corners-after`（周网格正常可阅读高度，内层到底部前裁切），`widget-corners-after-page5`（小号正方形、今日横条、最近两天）。小号点击进入课表通过 `small-widget-open-app`。这说明此前矮条不是周网格必然呈现；极小高度兼容与新添加默认高度仍不算全部解决。
+- 验证：2337 JVM全过；17仪器测试全过，新增RemoteViews实际inflate/measure/layout测试，160×250、300×140、200×200宿主中卡面等宽高且不越界。最终Debug/Benchmark、lintDebug构建成功，Lint0错误/556警告/21提示。业务代码设备测试后只更新预览PNG资源，最终Benchmark已重新安装并启动核对。
+- 日志：widget-insets-final-build.log、widget-insets-device-tests.txt、widget-insets-delivery-build.log；证据仍在E:/C015/99-整理记录/stage2-tablet-device/。平板旋转恢复1/1，未修改课表数据。
