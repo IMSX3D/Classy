@@ -11,6 +11,14 @@
     android:background="@drawable/widget_scroll_clip"
     android:outlineProvider="background"
     android:clipToOutline="true">
+    <ImageView
+        android:id="@+id/widget_card_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_card_fill"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no" />
+
 
     <LinearLayout
         android:id="@+id/wg_card"

@@ -156,9 +156,9 @@ internal object CourseRowPusher {
         // UI-4: 卡片底 + 标题/空态文字色原先写在布局 XML 里（硬编码浅色）→
         // 深色模式下白底黑字落在深色桌面上、且不跟随 App 内主题。改为按 scheme 下发
         // （与位图组件同一份 resolveSchemePublic 取色）。外层 FrameLayout 的
-        // clipToOutline=true 会把这块不透明底裁成共享圆角，所以这里给纯色即可。
+        // 圆角底图直接着色，不只依赖外层outline（桌面退场/长按快照可能不保留裁切）。
         val scheme = resolveSchemePublic(context, themeKey, isDark)
-        views.setInt(R.id.widget_list_root, "setBackgroundColor", scheme.bg.toArgb())
+        views.setInt(R.id.widget_card_background, "setColorFilter", scheme.bg.toArgb())
         views.setTextColor(R.id.widget_list_header, scheme.onSurfaceVariant.toArgb())
         views.setTextColor(R.id.widget_list_header_date, scheme.onSurface.toArgb())
         views.setTextColor(R.id.widget_list_empty, scheme.onSurfaceVariant.toArgb())
@@ -192,7 +192,7 @@ internal object CourseRowPusher {
             Log.d(TAG, "skip stale id=$id gen=$gen")
             return
         }
-        awm.updateAppWidget(id, SmallWidgetLayout.fit(awm, id, views))
+        awm.updateAppWidget(id, views)
         // updateAppWidget 与 notify 是两次 binder 调用，紧挨着下发把错配窗口压到最小
         awm.notifyAppWidgetViewDataChanged(id, R.id.widget_course_list)
         Log.d(TAG, "push id=$id scope=$scope name=$headerName date=$headerDate")

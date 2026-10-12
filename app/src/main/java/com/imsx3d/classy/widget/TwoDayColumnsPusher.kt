@@ -19,7 +19,7 @@ internal object TwoDayColumnsPusher {
         val table = WidgetTableResolver.resolveBoundTable(id) ?: WidgetTableResolver.resolveCurrentTable()
         views.setTextViewText(R.id.twoday_header, table?.name.orEmpty())
         views.setTextViewText(R.id.twoday_date, DateUtils.shortDateSlash(LocalDate.now()))
-        views.setInt(R.id.twoday_root, "setBackgroundColor", scheme.bg.toArgb())
+        views.setInt(R.id.widget_card_background, "setColorFilter", scheme.bg.toArgb())
         views.setInt(R.id.twoday_divider, "setBackgroundColor", scheme.surfaceVariant.toArgb())
         listOf(R.id.twoday_header, R.id.twoday_date, R.id.twoday_left_title, R.id.twoday_right_title,
             R.id.twoday_left_empty, R.id.twoday_right_empty).forEach {

@@ -14,7 +14,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -415,7 +421,7 @@ private fun MainRoute(
         }
     }
 
-    // issue#45 ③横屏/平板: 自研 PillNavigationBar 无此形态,官方 NavigationRail 有 → 用官方。
+    // Wide windows use bottom-aligned Material navigation items in a rounded surface.
     // 官方没有悬浮药丸 Dock → Compact 且 navDock=true 时保留自研 PillNavigationBar(dock=true)。
     val activity = ctxForExit as? android.app.Activity
     val sizeClass = activity?.let { calculateWindowSizeClass(it) }
@@ -424,14 +430,24 @@ private fun MainRoute(
     if (!isCompact) {
         Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)) {
-            NavigationRail {
-                Tab.entries.forEach { tab ->
-                    NavigationRailItem(
-                        selected = currentTab == tab,
-                        onClick = { setCurrentTab(tab) },
-                        icon = { NavigationTabIcon(tab, showUpdateDot = updateNoticeVisible && tab == Tab.Mine) },
-                        label = { Text(stringResource(tab.labelRes)) },
-                    )
+            // A compact, bottom-aligned navigation surface keeps controls within thumb reach.
+            // The surrounding lane shares the page background; no full-height contrasting slab.
+            Box(Modifier.fillMaxHeight().width(104.dp).padding(12.dp), contentAlignment = Alignment.BottomCenter) {
+                Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                    Column(
+                        Modifier.width(80.dp).verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Tab.entries.forEach { tab ->
+                            NavigationRailItem(
+                                selected = currentTab == tab,
+                                onClick = { setCurrentTab(tab) },
+                                icon = { NavigationTabIcon(tab, showUpdateDot = updateNoticeVisible && tab == Tab.Mine) },
+                                label = { Text(stringResource(tab.labelRes)) },
+                            )
+                        }
+                    }
                 }
             }
             Box(modifier = Modifier.fillMaxSize().weight(1f)) {

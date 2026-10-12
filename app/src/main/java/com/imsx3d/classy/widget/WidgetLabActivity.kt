@@ -92,8 +92,8 @@ class WidgetLabActivity : Activity() {
         header.setTextColor(scheme.onSurfaceVariant.toArgb())
         headerDate.setTextColor(scheme.onSurface.toArgb())
         empty.setTextColor(scheme.onSurfaceVariant.toArgb())
-        card.findViewById<View>(R.id.widget_list_root)
-            .setBackgroundColor(scheme.bg.toArgb())
+        card.findViewById<android.widget.ImageView>(R.id.widget_card_background)
+            .setColorFilter(scheme.bg.toArgb())
 
         // ListView 换成等价的竖向 LinearLayout：本页只做静态预览，不接适配器
         val list = card.findViewById<View>(R.id.widget_course_list)

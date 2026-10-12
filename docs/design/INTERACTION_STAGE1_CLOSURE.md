@@ -151,3 +151,9 @@ W1实现更新：MainTabs已接同级淡入淡出，SaveableStateProvider用可�
 
 
 2026-10-12 WIDGET-SQUARE-01/INSETS-TABLET-01补充：组件小号今日载体保持方形卡面（Android12+），桌面容器留空且仍自由缩放；其余三种不锁比例。宽屏四主标签统一系统安全区。组件点击仍进入课表，绑定与数据语义不变。具体设备证据见INTERACTION_STAGE2_DEVICE最新节。
+
+## 2026-10-12 用户复测修订
+
+- WIDGET-CORNER-02：三套RemoteViews承载四种组件，方形动态底色改为共享圆角ImageView并着色；底色独立于outline裁切。覆盖退出快照/长按状态。API35模拟器实际RemoteViews绘制（裁切关闭、明暗、三档宽高）通过；vivo四种长按截图、两页退出录屏完成。
+- WIDGET-GRID-02：撤销087e214强制方形SmallWidgetLayout。用户明确以网格占用为准，所有版本统一match_parent，不另加透明边带。平板小号卡面恢复到宿主完整区域。红米未接入，不能宣称其桌面已实测。
+- NAV-TABLET-02：宽屏导航改左下圆角Surface + Material导航项，上部与背景融合，安全区消费保留；短高度允许滚动。平板四标签及横竖屏检查，模拟器宽/短窗口和明暗1.5字号截图。整体导航性能PERF-01仍未关闭。

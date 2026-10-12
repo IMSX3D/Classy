@@ -160,3 +160,15 @@ ART诊断补充：固定坐标无录屏，编译前超时4/224、5/224、4/224�
 - 真平板四种实物已刷新：`widget-corners-after`（周网格正常可阅读高度，内层到底部前裁切），`widget-corners-after-page5`（小号正方形、今日横条、最近两天）。小号点击进入课表通过 `small-widget-open-app`。这说明此前矮条不是周网格必然呈现；极小高度兼容与新添加默认高度仍不算全部解决。
 - 验证：2337 JVM全过；17仪器测试全过，新增RemoteViews实际inflate/measure/layout测试，160×250、300×140、200×200宿主中卡面等宽高且不越界。最终Debug/Benchmark、lintDebug构建成功，Lint0错误/556警告/21提示。业务代码设备测试后只更新预览PNG资源，最终Benchmark已重新安装并启动核对。
 - 日志：widget-insets-final-build.log、widget-insets-device-tests.txt、widget-insets-delivery-build.log；证据仍在E:/C015/99-整理记录/stage2-tablet-device/。平板旋转恢复1/1，未修改课表数据。
+
+## 2026-10-12 组件退场圆角、网格填满与平板下置导航
+
+承接087e214的用户复测。已确认上一版强制小号正方形导致卡面不填满宿主；用户明确“几×几对应格数，不必正方形”。删除固定边长适配；四种组件按宿主测量铺满。原底色是内层setBackgroundColor方块、只靠父outline裁切；改共享圆角shape ImageView + setColorFilter，API26+一致，无位图缓存或固定像素尺寸。
+
+vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版Benchmark安装成功。四种已有组件全部保留，未移动/删除/新增。小号与今日大号上下边缘对齐、透明余量消除；四种长按时保持圆角。两页退出录屏供逐帧复核。宽屏导航移到左下圆角区，四标签和竖屏截图，旋转设置恢复。系统主题/字号未改。
+
+证据目录 E:/C015/99-整理记录/stage2-tablet-device/：widget-home-after-fill.png、widget-{small,today,twoday,week}-longpress-after.png、widget-week-after-fill.png；widget-exit-after.mp4、widget-week-exit-after.mp4；rail-tablet-{after,today,manage,mine,schedule,portrait}.png。
+
+模拟器API35：1600×1100/density160、900×480/density160、字体1.5，明亮/深色导航截图rail-wide-emulator.png、rail-short-emulator.png、rail-short-dark-emulator.png。三套RemoteViews在160×250、300×140、200×200dp，白/黑底，关闭outline裁切后实际绘制四角透明且填满宿主，仪器测试通过。完整仪器套件17/17，JVM2337/2337；lint0错误、555警告、21提示。旧源码契约强制NavigationRail容器与本轮新设计冲突，移除这一过时断言，保留Material项及Compact分支要求。
+
+边界：红米K80 Ultra/HyperOS3未连接；目标2×2元数据已核对，但不能从视频确认该桌面每格实测尺寸及最小跨度，所以旧正式版红米长方形的OEM层原因仍是待验证，不声称已查明具体系统缺陷。真实分屏/完整配置矩阵及PERF-01仍未通过；本轮修复不表示所有页面性能完成。

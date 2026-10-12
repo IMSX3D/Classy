@@ -552,17 +552,13 @@ class NavHostMigrationContractTest {
     fun mainRoute_uses_official_nav_where_official_exists_and_keeps_self_dock() {
         val route = balancedBlock(navHostSrc, "private fun MainRoute(", maxChars = 8000)
 
-        // ③ 横屏/平板: 必须按 WindowWidthSizeClass 分支, 非 Compact 用官方 NavigationRail
+        // Wide navigation keeps Material item behavior; its enclosing surface is bottom-aligned.
         assertTrue(
             "MainRoute 必须按 WindowWidthSizeClass.Compact 分支(横屏适配)",
             Regex("""WindowWidthSizeClass\.Compact""").containsMatchIn(route)
         )
         assertTrue(
-            "非 Compact 必须用官方 NavigationRail(官方有此形态)",
-            Regex("""NavigationRail\s*\{""").containsMatchIn(route)
-        )
-        assertTrue(
-            "NavigationRail 必须用官方 NavigationRailItem",
+            "宽屏导航必须保留 Material NavigationRailItem 的选择和无障碍行为",
             Regex("""NavigationRailItem\(""").containsMatchIn(route)
         )
 

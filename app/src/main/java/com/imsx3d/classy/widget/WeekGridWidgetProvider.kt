@@ -108,7 +108,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_weekgrid_card)
 
         // 卡片底跟随 App 主题（不是系统日夜）—— 外层 FrameLayout 的圆角裁剪负责形状
-        views.setInt(R.id.wg_card, "setBackgroundColor", scheme.bg.toArgb())
+        views.setInt(R.id.widget_card_background, "setColorFilter", scheme.bg.toArgb())
 
         // 表头：一行星期 + 一行日期；今天整列用主色胶囊包住（用户点名的"今日选中提示"）
         val visible = data.visibleDays.sorted()

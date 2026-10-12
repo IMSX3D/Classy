@@ -5,9 +5,6 @@
      没有 setViewLayoutHeight 钉行高那套 API31+ 依赖，各厂商 launcher 都能滚动。
      @see com.imsx3d.classy.widget.CourseRowWidgetService -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-<FrameLayout
     android:id="@+id/widget_list_card"
     android:layout_gravity="center"
     android:layout_width="match_parent"
@@ -15,6 +12,14 @@
     android:background="@drawable/widget_scroll_clip"
     android:outlineProvider="background"
     android:clipToOutline="true">
+    <ImageView
+        android:id="@+id/widget_card_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_card_fill"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no" />
+
 
     <LinearLayout
         android:id="@+id/widget_list_root"
@@ -79,6 +84,4 @@
             android:textColor="#FF49454F"
             android:visibility="gone" />
     </LinearLayout>
-</FrameLayout>
-
 </FrameLayout>
