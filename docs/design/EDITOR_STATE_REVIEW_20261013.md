@@ -52,3 +52,15 @@ PA2553（DPD2437）、Android16、1968×2800、400dpi、中文/深色/font1.0。
 - Release ARM64交付：`E:/C015/交付/Classy-编辑状态与组色-20261013/Classy-editor-state-arm64.apk`；SHA256 `96323A6874503ECA65C5977DCA50CBF447B49C3A3D1A5DFA394CEBF203177CF6`。未安装正式包，不推送、不改tag/Release。
 
 - 最终宽屏1600×1200/240dpi/English1.5：11项中10过，组色测试点选后未找到取色框OK。测试补显式收键盘与等待Dialog，单独组色复测通过（editor-state-wide-retry.log）。没有因此另改生产点击逻辑，也不将该轮写成一次全过。宽屏错误截图editor-state-wide-failure-verified.png；模拟器已恢复540×960/240dpi/English1.5，测试包停止。
+
+
+## 平板恢复后的补验完成（同日；覆盖上文息屏待验状态）
+
+- 用户解锁后，独立Debug覆盖安装本轮最终逻辑候选成功。真实系统分屏从约557dp半屏缩到387dp（967px），再扩至734dp（1836px），跨越600dp断点；分屏任务信息和裁剪截图分别留存，非wm模拟尺寸。
+- Tablet-Split-Draft草稿在缩窄/拉宽后保持；窄屏选色#FF5058A4，在确认框打开时拉宽，选色和确认框保留；确认→保存→退出分屏→重进编辑，课程名和颜色均正确。再改名Discard-Me→放弃，详情仍为Tablet-Split-Draft及原备注Keyboard-note。
+- 证据：tablet-final-split-half/narrow/picker、tablet-split-confirm-expanded、tablet-split-saved-reentered、tablet-discard-preserves-saved。截图只保留Classy区域；半屏/窄屏截图使用实际横屏边界裁剪。
+- 平板发现values-zh-rCN覆盖了默认文案，补齐course_basic_info_sub后Debug/Release重新构建通过（editor-state-zh-copy-build.log）。末次只改该字符串，未重复整套事务测试；覆盖安装并截图tablet-zh-copy-final确认中文提示生效。
+- 本轮测试表Tablet-Editor-Fixture及其唯一课程已通过应用删除，所有课表页仅剩新建入口（tablet-fixture-cleaned）。退出分屏；旋转设置为原auto=1/user_rotation=1，字号/主题未改。benchmark包和已有桌面组件未动。
+- 最新APK仍在同一交付路径，覆盖此前候选。SHA256：FB3E19567EB5F25005905953632F00E1ECE486B8621981AF4E85BC089D9C9E94。上文96323A…是前一候选记录。
+
+本批的平板编辑分屏/组色/取消/保存缺口已补；不等于全应用分屏验收。真实写入进行中旋转/进程终止、其它页面及手机全矩阵仍需按总计划继续。
