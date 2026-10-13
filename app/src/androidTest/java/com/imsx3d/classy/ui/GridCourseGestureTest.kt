@@ -102,4 +102,33 @@ class GridCourseGestureTest {
         }
         compose.runOnIdle { assertFalse(clicked); assertEquals(GridSelection(1, 3, 3), target) }
     }
+    @Test fun conflictingCourseDragCancelDoesNotMoveOrOpenDetails() {
+        val first = CourseEntity(id = 98001, groupId = "cancel-a", tableId = 98000,
+            courseName = "Cancel drag", day = 1, startNode = 1, step = 2,
+            startWeek = 1, endWeek = 16, color = "#123456")
+        val second = first.copy(id = 98002, groupId = "cancel-b", courseName = "Underlying", step = 1)
+        var opens = 0
+        var moves = 0
+        compose.setContent { MaterialTheme {
+            Box(Modifier.width(350.dp).height(620.dp)) {
+                CardsGridView(listOf(first, second), timeSlots = slots,
+                    timeJson = TimeTableUtils.DEFAULT_TIME_JSON, visibleDays = setOf(1, 2, 3),
+                    onCourseClick = { opens++ }, onMoveCourse = { _, _ -> moves++ })
+            }
+        } }
+        val card = compose.onNodeWithText("Cancel drag", useUnmergedTree = true)
+        val firstBounds = card.fetchSemanticsNode().boundsInRoot
+        card.performTouchInput {
+            down(center)
+            advanceEventTime(800)
+            moveBy(Offset(0f, 100f), 300)
+            cancel()
+        }
+        compose.waitForIdle()
+        compose.runOnIdle { assertEquals(0, opens); assertEquals(0, moves) }
+        assertEquals(firstBounds, card.fetchSemanticsNode().boundsInRoot)
+        card.performTouchInput { click(center) }
+        compose.runOnIdle { assertEquals(1, opens); assertEquals(0, moves) }
+    }
+
 }
