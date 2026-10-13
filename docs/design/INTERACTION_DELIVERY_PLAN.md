@@ -96,6 +96,11 @@ W1 不要求先写完巨型文档才开始修复。先完成高频链决策样�
 
 ### 当前交接（每轮覆盖更新）
 
+- 2026-10-13 HEADER-04真机续验及用户追加网格桌面组件：发现1.5字号下App日期截断，已修复分别转换两行sp高度（避免Android非线性字体缩放低估），按列宽适配短日期并移除无背景日期的旧圆角裁剪。生产网格组件使用widget_weekgrid_card.xml而非旧Canvas渲染器；表头从固定34dp改为内容自适应、最小38dp，文字上下4dp/左右2dp留白及单行适配。其他三种组件本批未改。证据见下方HEADER-04设备记录；后续先处理GRID-LARGE-01再回W2，不能将表头验收等同网格主体或全配置通过。
+- HEADER-04设备记录：vivo深色普通周、今日页、1.5字号普通周与国庆周已检查；最终header-final-holiday-large日期完整、休字角标与星期不重叠。Release覆盖升级成功，原有正式包网格组件真实桌面普通字号及1.5字号已截图核对（widget-grid-updated-0、widget-grid-large），表头/高亮留白正常；并非自动添加成功，使用原有宿主绑定。系统font_scale已恢复1.0，night保持yes，独立测试包回到当前周。模拟器WidgetCardGeometryTest与GridCourseGestureTest共4项通过（含200/360dp、1.0/1.5字号的组件表头和圆角）。末尾App日期去裁剪/不换行的小修已重新构建并真机检查，未重跑与之无关的网格拖动测试。最终Benchmark/Release构建成功，日志header-widget-final-build.log。
+- GRID-LARGE-01待修：1.5字号时App左侧节次文字截短，课程卡片与组件主体信息拥挤（长标题/地点省略），不属于本次已通过的表头。下一批评估时间栏宽度、文字适配及高密度课程内容分级，保留系统大字体的可读性，不能靠一律缩小字号宣称通过。真实平板、组件窄宿主/深色/节假日实际桌面组合仍待验。
+- 本批APK：E:/C015/交付/Classy-网格表头与组件留白-20261013/Classy-0.0.9-grid-header-arm64.apk；SHA256 4E41E1CE4CA36F742BB2288C2F1715BBEA5D2912515CA084E24D3B07BAA75F9F。仅本地提交，未推送、未改tag/Release。
+
 - 2026-10-13用户追加信息与留白修正（INFO-01/HEADER-04），暂插W1/W3，随后返回W2。今日页误用widget_today_label，已删除整行重复标题/计数，保留日期、周次、课程总数和课程内容。网格今日高亮上下各4dp内边距、容器四边8dp基础间距；休/补槽仅在可见周存在标记时整行预留，表头按字号计算高度。所有组件label/description在ui目录的引用已核查，余项属于组件管理；这不是全应用信息审查完成。用户强调“每一页/信息/交互/动效/UI/设置/功能/组件/流程”的设计底线，已写入AGENTS及设计规范，逐入口必须核对必要性、归属、直觉与认知负担。
 - 本批验证：benchmark构建通过；vivo在用户暂停前已完成新网格/今日截图采集（header-info-grid-after、header-info-today-after），浅色普通周外观可读，今日误用行已消失。用户随后需使用手机，所有真机操作已暂停；深色/有休补标记/大字体/平板完整视觉验收待补。模拟器GridCourseGestureTest两项通过（长按拖动、空白选择/调整/确认），不代表上述视觉矩阵通过。Release/Debug构建结果见header-info-release-test-build.log；保持本地提交、不推送、不改tag/Release。
 

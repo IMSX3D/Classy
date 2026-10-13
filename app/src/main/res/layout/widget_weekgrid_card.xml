@@ -35,7 +35,8 @@
 
             <FrameLayout
                 android:layout_width="34dp"
-                android:layout_height="34dp">
+                android:layout_height="wrap_content"
+                android:minHeight="38dp">
 
                 <TextView
                     android:id="@+id/wg_corner"
@@ -49,7 +50,8 @@
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -66,29 +68,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr1_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr1_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -105,29 +124,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr2_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr2_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -144,29 +180,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr3_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr3_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -183,29 +236,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr4_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr4_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -222,29 +292,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr5_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr5_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -261,29 +348,46 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr6_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr6_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
 
             <FrameLayout
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
                 android:layout_weight="1"
                 android:layout_marginStart="1dp"
                 android:layout_marginEnd="1dp">
@@ -300,23 +404,39 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="4dp"
                     android:gravity="center">
 
                     <TextView
                         android:id="@+id/wg_hdr7_day"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="11sp"
-                        android:textColor="#FF111111" />
+                        android:textColor="#FF111111"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="11sp"
+                        android:autoSizeStepGranularity="1sp" />
 
                     <TextView
                         android:id="@+id/wg_hdr7_date"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:textSize="9sp"
-                        android:textColor="#99000000" />
+                        android:textColor="#99000000"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:ellipsize="end"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="7sp"
+                        android:autoSizeMaxTextSize="9sp"
+                        android:autoSizeStepGranularity="1sp" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>

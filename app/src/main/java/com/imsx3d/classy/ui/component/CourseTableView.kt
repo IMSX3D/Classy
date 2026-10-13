@@ -253,7 +253,7 @@ fun CardsGridView(
     val reserveDayMark = sortedDays.any { !greyMarks[it].isNullOrBlank() }
     val headerDensity = LocalDensity.current
     val headH = with(headerDensity) {
-        ((if (showDate) 26f else 14f) * scale).sp.toDp() +
+        (14f * scale).sp.toDp() + (if (showDate) (12f * scale).sp.toDp() else 0.dp) +
             (if (reserveDayMark) (BADGE_SLOT_SP * scale).sp.toDp() else 0.dp)
     } + d(if (showDate) 12f else 8f)
     val timeW = d(44f)
@@ -413,6 +413,7 @@ fun CardsGridView(
                             isGrey = day in greyDays,
                             mark = greyMarks[day],
                             reserveMark = reserveDayMark,
+                            cellWidth = colW,
                             courseCount = courses.count { it.day == day },
                             dateStr = dateStr,
                             scale = scale,
@@ -953,7 +954,7 @@ private const val BADGE_RADIUS_SP = 4f
 private const val BADGE_SLOT_SP = 16f
 
 @Composable
-private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mark: String? = null, reserveMark: Boolean = false, courseCount: Int, dateStr: String? = null, dayLabel: String = DateUtils.localizedDay(day, androidx.compose.ui.platform.LocalContext.current), modifier: Modifier = Modifier, scale: Float = 1f, cornerRatio: Float = 1f) {
+private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mark: String? = null, reserveMark: Boolean = false, cellWidth: Dp, courseCount: Int, dateStr: String? = null, dayLabel: String = DateUtils.localizedDay(day, androidx.compose.ui.platform.LocalContext.current), modifier: Modifier = Modifier, scale: Float = 1f, cornerRatio: Float = 1f) {
     val colors = glasenseM3Scheme()
     val sd = { v: Float -> (v * scale).dp }
     val density = LocalDensity.current
@@ -968,6 +969,15 @@ private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mar
         isGrey -> colors.onSurfaceVariant.copy(alpha = SleepyTheme.Alpha.inactive)
         else -> colors.onSurfaceVariant
     }
+    val dateMeasurer = rememberTextMeasurer()
+    val dateStyle = MaterialTheme.typography.labelSmall.copy(
+        letterSpacing = 0.sp, fontWeight = FontWeight.SemiBold,
+        fontSize = (10 * scale).sp, lineHeight = (12 * scale).sp
+    )
+    // Seven columns remain fixed-width: fit the short date instead of clipping it.
+    val dateWidth = dateMeasurer.measure(dateStr.orEmpty(), dateStyle, softWrap = false).size.width
+    val dateFit = if (dateWidth == 0) 1f else
+        (with(density) { (cellWidth - sd(4f)).toPx() } / dateWidth).coerceIn(.1f, 1f)
     val todayPill = if (isToday) {
         Modifier.clip(RoundedCornerShape(sd(9f))).background(pillBg)
     } else Modifier
@@ -1004,21 +1014,12 @@ private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mar
             if (ds != null) {
                 Text(
                     text = ds,
-                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = (10 * scale).sp,
-                        lineHeight = (12 * scale).sp
-                    ),
+                    style = dateStyle.copy(fontSize = (10 * scale * dateFit).sp),
                     color = if (isToday) pillFg else colors.onSurfaceVariant,
                     modifier = Modifier
                         .padding(top = sd(2f))
-                        .clip(RoundedCornerShape(sd(6f)))
-                        .then(
-                            // 恒显日期后一律不加色块：非今天写在中性底上，今天直接写在实心胶囊上
-                            // （原来今天会在胶囊里再压一块半透明底 = 块中块，已按 UI-5c 去掉）
-                            Modifier
-                        )
-                        .padding(horizontal = sd(4f), vertical = sd(1f)),
+                        .padding(horizontal = sd(1f), vertical = sd(1f)),
+                    softWrap = false,
                     maxLines = 1
                 )
             }
