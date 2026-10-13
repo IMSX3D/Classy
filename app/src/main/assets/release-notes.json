@@ -1,20 +1,22 @@
 {
-  "versionCode": 9,
-  "versionName": "0.0.9",
+  "versionCode": 10,
+  "versionName": "0.1.0",
   "notes": {
     "zh": [
-      "设置入口更清楚，外观和小组件在「我的」里就能找到。",
-      "课表空白处可点选新增课程，长按课程可拖动调课；保存前可确认，保存后可撤销。",
-      "设置课时、课间和各时段开始时间，就能自动安排作息；导入时也更方便核对。",
-      "已结束和节假日课程的变淡效果更一致，小组件显示更清楚。",
-      "改进课表导入、草稿恢复和课前提醒，修复赛恩斯部分连堂课程被拆开的情况。"
+      "课表顶部更简洁，设置和导入步骤更清楚；编辑、返回和切换课表时更好地保留当前状态。",
+      "支持从教务更新当前课表，保留现有作息，并在更新前核对课程变化。",
+      "课表支持自定义背景，可调整浓淡、模糊、色彩和图片位置。",
+      "改善平板排版和桌面小组件的圆角、尺寸与显示，网格小组件支持跟随课程色条样式。",
+      "修正课表首次加载时误显示空课表、跳到错误周次的问题，并改进部分学校作息导入和课程提醒。",
+      "「我的」三列统计可以点击查看详情；关于页加入互动品牌卡，连续点击可发现一封信。"
     ],
     "en": [
-      "Find appearance and widgets directly in My, with clearer settings.",
-      "Tap an empty timetable slot to add a class, or hold and drag a class to move it. Confirm before saving and undo afterwards.",
-      "Set lesson lengths, breaks and section start times to arrange your daily schedule automatically, with an easier import preview.",
-      "Finished classes and holiday classes now fade consistently, and widgets are easier to read.",
-      "Improved timetable imports, draft recovery and class reminders; fixed some consecutive Sainz classes appearing separately."
+      "A cleaner timetable header and clearer settings and import steps, with better state preservation while editing, returning and switching timetables.",
+      "Refresh the current timetable from your school, keeping your daily time schedule and reviewing course changes before applying them.",
+      "Customize your timetable background with strength, blur, saturation and image-position controls.",
+      "Improved tablet layouts and widget corners, sizing and display. The weekly grid widget can follow the course color-bar style.",
+      "Fixed a temporary empty timetable and incorrect week during initial loading, and improved some school time-schedule imports and class reminders.",
+      "Tap the three statistics in My to explore details. Repeatedly tap the interactive brand card in About to discover a letter."
     ]
   }
 }
