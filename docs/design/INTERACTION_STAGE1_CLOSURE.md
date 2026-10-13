@@ -221,3 +221,7 @@ IMPORT-ENTRY-02：方式选择改紧凑底部面板；文本输入、格式帮�
 - 已核对：SegmentedSwitcher点击层indication=null，仅已有圆角滑块表达选择，没有矩形按压层；TimeSlotEditor选项、Appearance课程样式、Mine统计项已有clip后反馈；SettingsGroupRow/DisplayModeOption整行反馈由分组卡裁切，不能为了胶囊化破坏整行语义；AllTablesScreen父容器clip约束子行；侧栏/系统NavigationBarItem使用Material组件反馈。上述源码核查不等于全设备逐入口验收。
 - ConflictCard标准卡面已有clip(shape)，但复杂叠卡另有多个几何命中区，需专项设备样本继续核对，不机械套用胶囊或盲目改变叠卡命中。记录为PRESS-SHAPE-02待复核，不宣称整个应用绝无其他问题。
 - 回归：PressShapeTest持续按住两种导航首/中/末项，角落不得变色，取消恢复原像素；点击仍选择目标。规范已写AGENTS.md，后续改变公共反馈须重复这些检查。
+
+## BRAND-02 纯字标极光卡
+
+取代BRAND-01的图标/格纹方案。原生Canvas绘制26条渐变贝塞尔色带和局部光晕；系统serif BoldItalic字形按绘图区拟合，以珍珠白/淡紫/薄荷色渐变绘制，无新字体文件或授权依赖。卡片语义保留Classy品牌描述。输入处理/取消/系统动画开关沿用已验证逻辑，新增色带视差不引入循环。卡片专色例外沿用用户对品牌展示的明确授权。

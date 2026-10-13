@@ -14,7 +14,11 @@ import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -33,7 +37,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,9 +48,9 @@ import com.imsx3d.classy.ui.theme.SleepyTheme
 @Composable
 fun ClassyBrandCard(modifier: Modifier = Modifier) {
     // Brand-specific inks echo the cyan/green app mark; kept local to this artwork.
-    val ink = Color(0xFF082E39)
-    val mint = Color(0xFF7BF7D3)
-    val cyan = Color(0xFF65DFF6)
+    val ink = Color(0xFF090D24)
+    val mint = Color(0xFF90FFE2)
+    val cyan = Color(0xFF96B6FF)
     val scope = rememberCoroutineScope()
     val sweep = remember { Animatable(1.4f) }
     var sweepJob by remember { mutableStateOf<Job?>(null) }
@@ -109,51 +112,73 @@ fun ClassyBrandCard(modifier: Modifier = Modifier) {
         }
         .graphicsLayer { rotationX = x; rotationY = y; scaleX = scale; scaleY = scale; cameraDistance = 24 * density }
         .clip(SleepyTheme.shapes.large)
-        .background(Brush.linearGradient(listOf(ink, Color(0xFF125967), Color(0xFF177B73))))
+        .background(Brush.linearGradient(listOf(ink, Color(0xFF19143C), Color(0xFF082D38))))
         .border(1.dp, Brush.linearGradient(listOf(cyan.copy(alpha = .65f), mint.copy(alpha = .12f))), SleepyTheme.shapes.large)) {
         Canvas(Modifier.matchParentSize()) {
-            drawCircle(Brush.radialGradient(listOf(mint.copy(alpha = glow), Color.Transparent),
-                center = Offset(size.width * lightX, size.height * lightY), radius = size.maxDimension * .8f),
-                radius = size.maxDimension)
-            val beam = size.width * sweep.value
-            if (sweep.value < 1.35f) drawRect(Brush.linearGradient(
-                listOf(Color.Transparent, cyan.copy(alpha = .22f), Color.Transparent),
-                start = Offset(beam - size.width * .25f, 0f), end = Offset(beam + size.width * .25f, size.height)))
-            val cell = 28.dp.toPx()
-            val gap = 9.dp.toPx()
-            val origin = Offset(size.width - cell * 3 - gap * 2 - 22.dp.toPx(), 32.dp.toPx())
-            for (row in 0..2) for (col in 0..2) {
-                drawRoundRect(mint.copy(alpha = if (row == col) .38f else .16f),
-                    origin + Offset(col * (cell + gap), row * (cell + gap)), Size(cell, cell), CornerRadius(8.dp.toPx()),
-                    style = Stroke(1.2.dp.toPx()))
-            }
-        }
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Vector rendition of the app mark avoids the launcher's opaque white backing.
-            Canvas(Modifier.size(88.dp).graphicsLayer { translationX = y * .8f; translationY = -x * .8f }) {
-                val inset = 5.dp.toPx()
-                val extent = Size(size.width - inset * 2, size.height - inset * 2)
-                drawRoundRect(Brush.linearGradient(listOf(Color(0xFF08C5EA), Color(0xFF43DB87))),
-                    Offset(inset, inset), extent, CornerRadius(22.dp.toPx()))
-                drawRoundRect(Color.White.copy(alpha = .4f), Offset(inset, inset), extent,
-                    CornerRadius(22.dp.toPx()), style = Stroke(1.5.dp.toPx()))
-                for (i in 0..1) drawCircle(Color.White.copy(alpha = .65f), 2.8.dp.toPx(),
-                    Offset(size.width * (if (i == 0) .32f else .68f), size.height * .23f))
-                val unit = size.width * .235f
-                for (row in 0..1) for (col in 0..1) {
-                    val origin = Offset(size.width * .23f + col * unit * 1.3f, size.height * .36f + row * unit * 1.3f)
-                    drawRoundRect(Color.White.copy(alpha = if (row == 0 && col == 0) .94f else .18f),
-                        origin, Size(unit, unit), CornerRadius(6.dp.toPx()))
-                    if (row != 0 || col != 0) drawRoundRect(Color.White.copy(alpha = .32f), origin,
-                        Size(unit, unit), CornerRadius(6.dp.toPx()), style = Stroke(1.dp.toPx()))
+            val w = size.width
+            val h = size.height
+            val shiftX = y * density * 1.5f
+            val shiftY = -x * density
+            drawRect(Brush.radialGradient(listOf(Color(0xFF855CF8).copy(alpha = .42f), Color.Transparent),
+                center = Offset(w * .95f + shiftX, h * .08f + shiftY), radius = w * .85f))
+            drawRect(Brush.radialGradient(listOf(Color(0xFF00D1B2).copy(alpha = .32f), Color.Transparent),
+                center = Offset(w * .08f - shiftX, h * .9f), radius = w * .7f))
+            // Layered contour ribbons create depth without a bitmap, blur pass or idle loop.
+            translate(left = shiftX, top = shiftY) {
+                for (i in 0..25) {
+                    val t = i / 25f
+                    val ribbon = Path().apply {
+                        moveTo(-w * .15f, h * (.92f + t * .3f))
+                        cubicTo(w * .15f, h * (.20f + t * .48f), w * .5f, h * (1.08f - t * .4f), w * 1.15f, h * (-.12f + t * .6f))
+                    }
+                    drawPath(ribbon, Brush.linearGradient(listOf(
+                        Color(0xFF49F2D2).copy(alpha = .10f + t * .16f),
+                        Color(0xFFB694FF).copy(alpha = .12f + t * .22f),
+                        Color(0xFF79CFFF).copy(alpha = .28f))), style = Stroke((.6f + t * .7f).dp.toPx()))
                 }
             }
-            Text("Classy", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold), color = Color.White)
-            Text(stringResource(R.string.about_brand_tagline), style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFFC2EDE7))
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.about_brand_hint), style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFFC2EDE7))
+            drawRect(Brush.radialGradient(listOf(mint.copy(alpha = glow), Color.Transparent),
+                center = Offset(w * lightX, h * lightY), radius = size.maxDimension * .8f))
+            val beam = w * sweep.value
+            if (sweep.value < 1.35f) drawRect(Brush.linearGradient(
+                listOf(Color.Transparent, Color.White.copy(alpha = .20f), Color.Transparent),
+                start = Offset(beam - w * .25f, 0f), end = Offset(beam + w * .25f, h)))
         }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(Modifier.height(12.dp))
+            BrandWordmark(Modifier.fillMaxWidth().aspectRatio(2.8f)
+                .graphicsLayer { translationX = y * .6f; translationY = -x * .6f })
+            Text(stringResource(R.string.about_brand_tagline), style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFD8E2F4), textAlign = TextAlign.Center)
+            Spacer(Modifier.height(20.dp))
+            Text(stringResource(R.string.about_brand_hint), style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFFB2C5D8), textAlign = TextAlign.Center)
+        }
+    }
+}
+
+/** A fitted typographic mark: large italic serif lettering with a pearl-like ink gradient. */
+@Composable
+private fun BrandWordmark(modifier: Modifier) {
+    val paint = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.BOLD_ITALIC)
+        }
+    }
+    Canvas(modifier) {
+        paint.textSize = size.height * .84f
+        val bounds = android.graphics.Rect()
+        paint.getTextBounds("Classy", 0, 6, bounds)
+        val factor = minOf(1f, size.width * .94f / bounds.width().coerceAtLeast(1))
+        paint.textSize *= factor
+        paint.getTextBounds("Classy", 0, 6, bounds)
+        paint.shader = android.graphics.LinearGradient(0f, 0f, size.width, size.height,
+            intArrayOf(0xFFFFFFFF.toInt(), 0xFFE3D9FF.toInt(), 0xFFB5FFE8.toInt()),
+            null, android.graphics.Shader.TileMode.CLAMP)
+        val left = (size.width - bounds.width()) / 2f - bounds.left
+        val baseline = (size.height - bounds.height()) / 2f - bounds.top
+        drawContext.canvas.nativeCanvas.drawText("Classy", left, baseline, paint)
     }
 }

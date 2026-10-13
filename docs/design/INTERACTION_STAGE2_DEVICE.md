@@ -296,3 +296,7 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 ## PRESS-SHAPE-01 验证（2026-10-13）
 
 最终Debug/AndroidTest/Release构建成功：press-shape-delivery-build.log。PressShapeTest最终窄屏/宽屏各2项通过（两种底栏首/中/末项按压、角落像素、取消、点击），日志press-shape-final-tests.txt与press-shape-wide-tests.txt。模拟器English/1.5字号，测试后恢复540×960/240dpi。vivo正式Release覆盖成功，持续按住“今日”的反馈已是与选中块同尺寸的胶囊，不再出现方形；截图stage2-vivo-phone-device/press-shape-phone-held.png、press-shape-phone-selected.png。完成后回到原课表，没有修改课程/样式。贴底导航已仪器测试，SmartPeriodEditor修复完成但未补真实作息数据操作；复杂冲突叠卡专项PRESS-SHAPE-02仍待复核。以上不代表全应用全入口视觉验收完成。
+
+## BRAND-02（2026-10-13）
+
+brand-wordmark-build.log：Debug/Release/AndroidTest构建成功；窄屏与宽屏ClassyBrandCardTest各3项通过（brand-wordmark-tests.txt、brand-wordmark-wide-tests.txt），含按压像素变化、松手/Cancel复位、滚动与信件开合。模拟器English/1.5字号，测试后恢复540×960/240dpi。vivo正式版安装成功，关于页中文排版截图已核对：stage2-vivo-phone-device/brand-wordmark-phone.png、brand-wordmark-phone-crop.png。真实平板和暗色整页仍未补验；没有本批性能提升结论。
