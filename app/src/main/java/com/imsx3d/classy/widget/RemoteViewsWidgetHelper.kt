@@ -16,7 +16,7 @@ import com.imsx3d.classy.R
  *
  * 3 个移植自 Glance 的小组件(Today/WeekList/TwoDay) + WeekGrid 全走这条路:
  * goAsync 续命 → 后台加载+画 Canvas bitmap → awm.updateAppWidget 同步推送。
- * 全程在 OPPO OplusHansManager 冻结窗口(~5s)前完成 → 不卡 loading 布局。
+ * 避免在广播主线程读库/绘图；完成时间和桌面展示仍受设备与后台限制影响。
  *
  * 各 Receiver 只需提供 [loadData] (同步数据加载) 和 [renderBitmap] (Canvas 画图)。
  */

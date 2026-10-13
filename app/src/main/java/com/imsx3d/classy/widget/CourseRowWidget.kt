@@ -151,6 +151,10 @@ internal object CourseRowPusher {
 
         val views = RemoteViews(context.packageName, R.layout.widget_course_list)
         views.setTextViewText(R.id.widget_list_header, headerName)
+        // GONE releases title space while keeping the date and course content intact.
+        views.setViewVisibility(R.id.widget_list_header,
+            if (com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context))
+                android.view.View.VISIBLE else android.view.View.GONE)
         views.setTextViewText(R.id.widget_list_header_date, headerDateFinal)
         views.setTextViewText(R.id.widget_list_empty, emptyText)
         // UI-4: 卡片底 + 标题/空态文字色原先写在布局 XML 里（硬编码浅色）→

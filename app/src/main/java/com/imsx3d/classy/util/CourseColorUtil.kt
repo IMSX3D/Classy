@@ -2,34 +2,57 @@ package com.imsx3d.classy.util
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance as relativeLuminance
 import androidx.core.graphics.ColorUtils
 import com.imsx3d.classy.data.entity.CourseColorMode
 import com.imsx3d.classy.data.entity.CourseEntity
 import com.imsx3d.classy.ui.theme.CoursePalette
 
-/**
- * 课程底色单一事实来源 — 三层结构（决策 D3）
- *
- * 收敛原来分散在 TodayScreen / CourseTableView / WeekGridWidgetProvider /
- * WidgetBitmapRenderers 四处的课程配色私有副本，统一为一份逻辑：
- *
- * 决策树（所有入口 100% 同源）：
- *   ① 用户自定义颜色（color 非空且非哨兵值）→ 直接返回，colorless 不覆盖手动设色
- *   ② colorless=true → 返回中性灰（surfaceVariant，与网格线同色保持一致）
- *   ③ 否则 → 黄金角 137.508° 基于 groupId 撒 hue，同门课永远同色
- *
- * 三层结构：
- *   常量层     — GOLDEN_ANGLE / SENTINEL_COLOR / S_LIGHT / S_DARK / L_LIGHT / L_DARK（各定义一次）
- *   纯逻辑层   — stableHue / hasCustomColor（无平台依赖）
- *   平台适配层 — pickCourseColorCompose / pickCourseColorInt（两套返回类型，同一份逻辑）
+/** Course color source and presentation rules.
+ * Sources preserve CUSTOM/GROUP/AUTO and the legacy sentinel. Table slots use normalized
+ * names in ID order; callers without a slot use a deterministic hash. Neither guarantees
+ * different courses always have different colors. displayFill and softenedIndicator are
+ * display transforms only; persisting their output would progressively bleach saved colors.
  */
 object CourseColorUtil {
 
     /** Decorative course markers share one surface-relative treatment; never use for text.
-     * Keep the original course color in storage and in the fill style/color picker.
+     * Keep the original course color in storage and in the color picker.
      */
     fun softenedIndicator(accent: Color, surface: Color): Color =
         lerp(surface, accent, 0.68f)
+
+    /** Display-only, opaque fill. Stored custom colors and picker swatches remain unchanged.
+     * Clamp HSL chroma as well as lightness: mixing neon magenta with white alone can still
+     * clip to an intense pink. Bars retain their independent softenedIndicator treatment.
+     */
+    fun displayFill(source: Color, isDark: Boolean): Color {
+        val max = maxOf(source.red, source.green, source.blue)
+        val min = minOf(source.red, source.green, source.blue)
+        val delta = max - min
+        val lightness = (max + min) / 2f
+        val saturation = if (delta == 0f) 0f else delta / (1f - kotlin.math.abs(2f * lightness - 1f))
+        val hue = if (delta == 0f) 0f else {
+            val sector = when (max) {
+                source.red -> (source.green - source.blue) / delta
+                source.green -> (source.blue - source.red) / delta + 2f
+                else -> (source.red - source.green) / delta + 4f
+            }
+            (sector * 60f + 360f) % 360f
+        }
+        return hslToColor(hue, saturation.coerceAtMost(if (isDark) .28f else .35f),
+            if (isDark) lightness.coerceIn(.20f, .28f) else lightness.coerceIn(.84f, .90f))
+    }
+
+    fun displayFill(source: Int, isDark: Boolean): Int = displayFill(Color(source), isDark).toArgb()
+
+    /** Relative luminance contrast on the final opaque card surface. */
+    fun contrastRatio(a: Color, b: Color): Float {
+        val x = a.relativeLuminance()
+        val y = b.relativeLuminance()
+        return (maxOf(x, y) + 0.05f) / (minOf(x, y) + 0.05f)
+    }
 
     // ============================ 第一层 · 常量 ============================
 
@@ -39,19 +62,16 @@ object CourseColorUtil {
     /** 哨兵色 "#FF6750A4"，标记「未设置颜色」，与主题默认紫完全相同（Phase2 换 isCustomColor 布尔 + DB migration） */
     private const val SENTINEL_COLOR = "#FF6750A4"
 
-    /** 亮色模式饱和度（柔和粉彩，不刺眼）。2026-09-28 由 0.55 降到 0.48：
-     *  用户报"色块对比度过高、刺眼"，浅色模式下尤其明显。 */
+    /** Base light-theme source saturation, before display-only softening. */
     private const val S_LIGHT = 0.52f
 
-    /** 暗色模式饱和度 —— 2026-09-26 由 0.40 提到 0.48：
-     *  低饱和 + 低亮度会把琥珀/橙/黄绿算成**棕褐色**，看起来像"未选中/已取消"
-     *  （用户报障："这个颜色给人一种未选中、没有确认感的状态"）。深色下必须保色彩浓度。 */
+    /** Dark-theme source saturation; displayFill controls final intensity. */
     private const val S_DARK = 0.44f
 
-    /** 亮色模式亮度。2026-09-28 由 0.82 提到 0.83（配上面的降饱和，整体更柔） */
+    /** Base light-theme source lightness. */
     private const val L_LIGHT = 0.80f
 
-    /** 暗色模式亮度 —— 2026-09-26 由 0.28 提到 0.34：同上，避免暗到发浊 */
+    /** Base dark-theme source lightness. */
     private const val L_DARK = 0.34f
 
     // ============================ 第二层 · 纯逻辑（无平台依赖） ============================
@@ -63,41 +83,12 @@ object CourseColorUtil {
     fun stableHue(groupId: String): Float =
         ((groupId.hashCode().toLong() * GOLDEN_ANGLE) % 360f + 360f) % 360f
 
-    // ---- 稳定配色：精选色相环 + 三档明暗（2026-09-26 重做）----
-    //
-    // 为什么换掉"hashCode × 黄金角"：黄金角只在**序号连续**时才能拉开色差，
-    // 而 hashCode 本身是随机分布的 → 乘完仍是随机色相，两门课可能只差几度
-    // （用户反馈"相邻课程配色十分接近、没有变化感"）。而且它只用了色相一个维度，
-    // 撞色时无从区分。
-    // 现改为两个维度同时区分：
-    //   ① 色相取自**精选 12 档色相环**（跳过 60°~130° 黄绿压缩区——那里相邻色相
-    //      看起来几乎一样；本环相邻档感知差最大）；
-    //   ② 同一色相再分**三档饱和/明度**，档位由哈希高位决定 —— 撞到同一色相时
-    //      仍有约 2/3 概率分到不同档，肉眼可区分。
-    // 配色仍 100% 由 groupId 决定 → 同门课在网格/列表/今日/组件各处同色，跨启动恒定。
-
-    /**
-     * 精选色相环（**9 档，等间距 25°**）：草绿→青绿→青→天蓝→蓝→靛→紫→品红→玫红
-     *
-     * 2026-09-28（用户报「相近颜色扎堆」）第二次重做，三条口径：
-     *  ① **等间距**：旧环 11 档里有 3 档挤在品红区（310/330/352）、3 档挤在蓝区
-     *     （195/214/235）—— 一天里两门课落进同一簇就几乎同色。现按 25° 均分，
-     *     任意两档在感知上都拉得开（青绿↔青↔天蓝是三个**不同家族**的色，不是同族深浅）。
-     *  ② **砍掉暖色端（40°~130° 整段不用）**：琥珀/黄绿在深色模式低亮度下必然发浊成棕褐
-     *     （旧注释实测 #63522A），浅色模式又容易发荧光 —— 两端都不讨好，整段弃用。
-     *  ③ **去掉"难看"的档**：橙(20°)在浅色下像警示色、春绿(150°)在浅色下发酸，都撤了；
-     *     剩下的 9 档在深浅两种模式下都能保持明确的色彩身份。
-     */
+    /** Nine source hues. Slots stride across this ring; perceptual separation is not guaranteed. */
     private val HUE_RING = floatArrayOf(
         145f, 170f, 195f, 220f, 245f, 270f, 300f, 325f, 350f
     )
 
-    /**
-     * 同色相三档（亮色）：明度只往**更深**走、饱和度只**增大**。
-     * 关键约束：任何一档都不得比基色更淡/更低饱和 —— 变淡正是"像被禁用"的观感来源。
-     * 2026-09-28：档差由 ±0.06 拉到 ±0.07（三档 0.90 / 0.83 / 0.76），
-     * 同色相撞车时肉眼能立刻分辨 —— 这是"撞色不可怕、撞得看不出才可怕"的兜底。
-     */
+    /** Relative source-tone offsets; do not confuse these with final surface lightness. */
     private val TONE_L_LIGHT = floatArrayOf(0.07f, 0f, -0.07f)
     private val TONE_S_LIGHT = floatArrayOf(-0.08f, 0f, 0.08f)
 
@@ -134,22 +125,8 @@ object CourseColorUtil {
      */
     private const val HUE_STRIDE = 4
 
-    /**
-     * **按表分配槽位** —— 治「相近颜色扎堆」的正解（2026-09-28 实测后确定）。
-     *
-     * 为什么哈希不行：hash 只能保证"同一门课恒定"，保证不了"这一组课互不相同"。
-     * 实测 15 个真实中文课名：旧的 `hashCode % 9` 只落到 6 个色相（195° 挤 4 门）；
-     * 换成哈希混合后仍有 5 门挤在 195°、且出现两门**完全相同**的颜色。
-     * 只要分配只看"单门课自己的哈希"，就必然会出现这种扎堆（生日问题）。
-     *
-     * 所以改成看**整张表**：按课程在表中的出现顺序（id 升序，即导入顺序）给互不相同的
-     * 课程名依次发号 k，色相 = HUE_RING[k·4 mod 9]、档位 = k / 9 ——
-     *  · 前 9 门课拿满 9 个色相（理论上最分散）；
-     *  · 第 10 门开始换档位再走一遍（同色相不同深浅）；
-     *  · **追加课程不会改变已有课的颜色**（k 只由"它是第几个出现的"决定）✓ 稳定。
-     *
-     * 调用方（App 三个视图 / 小组件）把同一张表的 course 列表喂进来，
-     * 得到 `courseSeed → 槽位号`，再交给 [paletteFor] / [accentFor]。
+    /** Assign normalized course names slots in row-ID order. Appending preserves earlier
+     * slots, but removing/reordering an earlier identity can shift later colors.
      */
     fun slotsFor(courses: List<CourseEntity>): Map<String, Int> {
         val map = LinkedHashMap<String, Int>()
@@ -195,17 +172,8 @@ object CourseColorUtil {
         return Triple(hue, s, l)
     }
 
-    /**
-     * 颜色种子 —— **课程名（规范化）**，不是 groupId。
-     *
-     * 2026-09-28（用户报「课程色彩体系有问题」）根因之一：
-     * `groupId` 由 `ScheduleRepository.assignGroupIds` 在**每次导入时随机 UUID**，
-     * 所以同一门课重新导入一次就换一套颜色；跨课表也对不上。
-     * 改用课程名做种子后：同门课在**任何课表、任何一次导入**里恒为同色，
-     * 且颜色分布可以被推断和验证（见 tools/color_sheet.py）。
-     *
-     * 规范化口径与 assignGroupIds 的分组键一致（trim + 折叠空白 + 小写），
-     * 名字为空时退回 groupId（组内同色仍成立）。
+    /** Normalized name is the fallback color identity, with groupId for blank names.
+     * Explicit table slots override the hash, so colors need not match across tables.
      */
     fun colorSeed(row: CourseEntity): String {
         val key = row.courseName.trim().replace(Regex("\\s+"), " ").lowercase()
@@ -281,27 +249,18 @@ object CourseColorUtil {
     fun luminance(color: Color): Float =
         0.299f * color.red + 0.587f * color.green + 0.114f * color.blue
 
-    /**
-     * 按背景亮度自适应选文字色 — 深色自定义课色上文字必须可读（决策 D5-13）：
-     *   深色底（luminance<0.5） → 白字（原固定 onSurface 在浅色主题下是深字，深字压深底不可见）
-     *   浅色底+浅色主题         → onSurface（浅色 HSL 默认底 L=0.82 恰好可读，行为不变）
-     *   浅色底+暗色主题         → 黑字（暗色主题 onSurface 是浅色，用户自定义亮色课色上不可读）
-     * HSL 默认底（亮 0.82 / 暗 0.28）与 colorless 灰底均落在「行为不变」分支，仅自定义色跨界时切换。
-     *
-     * @param onSurface 当前主题的 onSurface（Compose 路径传 WakeUpColorScheme.onSurface）
+    /** Prefer the theme foreground when its WCAG contrast reaches 4.5:1; otherwise choose
+     * the stronger black/white foreground. isDark remains for source compatibility.
+     * Call with the final opaque fill; disabled/grey compositing is a separate state policy.
      */
-    fun textColorOn(bg: Color, isDark: Boolean, onSurface: Color): Color = when {
-        luminance(bg) < 0.5f -> Color.White
-        isDark -> Color.Black
-        else -> onSurface
+    fun textColorOn(bg: Color, isDark: Boolean, onSurface: Color): Color {
+        if (contrastRatio(bg, onSurface) >= 4.5f) return onSurface.copy(alpha = 1f)
+        return if (contrastRatio(bg, Color.Black) >= contrastRatio(bg, Color.White)) Color.Black else Color.White
     }
 
-    /** Canvas 路径版本（ARGB Int）— 同一决策树，供 WidgetBitmapRenderers 等画布渲染 */
-    fun textColorOn(bg: Int, isDark: Boolean, onSurface: Int): Int = when {
-        luminance(bg) < 0.5f -> android.graphics.Color.WHITE
-        isDark -> android.graphics.Color.BLACK
-        else -> onSurface
-    }
+    /** Canvas and Compose must choose the same readable foreground. */
+    fun textColorOn(bg: Int, isDark: Boolean, onSurface: Int): Int =
+        textColorOn(Color(bg), isDark, Color(onSurface)).toArgb()
 
     // ============================ 第二层 · HSL 转换 ============================
 

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 网格组件课程格底色·widget_cell_single（运行时 setBackgroundTintList 上色）。
-     跨节次的课要"看起来是一整块"：首行只圆上、中间行方角、末行只圆下，
-     行间零间距；与相邻不同课的间隙由 inset 提供。 -->
+<!-- One rounded background for the entire course span; vertical inset separates courses.
+     The native grid indicator is inset separately and must remain inside this outline. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:insetTop="5px"
     android:insetBottom="5px">

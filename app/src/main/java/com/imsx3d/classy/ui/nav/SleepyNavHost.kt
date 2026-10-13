@@ -226,6 +226,14 @@ internal fun SleepyNavHost(
             )
         }
 
+        entry<SleepyRoute.Semester> {
+            com.imsx3d.classy.ui.screen.mine.SemesterScreen(onBack = { navigator.pop() },
+                onSelect = { navigator.push(SleepyRoute.SemesterCourse(it)) })
+        }
+        entry<SleepyRoute.SemesterCourse> { key ->
+            com.imsx3d.classy.ui.screen.mine.SemesterScreen(onBack = { navigator.pop() },
+                onSelect = {}, courseId = key.courseId)
+        }
         entry<SleepyRoute.CourseList> {
             CourseListScreen(onBack = { navigator.pop() }, onAddCourse = { navigator.openAddCourse() })
         }

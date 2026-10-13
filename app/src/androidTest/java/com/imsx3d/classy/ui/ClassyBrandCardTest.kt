@@ -62,6 +62,42 @@ class ClassyBrandCardTest {
         compose.runOnIdle { assertEquals(1, opened) }
     }
 
+    @Test fun confettiBurstIsVisibleFiniteAndRepeatable() {
+        compose.setContent { SleepyThemeProvider { Box(Modifier.padding(20.dp)) { ClassyBrandCard() } } }
+        compose.mainClock.autoAdvance = false
+        val card = compose.onNodeWithTag("classy-brand-card")
+        card.performTouchInput { repeat(5) { click(center); advanceEventTime(100) } }
+        compose.mainClock.advanceTimeBy(350)
+        val burst = capture("brand-confetti-burst")
+        compose.mainClock.advanceTimeBy(2000)
+        compose.onNodeWithTag("brand-secret-letter").assertExists()
+        val settled = capture("brand-confetti-settled")
+        assertFalse(burst.sameAs(settled))
+        card.performTouchInput { repeat(5) { click(topCenter + androidx.compose.ui.geometry.Offset(0f, 40f)); advanceEventTime(100) } }
+        compose.mainClock.advanceTimeBy(350)
+        assertFalse(settled.sameAs(capture("brand-confetti-repeat")))
+    }
+
+    @Test fun continuedTapsBuildCelebrationThenSettle() {
+        compose.setContent { SleepyThemeProvider { Box(Modifier.padding(20.dp)) { ClassyBrandCard() } } }
+        compose.mainClock.autoAdvance = false
+        val card = compose.onNodeWithTag("classy-brand-card")
+        card.performTouchInput { repeat(5) { click(topCenter + androidx.compose.ui.geometry.Offset(0f, 40f)); advanceEventTime(100) } }
+        compose.mainClock.advanceTimeBy(250)
+        val first = capture("brand-continuous-first")
+        repeat(12) {
+            card.performTouchInput { click(topCenter + androidx.compose.ui.geometry.Offset(0f, 40f)); advanceEventTime(90) }
+            compose.mainClock.advanceTimeBy(90)
+        }
+        val peak = capture("brand-continuous-peak")
+        assertFalse(first.sameAs(peak))
+        compose.mainClock.advanceTimeBy(2400)
+        val settled = capture("brand-continuous-stop")
+        compose.mainClock.advanceTimeBy(2400)
+        assertTrue(settled.sameAs(capture("brand-continuous-idle")))
+        compose.onNodeWithTag("brand-secret-letter").assertExists()
+    }
+
     @Test fun spacedTapsAndDragsDoNotUnlockLetter() {
         compose.setContent { SleepyThemeProvider { ClassyBrandCard() } }
         val card = compose.onNodeWithTag("classy-brand-card")

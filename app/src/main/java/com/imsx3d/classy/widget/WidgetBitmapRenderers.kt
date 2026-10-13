@@ -83,7 +83,7 @@ object WidgetBitmapRenderers {
     ) {
         // 统一取色入口 (决策 D3) — colorless 灰底传 scheme.surfaceVariant 的 Int 值
         // issue#22: 同名课程多地点 — 用 groupRows 传同 groupId 全行,支持 AUTO/CUSTOM 模式取色
-        val bgColor = CourseColorUtil.pickCourseColorIntWithGroupRows(course, groupRows, scheme.isDark, scheme.surfaceVariant, colorless)
+        val bgColor = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorIntWithGroupRows(course, groupRows, scheme.isDark, scheme.surfaceVariant, colorless), scheme.isDark)
         // 文字色亮度自适应 (决策 D5-13) — 深色自定义课色上切白字, 浅色底仍 onSurface
         val textColor = CourseColorUtil.textColorOn(bgColor, scheme.isDark, scheme.onSurface)
         val pad = (3f * density).coerceAtLeast(1f)
@@ -822,10 +822,10 @@ object WidgetBitmapRenderers {
                     val name = CourseDisplayUtil.displayName(course, useAlias)
                     // 课程颜色背景 (对齐 WeekGrid 风格) — 统一入口 CourseColorUtil (决策 D3)
                     // issue#22: 同名课程多地点 — 用 day.courses 同 groupId 全行,支持 AUTO/CUSTOM 模式取色
-                    val bgColor = CourseColorUtil.pickCourseColorIntWithGroupRows(
+                    val bgColor = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorIntWithGroupRows(
                         course, day.courses.filter { it.groupId == course.groupId },
                         s.isDark, s.surfaceVariant, colorless
-                    )
+                    ), s.isDark)
                     p.color = bgColor
                     canvas.drawRoundRect(
                         RectF(x + coursePad, cy, x + colW - coursePad, cy + courseRowH),

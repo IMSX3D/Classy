@@ -12,13 +12,12 @@ package com.imsx3d.classy.data.jw
  *   解析 typed URL 的 host, 取注册域, 在目录条目中查找相同注册域的 supported+有 URL 条目。
  *   命中后用目录条目替代自定义条目 (拿到权威 URL + 协议 type)。
  *
- * 命名: 与 [JwWebViewLoginScreen.SslBypassRegistry] 一致, 委托同一 registrableDomain 实现
- * (避免两个独立实现飘移)。
+ * 这里只做学校目录候选匹配，不是公共后缀库，也不得用于证书或安全边界判断。
  */
 object SchoolDomainMatch {
 
     /**
-     * 注册域启发式 — 与 SslBypassRegistry.registrableDomain 一致。
+     * 学校目录的注册域启发式，仅用于候选选择。
      * 取末两段 (edu.cn / edu.hk / ac.uk / edu.tw / edu.jp 等多段后缀取末三段)。
      */
     fun registrableDomain(host: String): String {

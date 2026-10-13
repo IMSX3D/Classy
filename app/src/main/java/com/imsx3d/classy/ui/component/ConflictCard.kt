@@ -546,13 +546,13 @@ fun ConflictClusterCard(
     val groupRowsForCard = cluster.courses
     val completed = LocalCourseCompleted.current
     fun courseColorOf(course: CourseEntity): Color {
-        val bg = CourseColorUtil.pickCourseColorComposeWithGroupRows(
+        val bg = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorComposeWithGroupRows(
             row = course,
             groupRows = groupRowsForCard,
             isDark = CourseColorUtil.isPaletteDark(palette),
             neutralColor = colors.surfaceVariant,
             colorless = AppPrefs.isCourseColorless(context)
-        )
+        ), CourseColorUtil.isPaletteDark(palette))
         return if (isGrey || completed(course))
             bg.copy(alpha = com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA).compositeOver(colors.surfaceContainerHigh)
         else bg
@@ -1003,13 +1003,13 @@ private fun ConflictCourseCard(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     // issue#22: 同名课程多地点 — 用 groupRows 传同 groupId 全行,支持 AUTO/CUSTOM 模式取色
-    val bg = CourseColorUtil.pickCourseColorComposeWithGroupRows(
+    val bg = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorComposeWithGroupRows(
         row = course,
         groupRows = groupRows,
         isDark = CourseColorUtil.isPaletteDark(palette),
         neutralColor = colors.surfaceVariant,
         colorless = AppPrefs.isCourseColorless(context)
-    )
+    ), CourseColorUtil.isPaletteDark(palette))
     val fg = CourseColorUtil.textColorOn(bg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
     // A dimmed overlapping card must remain opaque: alpha on the whole layer exposes
     // hidden course names underneath. Resolve dimming into the surface/text colors.
@@ -1051,7 +1051,8 @@ private fun ConflictCourseCard(
                 color = effectiveFg,
                 maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.align(Alignment.Center)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
             )
         } else {
             Column(
@@ -1059,7 +1060,7 @@ private fun ConflictCourseCard(
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     Text(
                         text = name,
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -1075,7 +1076,7 @@ private fun ConflictCourseCard(
                 Text(
                     text = subText,
                     style = MaterialTheme.typography.labelSmall.copy(textDecoration = textDecoration),
-                    color = effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent),
+                    color = effectiveFg,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center

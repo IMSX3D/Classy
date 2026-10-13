@@ -65,7 +65,7 @@ object JwWebViewClientBuilder {
         // 布局宽度恒为手机屏宽, Bootstrap @media(min-width:980px) 永不命中 → 页面零变化。
         // 全协议注入后: 桌面 UA + 1024px 视口 = 响应式门户真正切桌面分支。
         val desktopViewport = desktopMode
-        return JwWebViewClientImpl(interceptors, ctx, schoolHost, desktopViewport, onPageFinished)
+        return JwWebViewClientImpl(interceptors, ctx, desktopViewport, onPageFinished)
     }
 
     /**
@@ -94,7 +94,6 @@ object JwWebViewClientBuilder {
 private class JwWebViewClientImpl(
     private val interceptors: List<JwRequestInterceptor>,
     private val ctx: JwInterceptorContext,
-    private val schoolHost: String,
     private val desktopViewport: Boolean,
     private val onPageFinished: (String?) -> Unit,
 ) : WebViewClient() {
@@ -116,11 +115,10 @@ private class JwWebViewClientImpl(
         handler: SslErrorHandler,
         error: SslError,
     ) {
-        // 用 error.url (SslError 实例字段, String) 而非 view.url (main-thread-only)。
-        // schoolHost 已捕获 — 工厂期一次性解析, callback 内不再碰 view.url。
-        val host = error.url?.toUri()?.host.orEmpty()
-        val allowed = SslBypassRegistry.isAllowed(host, schoolHost)
-        if (allowed) handler.proceed() else handler.cancel()
+        // A matching school hostname does not authenticate its certificate. Never silently
+        // bypass expiry, hostname mismatch or unknown issuers on a credential-bearing page.
+        // Explicitly trusted private CAs remain handled by Android's trust configuration.
+        handler.cancel()
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {

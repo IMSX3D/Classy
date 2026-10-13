@@ -351,6 +351,9 @@ private fun AppRoot(
     // composition 内读 StateFlow.value 会被 lint(StateFlowValueCalledInComposition)拦:
     // 快照值不随 flow 更新重组。改订阅, holiday 设置页拿到的 tableId 恒为当前值。
     val mainState by mainVm.state.collectAsState()
+    // Activity's first frame may still be a loading surface. Report usable content only
+    // after the initial table/course/routine snapshot is ready (including a real empty DB).
+    androidx.activity.compose.ReportDrawnWhen { !mainState.loading }
     val navigator = rememberSleepyNavigator()
     val nav = navigator.backStack
     // 底栏 thumb 状态提升到 NavDisplay 之外: entry<Main> 在 push 子页时会被销毁,
@@ -444,6 +447,7 @@ internal fun MainTabs(
                 onManualAdd = { navigator.openAddCourse() },
                 onQuickAdd = { navigator.openAddCourse(prefill = it) },
                 onCreateTable = onCreateNewTable,
+                onOpenSemester = { navigator.openSemester() },
                 onEditCourse = { course -> session.beginEditCourse(course); navigator.openAddCourse(course.id, editing = true) })
         }
         Tab.Today -> holder.SaveableStateProvider(visibleTab.name) {

@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.imsx3d.classy.R
-import com.imsx3d.classy.ui.component.SemesterOverviewCard
 import com.imsx3d.classy.ui.screen.schedule.ScheduleHeader
 import com.imsx3d.classy.ui.screen.schedule.ViewMode
 import com.imsx3d.classy.ui.theme.SleepyThemeProvider
@@ -82,18 +81,7 @@ class ScheduleHeaderFlowTest {
         compose.onNodeWithText(label(R.string.schedule_scale_keep)).assertDoesNotExist()
     }
 
-    @Test fun overviewExpandsLocallyAndSecondClickClosesDetails() {
-        compose.setContent {
-            SleepyThemeProvider {
-                SemesterOverviewCard("Example semester", "2026-08-31") { Text("12 courses") }
-            }
-        }
-        compose.onNodeWithText("Example semester").assertDoesNotExist()
-        compose.onNodeWithText(label(R.string.overview_title)).performClick()
-        compose.onNodeWithText("Example semester").assertIsDisplayed()
-        compose.onNodeWithText(label(R.string.overview_title)).performClick()
-        compose.onNodeWithText("Example semester").assertDoesNotExist()
-    }
+
 
     @Test fun initialGuideDismissesAndCanBeReopenedFromMenu() {
         var dismissals = 0

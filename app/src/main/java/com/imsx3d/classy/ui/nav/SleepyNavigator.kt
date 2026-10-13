@@ -48,6 +48,7 @@ class SleepyNavigator(
         prefill: com.imsx3d.classy.util.CourseGridPrefill? = null) =
         push(SleepyRoute.AddCourse(courseId, editing, prefill))
     fun openAllTables() = push(SleepyRoute.AllTables)
+    fun openSemester() = push(SleepyRoute.Semester)
     fun openCourseList() = push(SleepyRoute.CourseList)
     fun openAppearance() = push(SleepyRoute.Appearance)
     fun openSettings() = push(SleepyRoute.SettingsHome)

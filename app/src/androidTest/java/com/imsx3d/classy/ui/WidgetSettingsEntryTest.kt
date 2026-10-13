@@ -36,4 +36,32 @@ class WidgetSettingsEntryTest {
         }
     }
 
+    @Test fun scheduleNamePreferenceSurvivesReentryAndCanBeRestored() {
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val original = com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context)
+        var visible by mutableStateOf(true)
+        val title = context.getString(com.imsx3d.classy.R.string.widget_show_table_name)
+        try {
+            com.imsx3d.classy.util.AppPrefs.setWidgetShowTableName(context, true)
+            compose.setContent {
+                androidx.compose.material3.MaterialTheme {
+                    if (visible) com.imsx3d.classy.ui.screen.widget.WidgetManagementScreen({}, {})
+                }
+            }
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(title))
+            compose.onNodeWithText(title).assertIsOn().performClick()
+            compose.runOnIdle {
+                assertFalse(com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context))
+                visible = false
+            }
+            compose.waitForIdle()
+            compose.runOnIdle { visible = true }
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(title))
+            compose.onNodeWithText(title).assertIsOff().performClick()
+            compose.runOnIdle { assertTrue(com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context)) }
+        } finally {
+            com.imsx3d.classy.util.AppPrefs.setWidgetShowTableName(context, original)
+        }
+    }
+
 }

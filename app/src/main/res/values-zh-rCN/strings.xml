@@ -1061,14 +1061,11 @@
     <string name="export_source_load_failed">课表加载失败，请重试。</string>
     <string name="period_table_save">保存作息表</string>
     <string name="background_remove">移除背景图片</string>
-    <string name="overview_title">这一学期</string>
     <string name="background_failed">图片未能读取，请换一张重试。原背景已保留。</string>
     <string name="jw_refresh_remove">移除：%1$s</string>
     <string name="background_choose">选择图片</string>
-    <string name="overview_start">开学日 · %1$s</string>
     <string name="background_title">课表背景</string>
     <string name="jw_refresh_arrangement">周%1$d · 第%2$d–%3$d节 · %4$d–%5$d周 · %6$s</string>
-    <string name="overview_empty">导入课表，开始安排新学期</string>
     <string name="schedule_grid_hint">点空白格新增 · 长按课程拖动调课</string>
     <string name="jw_refresh_diff_note">调整过的安排会分别列为新增和移除。勾选后才会应用；未列出的本地课程会保留。</string>
     <string name="jw_refresh_counts">新增 %1$d 项 · 移除 %2$d 项</string>
@@ -1081,8 +1078,6 @@
     <string name="jw_refresh_apply">应用已选更新</string>
     <string name="schedule_actions">课表操作</string>
     <string name="jw_refresh_no_changes">没有需要更新的安排。</string>
-    <string name="overview_expand">展开学期信息</string>
-    <string name="overview_collapse">收起学期信息</string>
     <string name="background_hint">选择图片后自动铺满课表，并柔化背景以便看清课程。支持 20 MB 以内的图片。</string>
     <string name="jw_refresh_first">首次关联：无法确认哪些旧课程来自教务，未匹配的旧安排默认保留。</string>
     <string name="jw_refresh_term">我已确认这是 %1$s 的同一学期（当前开学日 %2$s）</string>
@@ -1125,4 +1120,23 @@
     <string name="course_load_failed">课程暂时无法加载，请重试。</string>
     <string name="group_color_failed">颜色未能保存，请重试。</string>
     <string name="group_color_new_confirm_msg">组色将在保存课程时生效。</string>
+    <string name="widget_show_table_name">显示课表名称</string>
+    <string name="semester_schedule_title">学期安排</string>
+    <string name="semester_schedule_search">搜索课程或教师</string>
+    <string name="semester_schedule_count">%1$d 次安排</string>
+    <string name="semester_schedule_empty">没有找到上课安排</string>
+    <string name="semester_schedule_missing">这门课程已移除，请返回查看其他课程</string>
+    <string name="semester_schedule_retry">暂时无法读取，点此重试</string>
+    <string name="semester_schedule_time_missing">时间未设置</string>
+    <string name="semester_schedule_note">已按调休调整日期；灰显不代表停课，临时变更请以学校通知为准。</string>
+    <string name="semester_distribution_legend">教学周分布：色块为有课，描边为本周</string>
+    <string name="semester_active_weeks">有课的教学周：%1$s</string>
+    <string name="semester_previous_month">上月</string>
+    <string name="semester_next_month">下月</string>
+    <string name="semester_has_class">有课</string>
+    <string name="semester_no_class">当天没有这门课</string>
+    <string name="semester_calendar_hint">圆点标记上课日期，点击日期查看安排</string>
+    <string name="semester_transferred_from">由%1$s调至当天</string>
+    <string name="semester_regular_pattern">通常：%1$s</string>
+    <string name="semester_outside_term">含学期外的调课，具体日期见日历</string>
 </resources>

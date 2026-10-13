@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
  *
  * - [widgetId]: the system appWidgetId — used as the row key and to look up
  *   per-widget bindings via [WidgetBindingStore].
- * - [variant]: which of the 9 widget layouts this instance is using.
+ * - [variant]: the registered layout from [ALL_WIDGET_VARIANTS].
  * - [tableName]: human-readable name of the schedule currently bound to
  *   this widget, or `null` when the widget follows the app-wide default
  *   (i.e. [WidgetTableResolver.resolveCurrentTable]).
@@ -36,13 +36,13 @@ data class PlacedWidgetItem(
 
 /**
  * Lists every Sleepy widget instance currently placed on the home screen,
- * across all 9 variants, with the name of the schedule each is bound to
+ * across all registered variants, with the name of the schedule each is bound to
  * (if the user has explicitly picked one).
  *
  * Enumeration uses [AppWidgetManager.getAppWidgetIds] which is a stable
  * IPC to the system — the set of placed widgets is the source of truth
  * here. The repository lookup for table names runs on [Dispatchers.IO]
- * because [ScheduleRepository.getTable] goes through Room.
+ * because the schedule-name snapshot is loaded through Room.
  */
 class WidgetManagementViewModel : ViewModel() {
 
@@ -59,8 +59,7 @@ class WidgetManagementViewModel : ViewModel() {
             val repo = SleepyApp.get().repository
             val awm = AppWidgetManager.getInstance(ctx)
             val items = withContext(Dispatchers.IO) {
-                // One Room round-trip for all names; per-id getTable() is
-                // suspend and can't run inside the plain lambdas below.
+                // One Room round-trip for all names, avoiding one query per widget.
                 val nameById = runCatching { repo.getAllTables() }
                     .getOrDefault(emptyList())
                     .associate { it.id to it.name }

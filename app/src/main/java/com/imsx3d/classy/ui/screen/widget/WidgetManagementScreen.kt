@@ -61,6 +61,7 @@ fun WidgetManagementScreen(
         }
     }
     var widgetColorless by remember { mutableStateOf(AppPrefs.isWidgetColorless(context)) }
+    var showTableName by remember { mutableStateOf(AppPrefs.isWidgetShowTableName(context)) }
     var useAlias by remember { mutableStateOf(AppPrefs.isWidgetUseAlias(context)) }
     var nearestBusyDay by remember { mutableStateOf(AppPrefs.isNearestBusyDay(context)) }
     val vm = com.imsx3d.classy.widget.rememberWidgetManagementViewModel()
@@ -106,6 +107,16 @@ fun WidgetManagementScreen(
         item { SectionHeader(stringResource(R.string.widget_shared_title), subtitle = stringResource(R.string.widget_shared_hint)) }
         item {
             SettingsGroupCard {
+                SettingsSwitchRow(
+                    title = stringResource(R.string.widget_show_table_name),
+                    checked = showTableName,
+                    onCheckedChange = {
+                        showTableName = it
+                        AppPrefs.setWidgetShowTableName(context, it)
+                        refreshWidgets()
+                    }
+                )
+                SettingsRowDivider()
                 com.imsx3d.classy.ui.component.SettingsSegmentedRow(
                     title = stringResource(R.string.widget_edit_section_alias),
                     subtitle = stringResource(R.string.widget_alias_hint),

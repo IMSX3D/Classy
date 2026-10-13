@@ -2000,35 +2000,6 @@ internal class DiagnosticReplayBridge(private val onResult: (String) -> Unit) {
 }
 
 /**
- * SSL 豁免注册表: 仅对学校 URL 的注册域 (含其子域) 放行自签/私有 CA 证书 —
- * 部分高校教务确用私有 CA。除此之外的 SSL 错误一律 cancel (中间人防护)。
- */
-internal object SslBypassRegistry {
-    /** 取注册域: 无公共后缀库, 用启发式 — 取末两段 (xx.edu.cn 形态取末三段)。 */
-    fun registrableDomain(host: String): String {
-        val h = host.lowercase().trim().trimEnd('.')
-        if (h.isEmpty()) return ""
-        val parts = h.split('.')
-        if (parts.size <= 2) return h
-        val secondLevel = parts[parts.size - 2]
-        // 多段公共后缀 (edu.cn / edu.hk / ac.uk 等): 公共后缀 + 域名 = 末三段
-        val tld = parts.last()
-        if ((tld == "cn" || tld == "hk" || tld == "uk" || tld == "tw" || tld == "jp") &&
-            secondLevel in setOf("edu", "ac", "gov", "org")
-        ) {
-            return parts.takeLast(3).joinToString(".")
-        }
-        return parts.takeLast(2).joinToString(".")
-    }
-
-    /** host 是否与 schoolHost 同注册域 (或为其子域)。 */
-    fun isAllowed(host: String, schoolHost: String): Boolean {
-        if (host.isBlank() || schoolHost.isBlank()) return false
-        return registrableDomain(host) == registrableDomain(schoolHost)
-    }
-}
-
-/**
  * T7 抓取 JS — DFS 递归遍历 frame+iframe, 跨域记 blocked, 输出 FrameSnapshotList JSON。
  *
  * 与 FrameSnapshotList.fromJson 的字段契约(改任一侧必须同步):

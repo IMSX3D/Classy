@@ -1056,11 +1056,6 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="jw_refresh_apply">Apply selected changes</string>
     <string name="jw_refresh_failed">No changes saved. Check the school, semester and periods match this timetable. If it changed during review, review again. Existing data is unchanged.</string>
     <string name="jw_refresh_arrangement">Day %1$d · Periods %2$d–%3$d · Weeks %4$d–%5$d · %6$s</string>
-    <string name="overview_title">This semester</string>
-    <string name="overview_expand">Expand semester information</string>
-    <string name="overview_collapse">Collapse semester information</string>
-    <string name="overview_empty">Import a timetable to start your semester</string>
-    <string name="overview_start">Semester starts · %1$s</string>
     <string name="schedule_grid_hint">Tap an empty cell to add · Hold a course to move</string>
     <string name="reminder_preview_count">%1$s · %2$d classes</string>
     <string name="background_title">Schedule background</string>
@@ -1106,4 +1101,23 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="group_color_new_confirm_msg">The group color will apply when you save the course.</string>
     <string name="conflict_choose_visible">Choose an overlapping course to view</string>
     <string name="conflict_switch_visible">Switch the visible course</string>
+    <string name="widget_show_table_name">Show schedule name</string>
+    <string name="semester_schedule_title">Semester schedule</string>
+    <string name="semester_schedule_search">Search courses or teachers</string>
+    <string name="semester_schedule_count">%1$d sessions</string>
+    <string name="semester_schedule_empty">No scheduled sessions found</string>
+    <string name="semester_schedule_missing">This course was removed. Go back to view other courses.</string>
+    <string name="semester_schedule_retry">Could not load. Tap to retry.</string>
+    <string name="semester_schedule_time_missing">Time not set</string>
+    <string name="semester_schedule_note">Dates include schedule transfers. Dimmed courses are not cancellations; check school notices for last-minute changes.</string>
+    <string name="semester_distribution_legend">Teaching weeks · Filled: class · Outline: current</string>
+    <string name="semester_active_weeks">Teaching weeks with classes: %1$s</string>
+    <string name="semester_previous_month">Previous</string>
+    <string name="semester_next_month">Next</string>
+    <string name="semester_has_class">Classes scheduled</string>
+    <string name="semester_no_class">No classes for this course on this day</string>
+    <string name="semester_calendar_hint">Dots mark class dates. Select a date to see the schedule.</string>
+    <string name="semester_transferred_from">Moved from %1$s</string>
+    <string name="semester_regular_pattern">Usually: %1$s</string>
+    <string name="semester_outside_term">Includes classes moved beyond the term; see calendar</string>
 </resources>

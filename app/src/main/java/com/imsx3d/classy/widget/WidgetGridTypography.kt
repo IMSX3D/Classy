@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
 internal fun applyGridBlockTypography(context: Context, block: RemoteViews, room: String, barStyle: Boolean) {
     val density = context.resources.displayMetrics.density
     fun dp(value: Float) = (value * density).roundToInt()
-    val left = dp(if (barStyle) 5f else 1f)
+    val left = dp(if (barStyle) 9f else 1f)
     block.setViewPadding(R.id.wg_blk_name, left, 0, dp(1f), 0)
     block.setViewPadding(R.id.wg_blk_room, left, dp(2f), dp(1f), 0)
     block.setViewVisibility(R.id.wg_blk_room, if (room.isNotBlank()) View.VISIBLE else View.GONE)

@@ -64,7 +64,7 @@ class InteractionClosureContractTest {
         val routes = source("nav/SleepyRoutes.kt").substringBefore("companion object")
         val names = Regex("""data (?:object|class) (\w+)""").findAll(routes).map { it.groupValues[1] }.toSet()
         val report = File("../docs/design/INTERACTION_STAGE1_CLOSURE.md").readText()
-        assertEquals(19, names.size)
+        assertEquals(21, names.size)
         names.forEach { assertTrue("Missing route contract: $it", report.contains("`$it`")) }
     }
 }

@@ -31,6 +31,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *   v8 → v9: C2 换绑前快照 (issue#40, 2026-09-20)
  *     - 加 time_tables.preBindSnapshotJson (TEXT NOT NULL DEFAULT '')
  *     - 旧行空串 = 无快照; 解绑回退兼容列(旧镜像语义)仅在快照缺失时兜底
+ *   v9 → v10: time_tables.jwSourceJson 教务刷新来源；默认空串，不改课程或作息
  */
 val MIGRATION_3_4: Migration = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {

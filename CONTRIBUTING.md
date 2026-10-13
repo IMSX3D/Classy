@@ -1,14 +1,14 @@
 # 贡献指南 (Contributing)
 
-感谢你对 Sleepy 的关注！无论是报 bug、交 PR 还是让学校支持教务直连，这里都有你要的信息。
+感谢你对 Classy 的关注！无论是报 bug、交 PR 还是让学校支持教务直连，这里都有你要的信息。
 
-中文为主，英文亦可。想先摸清代码结构，看 [wiki 的架构总览](https://github.com/lingion/sleepy/wiki/Architecture) 与 [代码库地图](https://github.com/lingion/sleepy/wiki/Codebase-Map)；功能细节、适配流程、测试体系也都在 [wiki](https://github.com/lingion/sleepy/wiki) 里。
+中文为主，英文亦可。先读本仓库 [接手指南](docs/engineering/HANDOFF.md)；下列上游 wiki 仅是背景资料，以本仓库代码与差异记录为准。想先摸清代码结构，看 [wiki 的架构总览](https://github.com/lingion/sleepy/wiki/Architecture) 与 [代码库地图](https://github.com/lingion/sleepy/wiki/Codebase-Map)；功能细节、适配流程、测试体系也都在 [wiki](https://github.com/lingion/sleepy/wiki) 里。
 
 ## 环境
 
 ```bash
-git clone https://github.com/lingion/sleepy.git
-cd sleepy
+git clone https://github.com/IMSX3D/Classy.git
+cd Classy
 ./gradlew :app:testDebugUnitTest   # 先跑一遍全量单测,确认基线全绿
 ```
 

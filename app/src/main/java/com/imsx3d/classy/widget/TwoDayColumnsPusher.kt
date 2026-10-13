@@ -18,6 +18,10 @@ internal object TwoDayColumnsPusher {
         val views = RemoteViews(context.packageName, R.layout.widget_twoday_columns)
         val table = WidgetTableResolver.resolveBoundTable(id) ?: WidgetTableResolver.resolveCurrentTable()
         views.setTextViewText(R.id.twoday_header, table?.name.orEmpty())
+        // GONE releases title space while keeping the date and course content intact.
+        views.setViewVisibility(R.id.twoday_header,
+            if (com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context))
+                android.view.View.VISIBLE else android.view.View.GONE)
         views.setTextViewText(R.id.twoday_date, DateUtils.shortDateSlash(LocalDate.now()))
         views.setInt(R.id.widget_card_background, "setColorFilter", scheme.bg.toArgb())
         views.setInt(R.id.twoday_divider, "setBackgroundColor", scheme.surfaceVariant.toArgb())

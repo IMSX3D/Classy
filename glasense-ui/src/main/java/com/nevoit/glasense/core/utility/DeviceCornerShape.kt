@@ -23,13 +23,15 @@ fun deviceCornerShape(
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
 
-    return remember(view, configuration, padding, topLeft, topRight, bottomRight, bottomLeft) {
+    return remember(view, configuration, density, padding, topLeft, topRight, bottomRight, bottomLeft) {
         fun getCornerRadius(position: Int, enabled: Boolean): Dp {
             if (!enabled) return 0.dp
 
             val insets = view.rootWindowInsets
             val radius =
-                with(density) { insets.getRoundedCorner(position)?.radius?.toFloat()?.toDp() }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    with(density) { insets?.getRoundedCorner(position)?.radius?.toFloat()?.toDp() }
+                } else null
 
             return if (radius == null || radius <= 16f.dp) (16f.dp - padding).coerceAtLeast(0.dp) else (radius - padding).coerceAtLeast(
                 0.dp
@@ -64,13 +66,15 @@ fun deviceCornerShape(
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
 
-    return remember(view, configuration, padding, topLeft, topRight, bottomRight, bottomLeft) {
+    return remember(view, configuration, density, padding, topLeft, topRight, bottomRight, bottomLeft, maxRadius) {
         fun getCornerRadius(position: Int, enabled: Boolean): Dp {
             if (!enabled) return 0.dp
 
             val insets = view.rootWindowInsets
             val radius =
-                with(density) { insets.getRoundedCorner(position)?.radius?.toFloat()?.toDp() }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    with(density) { insets?.getRoundedCorner(position)?.radius?.toFloat()?.toDp() }
+                } else null
 
             return if (radius == null || radius <= 16f.dp) (16f.dp - padding).coerceAtLeast(0.dp) else (radius - padding).coerceAtLeast(
                 0.dp

@@ -144,10 +144,15 @@ object UpdateManager {
         conn.instanceFollowRedirects = true
         conn.setRequestProperty("User-Agent", "Sleepy/${BuildConfig.VERSION_NAME}")
         conn.setRequestProperty("Accept", "application/json,text/html,*/*")
-        if (conn.responseCode !in 200..299) {
+        try {
+            val status = conn.responseCode
+            check(status in 200..299) { "HTTP $status" }
+            return conn
+        } catch (failure: Exception) {
+            // Connection/setup errors happen before the stream owner's finally block.
+            // Close here as well, and never read responseCode again after disconnecting.
             conn.disconnect()
-            throw IllegalStateException("HTTP ${conn.responseCode}")
+            throw failure
         }
-        return conn
     }
 }

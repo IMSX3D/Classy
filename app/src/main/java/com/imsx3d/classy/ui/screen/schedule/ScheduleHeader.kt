@@ -44,6 +44,7 @@ internal fun ScheduleHeader(
     onRefresh: () -> Unit,
     viewMode: ViewMode,
     onViewModeChange: (ViewMode) -> Unit,
+    onOpenSemester: () -> Unit = {},
     showInitialGuide: Boolean = false,
     onGuideDismissed: () -> Unit = {}
 ) {
@@ -102,6 +103,9 @@ internal fun ScheduleHeader(
                             modifier = Modifier.semantics { selected = mode == viewMode })
                     }
                     HorizontalDivider()
+                    DropdownMenuItem(text = { Text(stringResource(R.string.semester_schedule_title)) },
+                        leadingIcon = { Icon(Icons.Outlined.CalendarMonth, null) },
+                        onClick = { actionsOpen = false; onOpenSemester() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.schedule_add_course)) },
                         leadingIcon = { Icon(Icons.Outlined.Add, null) },
                         onClick = { actionsOpen = false; onAddCourse() })

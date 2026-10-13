@@ -18,22 +18,11 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
-/**
- * Widget 主动更新调度器：
- * — 数据变更时调用 [notifyDataChanged]
- * — 对全部 10 个已注册 receiver 广播 APPWIDGET_UPDATE(系统级刷新)
- *   普通和小尺寸变体都是同步 RemoteViews AppWidgetProvider → 秒刷,不受 OPPO 冻结影响
- * — WorkManager 每 15 分钟兜底刷新
- *
- * 跨厂商兼容事实底座: docs/widget-vendor-specs/INDEX.md
- * （华为/荣耀/小米/OPPO/vivo/魅族/三星启动器的约束清单 + 已落地/明确不做对照表）。
- * 本类是"同步广播秒刷"规则的实现点 — 该规则同时解决 OPPO Glance 冻结与
- * HyperOS 去定时刷新后的兜底（WorkManager 周期任务）。
- *
- * 跨天兜底: 15-min periodic 在 00:00 后最长可晚 15+ 分钟才刷 (doze 更久) →
- *   [notifyDataChanged] 每次都把一个单次任务排到下一个本地午夜 ([nextMidnightDelayMillis]),
- *   唯一名 REPLACE 幂等重排; 午夜 worker 走同一条 notifyDataChanged → 链自续,
- *   跨 00:00 后立刻显示新的一天 (时区变化会打断挂钟对齐, 由下次任意刷新重新对齐)。
+/** Refresh requests for registered widget variants (ALL_WIDGET_VARIANTS is the authority).
+ * Receivers build RemoteViews asynchronously; sending the broadcast is not proof that an
+ * OEM launcher displayed it. WorkManager periodic/midnight refresh is best-effort and can
+ * be delayed by Doze or vendor background restrictions. Binding, sizing and rendered output
+ * require separate device acceptance. Vendor notes: docs/widget-vendor-specs/INDEX.md.
  */
 object WidgetUpdater {
 
@@ -42,7 +31,7 @@ object WidgetUpdater {
     private const val MIDNIGHT_WORK_NAME = "sleepy_widget_midnight_update"
     private const val REPEAT_MINUTES = 15L
 
-    /** All widget providers receiving the synchronous refresh broadcast. */
+    /** All registered providers receiving an asynchronous refresh request. */
     internal val remoteViewsReceiverClasses: List<Class<out AppWidgetProvider>> =
         ALL_WIDGET_VARIANTS.map { it.receiverClass }
 
@@ -85,23 +74,15 @@ object WidgetUpdater {
     }
 
     /**
-     * 立即刷新所有已放置的小组件。
-     *
-     * - 全部 10 个 widget (RemoteViews): 同步广播 APPWIDGET_UPDATE → AppWidgetProvider.onUpdate
-     *   同步调 awm.updateAppWidget(id, views) → 在 OPPO 冻结窗口前推送 → 秒刷,不受冻结影响。
-     * - WorkManager 每 15 分钟兜底刷新 (schedule)。
-     *
-     * suspend: 调用方(MineScreen 按钮/主题切换/SleepyApp 等)在协程里 await。
+     * 请求刷新所有已放置的小组件，并重排课程边界与午夜兜底任务。
+     * suspend 只等待请求和排程完成，不等待桌面实际显示；广播接收器后台生成
+     * RemoteViews。WorkManager 周期任务和闹钟都仍受系统省电/厂商后台策略约束。
      */
     suspend fun notifyDataChanged(context: Context) {
         withContext(Dispatchers.IO) {
             val awm = AppWidgetManager.getInstance(context)
 
-            // ── 全部 10 个小组件 (RemoteViews): 同步广播,秒刷 ──
-
-            // v1.0.29: Today/WeekList/TwoDay 已从 Glance 移植为同步 RemoteViews AppWidgetProvider,
-            // 与 WeekGrid 同路径 — 普通 AppWidgetProvider.onUpdate 同步调 awm.updateAppWidget(id, views),
-            // 在 OPPO 冻结窗口(5s)前就完成推送 → 永远可靠,不再卡 widget_loading。
+            // Enumerate actual bindings; do not wake providers with no placed instances.
             val remoteViewsReceivers = remoteViewsReceiverClasses
             for (receiver in remoteViewsReceivers) {
                 try {
@@ -124,8 +105,8 @@ object WidgetUpdater {
             // 放 IO 块内 — armNext 阻塞读库, 禁在 Main。
             WidgetBoundaryScheduler.armNext(context)
         }
-        // 跨天链: 广播全部落地后重新对齐下一晚 (放 withContext 外 — worker 取消信号
-        // 不会打断已提交的 WorkManager 排程; 午夜 worker 走本函数 → 链自续)。
+        // Requests have been sent, not necessarily rendered. Cancellation of the IO block
+        // prevents this step; the periodic worker remains a best-effort recovery path.
         runCatching { armMidnightRefresh(context) }
     }
 }

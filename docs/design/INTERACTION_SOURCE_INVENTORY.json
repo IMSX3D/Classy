@@ -678,6 +678,15 @@
       "dialogs": 0,
       "sheets": 0,
       "backHandlers": 0
+    },
+    {
+      "source": "app/src/main/java/com/imsx3d/classy/ui/screen/mine/SemesterScreen.kt",
+      "composables": [
+        "SemesterScreen"
+      ],
+      "dialogs": 0,
+      "sheets": 0,
+      "backHandlers": 0
     }
   ]
 }

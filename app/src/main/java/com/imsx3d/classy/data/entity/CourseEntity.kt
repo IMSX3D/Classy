@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
 
 /**
  * 课程实体 — 与 WakeUp 原版 CourseBean schema 兼容（type / day / startNode / step / startWeek / endWeek / color / tableId）
- * 但去掉了 ownTime/level/credit/note 等冗余字段，新加 note/teacher/room 用于显示。
+ * ownTime/startTime/endTime 保留非常规时段；teacher/room/note 参与展示和编辑。
+ * 字段变更必须核对 Room 迁移、导入导出及教务刷新，不可按展示用量判断可删除。
  */
 @Entity(
     tableName = "courses",

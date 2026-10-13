@@ -481,10 +481,10 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         val barH = (slotH * step + gapH * (step - 1)).coerceAtLeast(1f)
                         val laneX = colX + dayW * laneRect.laneStartFraction
                         val laneW = dayW * laneRect.laneWidthFraction
-                        p.color = CourseColorUtil.pickCourseColorIntWithGroupRows(
+                        p.color = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorIntWithGroupRows(
                             course, allCourses.filter { it.groupId == course.groupId },
                             isDark, gridLine, colorless
-                        )
+                        ), scheme.isDark)
                         p.alpha = 200
                         val r = minOf(dp(4f).toFloat(), barH / 2f)
                         c.drawRoundRect(RectF(laneX, top, laneX + laneW, top + barH), r, r, p)
@@ -593,10 +593,10 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
 
                     // 卡片背景色 (v19e: 对齐 CourseTableView palette) — 统一入口 CourseColorUtil (决策 D3)
                     // colorless 灰底传 gridLine(即 surfaceVariant 的 Int), 与原实现一致
-                    val baseColor = CourseColorUtil.pickCourseColorIntWithGroupRows(
+                    val baseColor = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorIntWithGroupRows(
                         course, allCourses.filter { it.groupId == course.groupId },
                         isDark, gridLine, colorless
-                    )
+                    ), scheme.isDark)
                     // The weekly bitmap follows the same fill/bar preference as the app.
                     // Keep neutral text separate from the decorative course indicator.
                     val cardColor = if (barStyle) bgSurface else baseColor
@@ -613,10 +613,11 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         p.color = CourseColorUtil.softenedIndicator(
                             accent, scheme.surface
                         ).toArgb()
-                        val inset = minOf(3f * density, cardRect.height() * 0.15f)
+                        val inset = minOf(6f * density, cardRect.height() * 0.25f)
+                        val insetX = minOf(4f * density, cardRect.width() * 0.08f)
                         c.drawRoundRect(
-                            RectF(cardRect.left, cardRect.top + inset,
-                                cardRect.left + stripWidth, cardRect.bottom - inset),
+                            RectF(cardRect.left + insetX, cardRect.top + inset,
+                                cardRect.left + insetX + stripWidth, cardRect.bottom - inset),
                             stripWidth / 2f, stripWidth / 2f, p
                         )
                     }

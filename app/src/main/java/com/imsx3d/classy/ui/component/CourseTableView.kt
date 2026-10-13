@@ -761,7 +761,7 @@ private fun SingleTimeHeadCell(slot: TimeSlot, scale: Float = 1f, modifier: Modi
 // EmptyGridCell 死组件已删（注释自述弃用, 全库零调用——Cards 网格走 SingleTimeHeadCell + CourseOverlayCard）。
 
 @Composable
-private fun CourseOverlayCard(
+internal fun CourseOverlayCard(
     course: CourseEntity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -776,14 +776,14 @@ private fun CourseOverlayCard(
     // 统一取色入口（决策 D3）— colorless 读取 AppPrefs course_colorless 独立开关
     // issue#22: 同名课程多地点 — 用 groupRows 传同 groupId 全行,支持 AUTO/CUSTOM 模式取色
     val colorSlots = com.imsx3d.classy.util.LocalCourseColorSlots.current
-    val bg = CourseColorUtil.pickCourseColorComposeWithGroupRows(
+    val bg = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorComposeWithGroupRows(
         row = course,
         groupRows = groupRows,
         isDark = CourseColorUtil.isPaletteDark(palette),
         neutralColor = colors.surfaceVariant,
         colorless = AppPrefs.isCourseColorless(context),
         slot = colorSlots[CourseColorUtil.colorSeed(course)]
-    )
+    ), CourseColorUtil.isPaletteDark(palette))
     // 文字色亮度自适应（决策 D5-13）— 深色自定义课色上切白字，浅色底仍 onSurface
     val fg = CourseColorUtil.textColorOn(bg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
     // 课色条那版要的强调色 + 中性底/中性字（口径与今日页、周视图一致）
@@ -819,10 +819,15 @@ private fun CourseOverlayCard(
     val secondaryInfo = if (subInfo == "teacher") roomText else teacherText
 
     // Keep the original palette; dim the composed card once, regardless of the reason.
-    val effectiveBg = if (accentBarStyle) colors.surfaceContainer else bg
+    // Keep an opaque surface for photo backgrounds, but reduce the nested dark-card contrast.
+    val effectiveBg = if (accentBarStyle) {
+        if (CourseColorUtil.isPaletteDark(palette)) androidx.compose.ui.graphics.lerp(
+            colors.surfaceContainer, colors.surfaceContainerHigh, .55f)
+        else androidx.compose.ui.graphics.lerp(colors.surfaceContainerHigh, colors.onSurface, .045f)
+    } else bg
     val effectiveFg = if (accentBarStyle) colors.onSurface else fg
     val effectiveInfoFg = if (accentBarStyle) colors.onSurfaceVariant
-        else effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
+        else effectiveFg
     val effectiveAccentBar = CourseColorUtil.softenedIndicator(accentBar, effectiveBg)
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") {
@@ -830,13 +835,13 @@ private fun CourseOverlayCard(
     } else null
     val nameStyle = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp,
         fontWeight = FontWeight.SemiBold,
-        fontSize = (11 * scale).sp,
-        lineHeight = (14 * scale).sp,
+        fontSize = (12 * scale).sp,
+        lineHeight = (16 * scale).sp,
         textDecoration = textDecoration
     )
     val infoStyle = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp,
-        fontSize = (9 * scale).sp,
-        lineHeight = (11 * scale).sp,
+        fontSize = (10 * scale).sp,
+        lineHeight = (13 * scale).sp,
         textDecoration = textDecoration
     )
 
@@ -850,10 +855,15 @@ private fun CourseOverlayCard(
             .padding(sd(3f))
     ) {
         if (accentBarStyle) {
-            // 课色条：贴左缘、随格子高度（与今日页/周视图同一套观感）
+            // The marker belongs inside the card, not on its curved edge. Insets scale with
+            // the card radius; cap vertical space for short periods without shrinking text.
+            val radius = sd(minOf(12f * cornerRatio, 16f))
+            val insetY = minOf(maxOf(sd(6f), radius * .65f), (maxHeight + sd(6f)) / 4)
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
+                    .padding(start = sd(3f), top = maxOf(0.dp, insetY - sd(3f)),
+                        bottom = maxOf(0.dp, insetY - sd(3f)))
                     .width(sd(3f))
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(sd(1.5f)))
@@ -861,33 +871,34 @@ private fun CourseOverlayCard(
             )
         }
         val textDensity = LocalDensity.current
-        val nameLineHeight = with(textDensity) { (14 * scale).sp.toDp() }
-        val infoLineHeight = with(textDensity) { (11 * scale).sp.toDp() }
+        val nameLineHeight = with(textDensity) { (16 * scale).sp.toDp() }
+        val infoLineHeight = with(textDensity) { (13 * scale).sp.toDp() }
         val primaryLines = if (maxHeight >= nameLineHeight * 3 + infoLineHeight * 2) 2 else 1
         val showPrimary = infoEnabled && primaryInfo.isNotBlank() &&
-            maxHeight >= nameLineHeight * 2 + infoLineHeight
+            maxHeight >= nameLineHeight * 2 + infoLineHeight + sd(4f)
         val showSecondary = showPrimary && secondaryInfo.isNotBlank() && maxHeight >= sd(96f) &&
             maxHeight >= nameLineHeight * 3 + infoLineHeight * (primaryLines + 1)
         if (!showPrimary) {
-            // 无副信息: 课程名整体居中(原行为)
+            // Stable reading origin, including cards without metadata.
             Text(
                 text = name,
                 style = nameStyle,
                 color = effectiveFg,
-                maxLines = 6,
+                maxLines = (maxHeight / nameLineHeight).toInt().coerceIn(1, 6),
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .then(if (accentBarStyle) Modifier.padding(start = sd(4f)) else Modifier)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .then(if (accentBarStyle) Modifier.padding(start = sd(8f)) else Modifier)
             )
         } else {
             // Reserve measured text height for the selected detail; extra metadata must not crowd the name.
-            val nameLines = ((maxHeight - infoLineHeight * (primaryLines + if (showSecondary) 1 else 0)) /
+            val nameLines = ((maxHeight - sd(4f) - infoLineHeight * (primaryLines + if (showSecondary) 1 else 0)) /
                 nameLineHeight).toInt().coerceIn(1, 6)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (accentBarStyle) Modifier.padding(start = sd(4f)) else Modifier),
+                    .then(if (accentBarStyle) Modifier.padding(start = sd(8f)) else Modifier),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -908,6 +919,7 @@ private fun CourseOverlayCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                Spacer(Modifier.height(sd(4f)))
                 // Give the selected detail up to two lines only when the course name still fits.
                 Text(
                     text = primaryInfo,
@@ -1601,14 +1613,14 @@ private fun LessonRow(
     //   fill  = 整行填课色 + 自适应文字色（醒目，即本页原来的观感）。
     //   两种承载共用同一套取色，只差"颜色铺多大"。设置项：通用 → 课表显示 → 课程色呈现。
     val barStyle = AppPrefs.getCourseColorStyle(context) == AppPrefs.COURSE_STYLE_BAR
-    val fillBg = CourseColorUtil.pickCourseColorComposeWithGroupRows(
+    val fillBg = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorComposeWithGroupRows(
         row = course,
         groupRows = groupRows,
         isDark = CourseColorUtil.isPaletteDark(palette),
         neutralColor = colors.surfaceVariant,
         colorless = AppPrefs.isCourseColorless(context),
         slot = com.imsx3d.classy.util.LocalCourseColorSlots.current[CourseColorUtil.colorSeed(course)]
-    )
+    ), CourseColorUtil.isPaletteDark(palette))
     val accent = CourseColorUtil.pickAccentComposeWithGroupRows(
         row = course,
         groupRows = groupRows,
@@ -1622,7 +1634,7 @@ private fun LessonRow(
     val effectiveFg = if (barStyle) colors.onSurface
         else CourseColorUtil.textColorOn(fillBg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
     val effectiveFgVariant = if (barStyle) colors.onSurfaceVariant
-        else effectiveFg.copy(alpha = SleepyTheme.Alpha.highContent)
+        else effectiveFg
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") androidx.compose.ui.text.style.TextDecoration.LineThrough else null
 

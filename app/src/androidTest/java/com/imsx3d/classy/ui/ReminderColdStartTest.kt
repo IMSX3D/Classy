@@ -15,8 +15,10 @@ import org.junit.Test
 import java.time.LocalTime
 import java.time.LocalDate
 
-/** Two-phase host-driven check: kill (not force-stop) the idle process between phases.
- * Opt-in, empty emulator only. The host waits for real configured reminder time.
+/** Fixture phases for tools/validation/cold-reminder.py, empty emulator only.
+ * Android force-stops the app around instrumentation runs. Therefore the HOST must launch
+ * it once after preparation, kill only the idle process, and inspect notifications BEFORE
+ * starting cleanup instrumentation. Querying activeNotifications in a second test is invalid.
  */
 class ReminderColdStartTest {
     private fun context(): Context {
@@ -42,7 +44,9 @@ class ReminderColdStartTest {
         AppPrefs.setBeforeClassBannerEnabled(context, true)
         AppPrefs.setBeforeClassFluidEnabled(context, false)
         AppPrefs.setBeforeClassMinutes(context, 1)
-        val time = LocalTime.now().plusMinutes(2).withSecond(0).withNano(0).toString()
+        val leadMinutes = InstrumentationRegistry.getArguments().getString("leadMinutes")
+            ?.toLongOrNull()?.coerceIn(2, 10) ?: 2L
+        val time = LocalTime.now().plusMinutes(leadMinutes).withSecond(0).withNano(0).toString()
         AppPrefs.setDailyReminderTime(context, time)
         AppPrefs.setTomorrowReminderTime(context, time)
         val date = LocalDate.now().plusDays(if (LocalTime.parse(time).isBefore(LocalTime.now())) 1 else 0)
@@ -63,22 +67,16 @@ class ReminderColdStartTest {
         println("COLD_DELIVERY_TIME=$time")
     }
 
-    @Test fun verifyAndRestore() = runBlocking {
+    @Test fun restoreFixture() = runBlocking {
         val context = context()
         val backup = context.getSharedPreferences("cold_delivery_backup", 0)
         check(backup.getBoolean("fixture_saved", false))
         val app = SleepyApp.get()
         try {
-            val ids = context.getSystemService(NotificationManager::class.java).activeNotifications.map { it.id }
-            assertTrue("Cold today's summary missing: $ids", 1001 in ids)
-            assertTrue("Cold tomorrow's summary missing: $ids", 1002 in ids)
-            assertTrue("Cold before-class reminder missing: $ids", 2001 in ids)
-            assertEquals("Cold Application startup invalidated alarms", backup.getString("fixture_generation", null),
-                context.getSharedPreferences("course_alarm_registry", 0).getString("generation", null))
-        } finally {
             AppPrefs.setReminderEnabled(context, false)
             app.notificationScheduler.cancelAll()
             app.repository.deleteTable(backup.getLong("fixture_table", 0))
+        } finally {
             backup.edit().remove("fixture_saved").remove("fixture_generation").remove("fixture_table").commit()
             copyPrefs(backup, context.getSharedPreferences("sleepy_prefs", 0))
             backup.edit().clear().commit()

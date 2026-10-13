@@ -77,12 +77,9 @@ class SepXrwStripInterceptorContractTest {
     // ---------- 装配: Builder 按 school.url 挂 SEP interceptor ----------
 
     @Test
-    fun builder_mustWireSslBypassRegistry() {
-        // SSL 白名单从 screen 搬到 builder (随 client 装配逻辑走)
-        assertTrue(
-            "SslBypassRegistry guard must be wired by builder (intermediate-man-in-the-middle protection)",
-            builder.contains("SslBypassRegistry.isAllowed")
-        )
+    fun builder_mustRejectInvalidCertificates() {
+        assertTrue(builder.contains("handler.cancel()"))
+        assertFalse("A matching hostname cannot authorize an invalid certificate", builder.contains("handler.proceed()"))
     }
 
     @Test

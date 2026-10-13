@@ -112,6 +112,7 @@ fun ScheduleScreen(
     onQuickAdd: (com.imsx3d.classy.util.CourseGridPrefill) -> Unit = {},
     onCreateTable: () -> Unit = {},
     onEditCourse: (CourseEntity) -> Unit = {},
+    onOpenSemester: () -> Unit = {},
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -201,6 +202,7 @@ fun ScheduleScreen(
                 onSelectWeek = { week -> viewModel.changeWeek(week) },
                 onAddCourse = onManualAdd,
                 onShare = { showShareSheet = true },
+                onOpenSemester = onOpenSemester,
                 onRefresh = {
                     state.currentTable?.id?.let { id ->
                         context.startActivity(android.content.Intent(context,

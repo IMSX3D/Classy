@@ -512,6 +512,14 @@ object AppPrefs {
         sp(ctx).edit().putBoolean(KEY_VERT_PUNCT_REPLACE, v).apply()
     }
 
+    // Shared widget display preference; absence preserves existing headers after upgrade.
+    fun isWidgetShowTableName(ctx: Context): Boolean =
+        sp(ctx).getBoolean("widget_show_table_name", true)
+
+    fun setWidgetShowTableName(ctx: Context, value: Boolean) {
+        sp(ctx).edit().putBoolean("widget_show_table_name", value).apply()
+    }
+
     // ===== 小组件无色模式 — 默认 false =====
 
     fun isWidgetColorless(ctx: Context): Boolean =

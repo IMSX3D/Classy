@@ -110,10 +110,10 @@ class SchoolDomainMatchTest {
         assertNull(match("not a url at all", loadCatalog()))
     }
 
-    // -------- registrableDomain 启发式 (与 WebView SSL 豁免同一实现) --------
+    // -------- School catalog matching only; not certificate validation --------
 
     @Test
-    fun `registrable domain heuristic matches webview ssl registry semantics`() {
+    fun `registrable domain heuristic matches school catalog families`() {
         assertEquals("hfut.edu.cn", SchoolDomainMatch.registrableDomain("one.hfut.edu.cn"))
         assertEquals("hfut.edu.cn", SchoolDomainMatch.registrableDomain("jxglstu.hfut.edu.cn"))
         assertEquals("ahu.edu.cn", SchoolDomainMatch.registrableDomain("jw.ahu.edu.cn"))

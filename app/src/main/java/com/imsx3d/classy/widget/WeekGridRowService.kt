@@ -159,12 +159,12 @@ class WeekGridRowFactory(
                     block.addView(R.id.wg_blk_sizer, RemoteViews(context.packageName, R.layout.widget_weekgrid_spacer))
                 }
                 val rows = groupRows[course.groupId].orEmpty()
-                val bg = if (s.barStyle) s.scheme.bg else CourseColorUtil.pickCourseColorComposeWithGroupRows(
+                val bg = if (s.barStyle) s.scheme.bg else CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorComposeWithGroupRows(
                     course, rows, s.scheme.isDark, s.scheme.surfaceVariant, s.colorless
-                )
+                ), s.scheme.isDark)
                 val fg = if (s.barStyle) s.scheme.onSurface
                     else CourseColorUtil.textColorOn(bg, s.scheme.isDark, s.scheme.onSurface)
-                val infoFg = if (s.barStyle) s.scheme.onSurfaceVariant else fg.copy(alpha = 0.72f)
+                val infoFg = if (s.barStyle) s.scheme.onSurfaceVariant else fg
                 val completed = day != null && CourseCompletion.isCompleted(course, day.date, day.timeJson, s.now)
                 fun tone(color: androidx.compose.ui.graphics.Color): Int =
                     (if (completed) lerp(s.scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()

@@ -49,8 +49,8 @@ import com.imsx3d.classy.ui.theme.SleepyTheme
 /** A brand object, not a navigation button. Observes presses without taking list scroll gestures. */
 @Composable
 fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}) {
-    // Brand-specific inks echo the cyan/green app mark; kept local to this artwork.
-    val ink = Color(0xFF090D24)
+    // Expressive brand artwork has its own inks; ordinary content keeps the app palette.
+    val ink = Color(0xFF241167)
     val mint = Color(0xFF90FFE2)
     val cyan = Color(0xFF96B6FF)
     val scope = rememberCoroutineScope()
@@ -74,45 +74,60 @@ fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}
     var celebrating by remember { mutableStateOf(false) }
     var variant by remember { mutableIntStateOf(0) }
     val constellation = remember { Animatable(0f) }
+    val fireworks = remember { BrandFireworks() }
+    var frameTime by remember { mutableLongStateOf(0L) }
+    var frameJob by remember { mutableStateOf<Job?>(null) }
+    var celebrationJob by remember { mutableStateOf<Job?>(null) }
+    var intensity by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(lastTap) {
         kotlinx.coroutines.delay(850)
-        if (!celebrating) tapCount = 0
+        tapCount = 0
+        celebrating = false
+        intensity = 0f
     }
     val tap by rememberUpdatedState<(Long) -> Unit>({ now ->
-        if (!celebrating) {
-            tapCount = if (now - lastTap in 0..850) tapCount + 1 else 1
-            lastTap = now
-            if (tapCount >= 5) {
-                tapCount = 0
-                celebrating = true
-                variant = (variant + kotlin.random.Random.nextInt(1, 3)) % 3
-                scope.launch {
-                    try {
-                        sweepJob?.cancel()
-                        if (ValueAnimator.areAnimatorsEnabled()) {
-                            sweepJob = launch { sweep.snapTo(-.5f); sweep.animateTo(1.4f, tween(1050)) }
-                            constellation.snapTo(0f)
-                            constellation.animateTo(1f, tween(1100))
-                        }
-                        discovered = true
-                        kotlinx.coroutines.delay(900)
-                    } finally {
-                        celebrating = false
-                        tapCount = 0
+        val gap = now - lastTap
+        val continuing = celebrating && gap in 0..850
+        tapCount = if (gap in 0..850) tapCount + 1 else 1
+        lastTap = now
+        if (continuing || tapCount >= 5) {
+            discovered = true
+            celebrating = true
+            variant = (variant + 1) % 3
+            intensity = ((850f - gap.coerceAtLeast(0)) / 730f).coerceIn(0f, 1f)
+            if (ValueAnimator.areAnimatorsEnabled()) {
+                fireworks.emit(frameTime, gap, !continuing, variant)
+                // One clock for all overlapping bursts. Stops once the last paper falls;
+                // leaving the composition cancels the scope, so no idle/background loop.
+                if (frameJob?.isActive != true) frameJob = scope.launch {
+                    var previous = withFrameNanos { it }
+                    while (fireworks.bursts.isNotEmpty()) {
+                        val next = withFrameNanos { it }
+                        frameTime += ((next - previous) / 1_000_000).coerceAtLeast(1)
+                        previous = next
+                        fireworks.expire(frameTime)
                     }
                 }
-            } else sparkle()
-        }
+                celebrationJob?.cancel()
+                celebrationJob = scope.launch {
+                    constellation.snapTo(.35f)
+                    constellation.animateTo(1f, tween(1800,
+                        easing = androidx.compose.animation.core.LinearEasing))
+                }
+            }
+            sparkle()
+        } else sparkle()
     })
     val gathering by animateFloatAsState(
-        if (celebrating) 1f else if (tapCount >= 3) (tapCount - 2) / 3f else 0f,
+        if (celebrating) .6f + intensity * .4f else if (tapCount >= 3) (tapCount - 2) / 3f else 0f,
         tween(180), label = "brand stars gathering")
     var target by remember { mutableStateOf(Offset.Zero) }
     val x by animateFloatAsState(target.x, sleepyIndicatorSpec(), label = "brand tilt x")
     val y by animateFloatAsState(target.y, sleepyIndicatorSpec(), label = "brand tilt y")
     val description = stringResource(R.string.about_brand_description)
     val actionLabel = stringResource(R.string.about_brand_action)
-    Box(modifier.fillMaxWidth().testTag("classy-brand-card")
+    Box(modifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxWidth().testTag("classy-brand-card")
         .semantics(mergeDescendants = true) {
             contentDescription = description
             customActions = listOf(CustomAccessibilityAction(actionLabel) { tap(android.os.SystemClock.uptimeMillis()); true })
@@ -157,17 +172,28 @@ fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}
         }
         .graphicsLayer { rotationX = x; rotationY = y; scaleX = scale; scaleY = scale; cameraDistance = 24 * density }
         .clip(SleepyTheme.shapes.large)
-        .background(Brush.linearGradient(listOf(ink, Color(0xFF19143C), Color(0xFF082D38))))
+        .background(Brush.linearGradient(listOf(ink, Color(0xFF622BD0), Color(0xFFC83C91), Color(0xFF147F93))))
         .border(1.dp, Brush.linearGradient(listOf(cyan.copy(alpha = .65f), mint.copy(alpha = .12f))), SleepyTheme.shapes.large)) {
         Canvas(Modifier.matchParentSize()) {
             val w = size.width
             val h = size.height
             val shiftX = y * density * 1.5f
             val shiftY = -x * density
-            drawRect(Brush.radialGradient(listOf(Color(0xFF855CF8).copy(alpha = .42f), Color.Transparent),
+            drawRect(Brush.radialGradient(listOf(Color(0xFFFF83C8).copy(alpha = .75f), Color.Transparent),
                 center = Offset(w * .95f + shiftX, h * .08f + shiftY), radius = w * .85f))
-            drawRect(Brush.radialGradient(listOf(Color(0xFF00D1B2).copy(alpha = .32f), Color.Transparent),
+            drawRect(Brush.radialGradient(listOf(Color(0xFF68FFE1).copy(alpha = .65f), Color.Transparent),
                 center = Offset(w * .08f - shiftX, h * .9f), radius = w * .7f))
+            // Frosted foil: translucent panes and deterministic micrograin, not a claim of
+            // live backdrop blur. Artwork stays still until the user interacts.
+            drawRoundRect(Brush.linearGradient(listOf(Color.White.copy(alpha = .20f),
+                Color.White.copy(alpha = .025f))), Offset(w * .045f, h * .08f),
+                Size(w * .91f, h * .84f), CornerRadius(28.dp.toPx()), style = Stroke(1.dp.toPx()))
+            repeat(720) { i ->
+                val px = ((i * 73) % 727) / 727f * w
+                val py = ((i * 137) % 733) / 733f * h
+                drawCircle(if (i % 2 == 0) Color.White.copy(alpha = .12f)
+                    else ink.copy(alpha = .12f), .65.dp.toPx(), Offset(px, py))
+            }
             // Layered contour ribbons create depth without a bitmap, blur pass or idle loop.
             translate(left = shiftX, top = shiftY) {
                 for (i in 0..25) {
@@ -177,8 +203,8 @@ fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}
                         cubicTo(w * .15f, h * (.20f + t * .48f), w * .5f, h * (1.08f - t * .4f), w * 1.15f, h * (-.12f + t * .6f))
                     }
                     drawPath(ribbon, Brush.linearGradient(listOf(
-                        Color(0xFF49F2D2).copy(alpha = .10f + t * .16f),
-                        Color(0xFFB694FF).copy(alpha = .12f + t * .22f),
+                        Color(0xFFB7FF72).copy(alpha = .18f + t * .25f),
+                        Color(0xFFFFC0E9).copy(alpha = .22f + t * .28f),
                         Color(0xFF79CFFF).copy(alpha = .28f))), style = Stroke((.6f + t * .7f).dp.toPx()))
                 }
             }
@@ -186,7 +212,7 @@ fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}
                 center = Offset(w * lightX, h * lightY), radius = size.maxDimension * .8f))
             // Finite celebration only: no idle animation or extra bitmap/blur layer.
             val burst = kotlin.math.sin(constellation.value * kotlin.math.PI).toFloat().coerceAtLeast(0f)
-            val clue = if (tapCount >= 3) (tapCount - 2) * .18f else 0f
+            val clue = if (tapCount >= 3) ((tapCount - 2) * .18f).coerceAtMost(1f) else 0f
             val stars = when (variant) {
                 1 -> listOf(Offset(.12f,.28f), Offset(.30f,.14f), Offset(.53f,.24f), Offset(.73f,.12f), Offset(.88f,.30f))
                 2 -> listOf(Offset(.12f,.25f), Offset(.29f,.12f), Offset(.48f,.25f), Offset(.67f,.14f), Offset(.89f,.23f))
@@ -238,23 +264,33 @@ fun ClassyBrandCard(modifier: Modifier = Modifier, onOpenLetter: () -> Unit = {}
             }
         }
     }
+    // Sibling of the clipped card: particles can leave its corners, without a hit target.
+    Canvas(Modifier.matchParentSize()) {
+        val now = frameTime // Observe time only in draw, not the card layout.
+        fireworks.bursts.forEach { burst ->
+            drawBrandConfetti((now - burst.started).toFloat() / BrandFireworks.LIFETIME_MS,
+                burst.variant, burst.count, burst.energy)
+        }
+    }
+    }
 }
 
-/** A fitted typographic mark: large italic serif lettering with a pearl-like ink gradient. */
+/** Fitted display wordmark: heavy oblique caps with a chromatic offset and pearl face. */
 @Composable
 private fun BrandWordmark(modifier: Modifier, shimmer: () -> Float) {
     val paint = remember {
         android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.BOLD_ITALIC)
+            typeface = android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD)
+            textSkewX = -.13f
         }
     }
     Canvas(modifier) {
         paint.textSize = size.height * .84f
         val bounds = android.graphics.Rect()
-        paint.getTextBounds("Classy", 0, 6, bounds)
+        paint.getTextBounds("CLASSY", 0, 6, bounds)
         val factor = minOf(1f, size.width * .94f / bounds.width().coerceAtLeast(1))
         paint.textSize *= factor
-        paint.getTextBounds("Classy", 0, 6, bounds)
+        paint.getTextBounds("CLASSY", 0, 6, bounds)
         val flash = kotlin.math.sin(shimmer() * kotlin.math.PI).toFloat().coerceAtLeast(0f)
         paint.shader = android.graphics.LinearGradient(0f, 0f, size.width, size.height,
             intArrayOf(
@@ -264,6 +300,13 @@ private fun BrandWordmark(modifier: Modifier, shimmer: () -> Float) {
             null, android.graphics.Shader.TileMode.CLAMP)
         val left = (size.width - bounds.width()) / 2f - bounds.left
         val baseline = (size.height - bounds.height()) / 2f - bounds.top
-        drawContext.canvas.nativeCanvas.drawText("Classy", left, baseline, paint)
+        val face = paint.shader
+        paint.shader = null
+        paint.color = Color(0xFF351064).toArgb()
+        drawContext.canvas.nativeCanvas.drawText("CLASSY", left + 3.dp.toPx(), baseline + 5.dp.toPx(), paint)
+        paint.color = Color(0xFF91FFDE).toArgb()
+        drawContext.canvas.nativeCanvas.drawText("CLASSY", left - 1.dp.toPx(), baseline + 2.dp.toPx(), paint)
+        paint.shader = face
+        drawContext.canvas.nativeCanvas.drawText("CLASSY", left, baseline, paint)
     }
 }

@@ -68,9 +68,9 @@ class SleepyApp : Application() {
                 WidgetPreviewRegistrar.clearLegacyGeneratedPreviews(this@SleepyApp)
             }
         }
-        // 15-min periodic 兜底 (KEEP 幂等): 午夜自续链是单次任务, 强杀进程会清掉,
-        // periodic 是唯一能复活它的自主驱动 — schedule() 此前零调用方 (7ecb554 起断链),
-        // 恢复挂载使 WidgetUpdater 头注释的兜底描述重新为真。
+        // Persistent periodic fallback (KEEP). Normal process death does not delete
+        // WorkManager jobs. Force-stop/OEM restrictions can defer BOTH periodic and
+        // one-time work until Android allows the application to run again.
         WidgetUpdater.schedule(this@SleepyApp)
         // 后台预取节假日数据
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -86,8 +86,8 @@ class SleepyApp : Application() {
      * GlanceAppWidgetManager.getGlanceIdBy 返回 null 被静默跳过(v1.0.29 已全移植为
      * 同步 RemoteViews, Glance 层已删除, 决策 D5-11)。
      *
-     * 这里主动调 notifyDataChanged() 广播 APPWIDGET_UPDATE,强制全部 5 个
-     * RemoteViews widget 重渲染,确保跟随系统主题。
+     * 这里主动请求全部已注册、已放置的 RemoteViews widget 重渲染；
+     * 不依赖桌面是否自行发送配置变化广播，实际显示仍由宿主控制。
      *
      * fontScale (issue#31 P3「字体遮盖箭头」残余): 位图标题/胶囊/按钮都在推送时定格 —
      * 用户事后调大系统字体, 已推送的位图不会自动重算, 最长要等

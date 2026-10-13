@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.NewReleases
@@ -136,7 +135,8 @@ fun AboutScreen(
     }
 
     fun checkUpdate() {
-        if (uiState is UpdateUiState.Checking) return
+        if (!AppIdentity.hasReleaseUpdates || uiState is UpdateUiState.Checking ||
+            uiState is UpdateUiState.Downloading || uiState is UpdateUiState.Installing) return
         uiState = UpdateUiState.Checking
         scope.launch {
             runCatching { UpdateManager.fetchUpdateInfo(context) }
@@ -200,9 +200,8 @@ fun AboutScreen(
             item {
                 UpdateBanner(
                     version = updateAvailable!!.version,
-                    onClick = {
-                        openUrl("${AppIdentity.REPO_URL}/releases/tag/v${updateAvailable!!.version}")
-                    },
+                    // Both update entries use the same in-app check/download/install flow.
+                    onClick = { checkUpdate() },
                     onDismiss = { UpdateNotifier.dismiss(updateAvailable!!.version, context) }
                 )
             }
@@ -461,7 +460,7 @@ private fun Footnote(text: String) {
     )
 }
 
-/** 冷启动检查到新版可用时在「关于」顶部展示的横幅, 点击跳 Releases tag 页 */
+/** 自动检查的新版本提示；点击复用页面内的更新流程。 */
 @Composable
 private fun UpdateBanner(
     version: String,
@@ -497,7 +496,7 @@ private fun UpdateBanner(
                 modifier = Modifier.weight(1f)
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 tint = colors.primary,
                 modifier = Modifier.size(18.dp)

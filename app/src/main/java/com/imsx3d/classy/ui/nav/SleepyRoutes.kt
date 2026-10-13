@@ -10,6 +10,8 @@ sealed interface SleepyRoute : NavKey {
     @Serializable data class AddCourse(val courseId: Long = NO_ID, val editing: Boolean = false, val prefill: com.imsx3d.classy.util.CourseGridPrefill? = null) : SleepyRoute
     @Serializable data object AllTables : SleepyRoute
     @Serializable data object CourseList : SleepyRoute
+    @Serializable data object Semester : SleepyRoute
+    @Serializable data class SemesterCourse(val courseId: Long) : SleepyRoute
     @Serializable data class EditTable(
         val tableId: Long = NO_ID,
         val pendingNew: Long = NO_ID,
