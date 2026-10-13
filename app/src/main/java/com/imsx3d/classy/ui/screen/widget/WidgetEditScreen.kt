@@ -1,5 +1,6 @@
 package com.imsx3d.classy.ui.screen.widget
 
+import androidx.lifecycle.viewmodel.initializer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -35,7 +36,18 @@ fun WidgetEditScreen(
     widgetId: Int,
     onBack: () -> Unit
 ) {
-    val vm = remember(widgetId) { WidgetEditViewModel(widgetId) }
+    val vm: WidgetEditViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        key = "widget-edit-$widgetId",
+        factory = remember(widgetId) {
+            androidx.lifecycle.viewmodel.viewModelFactory {
+                initializer { WidgetEditViewModel(widgetId) }
+            }
+        }
+    )
+    androidx.compose.runtime.LaunchedEffect(vm) {
+        // Re-entering may follow a binding change from a different entry point.
+        if (!vm.state.value.loading) vm.reload()
+    }
     val state by vm.state.collectAsState()
     val colors = MaterialTheme.colorScheme
 
@@ -64,8 +76,19 @@ fun WidgetEditScreen(
         onBack = onBack,
         subtitle = stringResource(R.string.widget_single_hint)
     ) {
-        items(sections.size) { idx ->
-            sections[idx].Content(scope)
+        when {
+            state.loading -> item {
+                com.imsx3d.classy.ui.component.SupportingText(stringResource(R.string.loading))
+            }
+            state.loadFailed -> item {
+                com.imsx3d.classy.ui.component.SettingsGroupCard {
+                    com.imsx3d.classy.ui.component.SettingsGroupRow(
+                        title = stringResource(R.string.widget_tables_retry),
+                        onClick = vm::reload
+                    )
+                }
+            }
+            else -> items(sections.size) { idx -> sections[idx].Content(scope) }
         }
-        }
+    }
 }

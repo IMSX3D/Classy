@@ -1123,4 +1123,6 @@
     <string name="about_letter_open">展开信件</string>
     <string name="about_letter_close">收起信件</string>
     <string name="about_brand_discovery">你找到了一封信</string>
+    <string name="conflict_default_top_auto">自动选择</string>
+    <string name="widget_tables_retry">课表加载失败，点击重试</string>
 </resources>

@@ -62,3 +62,21 @@ Janky为gfxinfo当前指标，未混入legacy；P95/P99单位ms。聚合数不�
 最终benchmark APK SHA256：DF7002FA92080C1B59762B4AC1700200DD4E856A59D13B9901A83E9D6328945C。三个拆分后的SQL均在有效trace实跑成功；旧多结果SQL在trace_processor_shell不兼容，已拆分，未把失败的空输出作为性能结论。
 
 下一步仍是批次1：课程链长帧及设置列表首次组合/文字测量与调度时间继续归因，评估有证据的改动；补背景代表样本。任何候选都先对照再推广，不改短动画掩盖慢帧，不拿本轮有限样本宣称全应用通过。
+
+
+## 2026-10-13追加：窗口等待与背景对照
+
+本轮没有宣称性能修复。沿原课程链trace将onRemembered/onForgotten按线程状态拆分：19.31–24.11ms的样本中，14.50–18.32ms处于睡眠等待，实际Running约4.27–5.91ms。不能把这整段都归到Compose布局。
+
+新增binder_driver追踪（window-binder-20261013/navigation.perfetto-trace）显示进入弹层的同步Binder调用约9.94–16.02ms，退出约12.61–13.51ms。16.02ms样本发送至system_server的binder:2082_14，服务端reply15.11ms，包含wmUpdateFocus5.78ms、setInputFocusLw及其他Binder。已确认窗口/焦点管理链存在等待；没有具体Java调用栈证明可由某一业务函数替换消除。继续保留标准ModalBottomSheet的返回、无障碍与窗口隔离，不用临时自制弹层绕过系统语义。代码层仍需后续比较受支持的窗口方案或系统差异。
+
+同一近发布benchmark包、虚构Performance课表、vivo普通字号，生成1080×1600棋盘图导入独立测试包，使用默认背景参数。先背景开、后移除，各预热一组并记录三组，不含录屏。非交错顺序、未逐组记录温度/刷新率，结果仅代表此样本，不外推所有照片/高模糊参数。
+
+| 主标签链 | 第1组 总帧/超时/P95/P99 | 第2组 | 第3组 |
+| --- | --- | --- | --- |
+| 背景开启 | 712/16/17/28 | 708/16/16/29 | 708/17/15/28 |
+| 背景关闭 | 710/16/15/27 | 706/16/16/28 | 712/17/16/29 |
+
+此样本没有明显背景增量开销，整体约2.25–2.40%超时仍存在，不算流畅度通过。Legacy指标原样保留在原始txt，未与当前Janky指标混算。默认遮罩下棋盘背景/标题/课程可读，窄列长课程仍按省略显示，可进入详情阅读。结束已移除benchmark背景，正式用户背景未更改。
+
+证据均在E:/C015/99-整理记录：mainline-window-analysis/states、mainline-window-binder-analysis、mainline-binder-target/server的SQL与txt；mainline-navigation/background-tabs-20261013和no-background-tabs-20261013；mainline-background-grid截图。分析SQL针对具体slice ID不可跨trace直接复用，已保留对应trace。仓库采集配置补binder_driver。

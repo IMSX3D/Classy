@@ -1093,4 +1093,6 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="about_letter_open">Open letter</string>
     <string name="about_letter_close">Close letter</string>
     <string name="about_brand_discovery">You found a letter</string>
+    <string name="conflict_default_top_auto">Choose automatically</string>
+    <string name="widget_tables_retry">Couldn’t load timetables. Tap to retry.</string>
 </resources>

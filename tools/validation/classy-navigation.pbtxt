@@ -8,6 +8,7 @@ data_sources { config { name: "linux.ftrace" ftrace_config {
  atrace_categories: "view"
  atrace_categories: "wm"
  atrace_categories: "am"
+ atrace_categories: "binder_driver"
  atrace_apps: "com.imsx3d.classy.benchmark"
 } } }
 data_sources { config { name: "linux.process_stats" process_stats_config { scan_all_processes_on_start: true } } }

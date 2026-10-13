@@ -1,5 +1,7 @@
 package com.imsx3d.classy.ui.component
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
@@ -256,7 +258,12 @@ fun CardsGridView(
         (14f * scale).sp.toDp() + (if (showDate) (12f * scale).sp.toDp() else 0.dp) +
             (if (reserveDayMark) (BADGE_SLOT_SP * scale).sp.toDp() else 0.dp)
     } + d(if (showDate) 12f else 8f)
-    val timeW = d(44f)
+    // The axis uses period numbers; width follows time text without stealing space for a repeated prefix.
+    val axisMeasurer = rememberTextMeasurer()
+    val axisTimeStyle = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp, fontSize = (9 * scale).sp)
+    val axisTimeWidth = axisMeasurer.measure("23:59", axisTimeStyle, softWrap = false).size.width
+    val timeW = maxOf(d(44f), with(headerDensity) { axisTimeWidth.toDp() } + d(4f))
+    val placeholderTextHeightDp = (with(headerDensity) { (11 * scale).sp.toDp() * 2 } + d(8f)).value
     val gapH = d(4f)
     val gapW = d(4f)
 
@@ -287,13 +294,18 @@ fun CardsGridView(
                 ),
                 contentScale = scale
             )
-            val rowHeightDp = TimetableViewportPolicy.manualRowHeightDp(
+            val requestedRowHeightDp = TimetableViewportPolicy.manualRowHeightDp(
                 baseRowHeightDp = baseRowHeight,
                 verticalScale = TimetableViewportPolicy.effectiveRowScale(adaptiveHeight, rowHeightScale),
                 minRowHeightDp = TimetableViewportPolicy.MIN_ROW_DP * scale.coerceIn(0.7f, 1.3f),
                 maxRowHeightDp = TimetableViewportPolicy.MAX_ROW_DP * scale.coerceIn(0.7f, 1.3f)
             )
-            val rowH = rowHeightDp.dp
+            // Respect large text even when fit-to-screen/manual scaling asks for a shorter row.
+            val readableAxisHeight = with(headerDensity) {
+                (13 * scale).sp.toDp() + (11 * scale).sp.toDp() * 2
+            } + d(8f)
+            val rowH = maxOf(requestedRowHeightDp.dp, readableAxisHeight)
+            val rowHeightDp = rowH.value
 
             // 用户反馈 2026-09-16: 展开的占位行权重换成"正好显示完文字"的展开权重 —
             // yOfRows / rowHeightAt / gridH 都读 effectiveWeights 同一张表, 行高与 y 同源。
@@ -308,7 +320,7 @@ fun CardsGridView(
                             TimeTableUtils.placeholderExpandedWeight(
                                 rowHeightDp = rowHeightDp,
                                 gapDp = TimetableViewportPolicy.ROW_GAP_DP,
-                                requiredTextHeightDp = PLACEHOLDER_TEXT_REQUIRED_DP
+                                requiredTextHeightDp = placeholderTextHeightDp
                             )
                         )
                     } else w
@@ -455,7 +467,7 @@ fun CardsGridView(
                                     rowWeight = effectiveWeights?.getOrNull(i) ?: 1f,
                                     rowHeightDp = rowHeightDp,
                                     gapDp = TimetableViewportPolicy.ROW_GAP_DP,
-                                    requiredTextHeightDp = PLACEHOLDER_TEXT_REQUIRED_DP
+                                    requiredTextHeightDp = placeholderTextHeightDp
                                 )
                             }
                             SingleTimeHeadCell(
@@ -678,14 +690,15 @@ private fun Modifier.verticalResizeGesture(
 }
 
 /** 用户反馈 2026-09-16: 占位行时间文字适配的最小内容区需求 = micro 一行 lineHeight 11dp
- *  + SingleTimeHeadCell 上下 padding 8dp。放不下 → 只显示灰块(文字隐藏), 点击展开。 */
-private const val PLACEHOLDER_TEXT_REQUIRED_DP = 19f
+ * Required height is computed from the current scaled time typography and breathing room. */
+
 
 @Composable
 private fun SingleTimeHeadCell(slot: TimeSlot, scale: Float = 1f, modifier: Modifier = Modifier, cornerRatio: Float = 1f, textFits: Boolean = true, onToggleExpand: (() -> Unit)? = null) {
     val colors = glasenseM3Scheme()
     val sd = { v: Float -> (v * scale).dp }
     val isPh = slot.isPlaceholder
+    val periodDescription = stringResource(R.string.period_format_node, slot.label)
     // 占位节次：文字放不下时保持"纯灰块、点击展开"的原交互（只是不再有卡片底）
     val phCollapsed = isPh && !textFits
     // UI-2c 重设计（2026-09-26）: 原「68dp 宽 + 圆角卡片底」的时间列既占横向空间，
@@ -714,7 +727,11 @@ private fun SingleTimeHeadCell(slot: TimeSlot, scale: Float = 1f, modifier: Modi
         } else {
             if (!isPh) {
                 Text(
-                    text = stringResource(R.string.period_format_node, slot.label),
+                    text = slot.label,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().semantics {
+                        contentDescription = periodDescription
+                    },
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = (11 * scale).sp,
@@ -729,8 +746,8 @@ private fun SingleTimeHeadCell(slot: TimeSlot, scale: Float = 1f, modifier: Modi
                 lineHeight = (11 * scale).sp
             )
             if (parts != null) {
-                Text(text = parts[0], style = timeStyle, color = colors.onSurfaceVariant, maxLines = 1)
-                Text(text = parts[1], style = timeStyle, color = colors.onSurfaceVariant, maxLines = 1)
+                Text(text = parts[0], style = timeStyle, color = colors.onSurfaceVariant, maxLines = 1, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                Text(text = parts[1], style = timeStyle, color = colors.onSurfaceVariant, maxLines = 1, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             } else {
                 Text(
                     text = slot.timeString, style = timeStyle, color = colors.onSurfaceVariant,
@@ -843,7 +860,15 @@ private fun CourseOverlayCard(
                     .background(effectiveAccentBar)
             )
         }
-        if (!infoEnabled || primaryInfo.isBlank()) {
+        val textDensity = LocalDensity.current
+        val nameLineHeight = with(textDensity) { (14 * scale).sp.toDp() }
+        val infoLineHeight = with(textDensity) { (11 * scale).sp.toDp() }
+        val primaryLines = if (maxHeight >= nameLineHeight * 3 + infoLineHeight * 2) 2 else 1
+        val showPrimary = infoEnabled && primaryInfo.isNotBlank() &&
+            maxHeight >= nameLineHeight * 2 + infoLineHeight
+        val showSecondary = showPrimary && secondaryInfo.isNotBlank() && maxHeight >= sd(96f) &&
+            maxHeight >= nameLineHeight * 3 + infoLineHeight * (primaryLines + 1)
+        if (!showPrimary) {
             // 无副信息: 课程名整体居中(原行为)
             Text(
                 text = name,
@@ -856,8 +881,9 @@ private fun CourseOverlayCard(
                     .then(if (accentBarStyle) Modifier.padding(start = sd(4f)) else Modifier)
             )
         } else {
-            // 卡片 ≥2 节课高(≈104dp×scale)才多给一行给教师，避免挤掉教室
-            val tall = maxHeight >= sd(96f)
+            // Reserve measured text height for the selected detail; extra metadata must not crowd the name.
+            val nameLines = ((maxHeight - infoLineHeight * (primaryLines + if (showSecondary) 1 else 0)) /
+                nameLineHeight).toInt().coerceIn(1, 6)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -876,22 +902,22 @@ private fun CourseOverlayCard(
                         text = name,
                         style = nameStyle,
                         color = effectiveFg,
-                        maxLines = 6,
+                        maxLines = nameLines,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                // 主信息（默认=教室）恒定 2 行上限：窄列里自动折行，保证"教4502"这类完整可见
+                // Give the selected detail up to two lines only when the course name still fits.
                 Text(
                     text = primaryInfo,
                     style = infoStyle,
                     color = effectiveInfoFg,
-                    maxLines = 2,
+                    maxLines = primaryLines,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
                 )
-                if (tall && secondaryInfo.isNotBlank()) {
+                if (showSecondary) {
                     Text(
                         text = secondaryInfo,
                         style = infoStyle,

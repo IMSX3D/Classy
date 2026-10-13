@@ -185,16 +185,12 @@ class WeekGridRowFactory(
                     ), bg
                 )
                 block.setInt(R.id.wg_blk_indicator, "setColorFilter", tone(indicator))
-                val density = context.resources.displayMetrics.density
-                val leftPadding = ((if (s.barStyle) 5f else 1f) * density).toInt()
-                val rightPadding = density.toInt()
-                block.setViewPadding(R.id.wg_blk_name, leftPadding, 0, rightPadding, (10f * density).toInt())
-                block.setViewPadding(R.id.wg_blk_room, leftPadding, 0, rightPadding, 0)
-                block.setTextViewText(
-                    R.id.wg_blk_name, CourseDisplayUtil.displayName(course, useAlias)
-                )
+                val displayName = CourseDisplayUtil.displayName(course, useAlias)
+                val room = course.room.filter { it != '\n' }
+                applyGridBlockTypography(context, block, room, s.barStyle)
+                block.setTextViewText(R.id.wg_blk_name, displayName)
                 block.setTextColor(R.id.wg_blk_name, tone(fg))
-                block.setTextViewText(R.id.wg_blk_room, course.room.filter { it != '\n' })
+                block.setTextViewText(R.id.wg_blk_room, room)
                 block.setTextColor(R.id.wg_blk_room, tone(infoFg))
                 views.addView(colId, block)
                 node = course.startNode + span

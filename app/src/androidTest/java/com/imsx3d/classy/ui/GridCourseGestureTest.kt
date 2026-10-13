@@ -32,6 +32,28 @@ class GridCourseGestureTest {
     }
     private fun nodeLabel(node: Int) = InstrumentationRegistry.getInstrumentation()
         .targetContext.getString(R.string.period_format_node, node.toString())
+    @Test fun largeFontPeriodAxisKeepsNumberAndTimesReadable() {
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, 1.5f)
+            ) {
+                MaterialTheme {
+                    Box(Modifier.width(350.dp).height(620.dp)) {
+                        CardsGridView(emptyList(), timeSlots = slots.map { it.copy(label = "12") }.take(1),
+                            timeJson = TimeTableUtils.DEFAULT_TIME_JSON, visibleDays = (1..7).toSet(), onCourseClick = {})
+                    }
+                }
+            }
+        }
+        for (text in listOf("12", "09:00", "09:45")) {
+            val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            compose.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
+                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(results) }
+            assertFalse("axis text clipped: $text size=${results.single().size} vertical=${results.single().didOverflowHeight} horizontal=${results.single().didOverflowWidth} line=${results.single().getLineBottom(0)}", results.single().hasVisualOverflow)
+        }
+    }
+
     @Test fun emptyGridClickResizeAndConfirmPrefillsSelectedRange() {
         var added: GridSelection? = null
         compose.setContent {
@@ -43,8 +65,8 @@ class GridCourseGestureTest {
             }
         }
         // Derive coordinates from actual visible time labels, independent of density/row scaling.
-        val third = compose.onNodeWithText(nodeLabel(3), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val fifth = compose.onNodeWithText(nodeLabel(5), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val third = compose.onNodeWithContentDescription(nodeLabel(3), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val fifth = compose.onNodeWithContentDescription(nodeLabel(5), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val bounds = compose.onNodeWithTag("grid").fetchSemanticsNode().boundsInRoot
         val x = bounds.width * .22f
         compose.onNodeWithTag("grid").performTouchInput { click(Offset(x, third.center.y - bounds.top)) }
@@ -70,8 +92,8 @@ class GridCourseGestureTest {
                 }
             }
         }
-        val first = compose.onNodeWithText(nodeLabel(1), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val third = compose.onNodeWithText(nodeLabel(3), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val first = compose.onNodeWithContentDescription(nodeLabel(1), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val third = compose.onNodeWithContentDescription(nodeLabel(3), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         compose.onNodeWithText("Drag me", useUnmergedTree = true).performTouchInput {
             down(center)
             advanceEventTime(800)

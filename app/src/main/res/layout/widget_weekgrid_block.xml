@@ -10,11 +10,12 @@
        圆角/底色画在 `wg_blk_bg` 上 → 块内没有任何边界，天然无缝。
      块与块之间留 2dp（底色 drawable 自带上下 inset）作为视觉分隔。
      ⚠️ 只允许 RemoteViews 白名单视图（禁 View / Space / 自定义 View）。 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wg_blk_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <!-- 高度来源：每节次一个 44dp 占位格（工厂 addView），本块跨几节就塞几个 -->
+    <!-- 高度来源：每节次一个共享行高占位格（工厂 addView），本块跨几节就塞几个 -->
     <LinearLayout
         android:id="@+id/wg_blk_sizer"
         android:layout_width="1dp"
@@ -25,6 +26,8 @@
         android:id="@+id/wg_blk_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_alignTop="@id/wg_blk_sizer"
+        android:layout_alignBottom="@id/wg_blk_sizer"
         android:background="@drawable/widget_cell_single" />
 
     <!-- One continuous indicator per course, including courses spanning multiple periods. -->
@@ -32,6 +35,8 @@
         android:id="@+id/wg_blk_indicator"
         android:layout_width="3dp"
         android:layout_height="match_parent"
+        android:layout_alignTop="@id/wg_blk_sizer"
+        android:layout_alignBottom="@id/wg_blk_sizer"
         android:layout_gravity="left"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp"
@@ -40,27 +45,37 @@
         android:importantForAccessibility="no"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/wg_blk_name"
+    <!-- Flow layout reserves the real scaled room height instead of overlapping two layers. -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:maxLines="5"
-        android:ellipsize="end"
-        android:paddingStart="1dp"
-        android:paddingEnd="1dp"
-        android:paddingBottom="10dp"
-        android:textSize="10sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/wg_blk_room"
-        android:layout_width="match_parent"
-        android:layout_height="12dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:gravity="center"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:textSize="8sp" />
-</FrameLayout>
+        android:layout_alignTop="@id/wg_blk_sizer"
+        android:layout_alignBottom="@id/wg_blk_sizer"
+        android:orientation="vertical"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+        <TextView
+            android:id="@+id/wg_blk_name"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:maxLines="5"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:paddingStart="1dp"
+            android:paddingEnd="1dp"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/wg_blk_room"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:paddingTop="2dp"
+            android:textSize="8sp" />
+    </LinearLayout>
+</RelativeLayout>

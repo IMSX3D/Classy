@@ -13,6 +13,39 @@ import org.junit.Test
 import kotlin.math.roundToInt
 
 class WidgetCardGeometryTest {
+    @Test fun gridCourseRoomFlowsBelowNameAtLargeFont() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync {
+            for (fontScale in listOf(1f, 1.5f, 2f)) {
+                val base = instrumentation.targetContext
+                val context = base.createConfigurationContext(android.content.res.Configuration(base.resources.configuration).apply {
+                    this.fontScale = fontScale
+                })
+                val density = context.resources.displayMetrics.density
+                for (span in 1..3) {
+                    val remote = RemoteViews(context.packageName, R.layout.widget_weekgrid_block).apply {
+                        repeat(span) { addView(R.id.wg_blk_sizer, RemoteViews(context.packageName, R.layout.widget_weekgrid_spacer)) }
+                        setTextViewText(R.id.wg_blk_name, "大学英语 Advanced English")
+                        setTextViewText(R.id.wg_blk_room, "教4502")
+                    }
+                    com.imsx3d.classy.widget.applyGridBlockTypography(context, remote, "教4502", true)
+                    val root = remote.apply(context, FrameLayout(context))
+                    val width = (42 * density).roundToInt()
+                    root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                    root.layout(0, 0, width, root.measuredHeight)
+                    assertEquals("course stretched the column: $fontScale/$span",
+                        span * 2 * context.resources.getDimensionPixelSize(R.dimen.widget_grid_half_row_h), root.height)
+                    val name = root.findViewById<android.widget.TextView>(R.id.wg_blk_name)
+                    val room = root.findViewById<android.widget.TextView>(R.id.wg_blk_room)
+                    assertTrue("room overlaps name: $fontScale/$span", name.bottom <= room.top)
+                    assertTrue("room text clipped: $fontScale/$span", room.layout.height <= room.height - room.compoundPaddingTop - room.compoundPaddingBottom)
+                    assertTrue("name lost its first line: $fontScale/$span", name.height >= name.lineHeight)
+                }
+            }
+        }
+    }
+
     @Test fun gridHeaderKeepsTextInsideHighlightAtLargeFont() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         instrumentation.runOnMainSync {

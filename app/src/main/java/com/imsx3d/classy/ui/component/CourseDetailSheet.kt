@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
@@ -154,7 +155,8 @@ fun CourseDetailSheet(
                     if (clusterInfo != null) {
                         DefaultTopPickerSection(
                             cluster = clusterInfo,
-                            onDefaultTopChanged = onDefaultTopChanged
+                            onDefaultTopChanged = onDefaultTopChanged,
+                            enabled = !closing
                         )
                     }
 
@@ -176,14 +178,15 @@ fun CourseDetailSheet(
 /**
  * 默认置顶选择区 — v7.9 设计:
  * - 按图层(链式分组)一行;每行 = 单选 + 该图层全部课程名(顿号分隔)
- * - 默认无勾选(系统按 primaryComparator 自动)
+ * - 默认选中“自动选择”(系统按 primaryComparator 自动)
  * - 选中 → 写入 AppPrefs.KEY_CONFLICT_DEFAULT_TOP, 持久化
- * - 行名过长 → 省略号
+ * - 行名过长 → 换行完整展示
  */
 @Composable
 private fun DefaultTopPickerSection(
     cluster: ConflictCluster,
-    onDefaultTopChanged: ((clusterKey: String, layerRepId: Long?) -> Unit)?
+    onDefaultTopChanged: ((clusterKey: String, layerRepId: Long?) -> Unit)?,
+    enabled: Boolean
 ) {
     val context = LocalContext.current
     val g = com.nevoit.glasense.theme.GlasenseTheme.colors
@@ -215,20 +218,24 @@ private fun DefaultTopPickerSection(
             modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
         )
 
-        for (layer in layers) {
-            val layerRepId = layer.first().id
-            // 行文本 = 该图层全部课程名("工科数学分析、大学物理")
-            val label = layer.joinToString("、") { it.courseName.ifBlank { "—" } }
-            // 当前是否已存:已存 = 该 repId 即上次所选;未存 = 系统默认 = 无勾选
-            val selected = savedRepId == layerRepId
+        val automaticLabel = stringResource(R.string.conflict_default_top_auto)
+        val choices = listOf(null to automaticLabel) + layers.map { layer ->
+            layer.first().id to layer.joinToString("、") { it.courseName.ifBlank { "—" } }
+        }
+        val effectiveSavedRepId = savedRepId?.takeIf { id -> layers.any { it.first().id == id } }
+        for ((layerRepId, label) in choices) {
+            val selected = effectiveSavedRepId == layerRepId
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp)
                     .selectable(
                         selected = selected,
+                        enabled = enabled,
                         onClick = {
-                            val rep = if (selected) null else layerRepId
+                            if (selected) return@selectable
+                            val rep = layerRepId
                             // v7.10.5: 回调优先 — 同帧驱动网格换层(会话级 override);
                             // 无回调宿主(小组件等)时退回纯持久化路径
                             if (onDefaultTopChanged != null) {
@@ -249,8 +256,6 @@ private fun DefaultTopPickerSection(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     color = g.content,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
             }
