@@ -141,7 +141,7 @@ fun SettingsPageHeader(
     val g = com.nevoit.glasense.theme.GlasenseTheme
     val colors = MaterialTheme.colorScheme
     Column(
-        modifier = Modifier
+        modifier = Modifier.traceMeasure("Settings/header")
             .fillMaxWidth()
             // UI-24a：底部 4dp → 0 —— 大字下方那点余量转交给"标题→首块"的统一间距（见 SettingsScaffold），
             // 否则会叠成 32dp（用户报"大字下面留白过多"）。
@@ -222,7 +222,7 @@ fun SettingsScaffold(
 ) {
     val colors = MaterialTheme.colorScheme
     // UI-17a：整页包一层 Box，内容之后盖一条状态栏遮罩（页头滚走后正文不再和时钟重叠）
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.traceMeasure("Settings/page/$title").fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize().background(containerColor).imePadding(),
         containerColor = containerColor,
@@ -247,7 +247,7 @@ fun SettingsScaffold(
         ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.widthIn(max = maxContentWidth).fillMaxSize(),
+            modifier = Modifier.traceMeasure("Settings/list/$title").widthIn(max = maxContentWidth).fillMaxSize(),
             contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = ClassyLayout.pagePadding),
             verticalArrangement = Arrangement.spacedBy(verticalSpacing)
         ) {
@@ -291,7 +291,7 @@ private val GroupRowMinHeight = ClassyLayout.minimumTouchTarget
 @Composable
 fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().settingsCard(MaterialTheme.colorScheme.surfaceContainer),
+        modifier = Modifier.traceMeasure("Settings/group").fillMaxWidth().settingsCard(MaterialTheme.colorScheme.surfaceContainer),
         content = content
     )
 }
@@ -333,7 +333,7 @@ fun SettingsGroupRow(
 ) {
     val colors = MaterialTheme.colorScheme
     Row(
-        modifier = modifier
+        modifier = modifier.traceMeasure("Settings/row/$title")
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.noRippleClickable(onClick = onClick) else Modifier)
             .heightIn(min = GroupRowMinHeight)
@@ -563,7 +563,7 @@ fun SettingsSegmentedRow(
         textMeasurer.measure(AnnotatedString(title), MaterialTheme.typography.bodyLarge).size.width.toDp()
     }
     val controlWidth = segmentedTabWidth(options)
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = Modifier.traceMeasure("Settings/segmented/$title").fillMaxWidth()) {
         // 行内左右各 16dp；标题与控件之间留 8dp
         val available = maxWidth - 32.dp
         if (titleWidth + 8.dp + controlWidth > available) {
