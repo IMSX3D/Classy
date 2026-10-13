@@ -1091,4 +1091,15 @@
     <string name="schedule_usage_title">使用提示</string>
     <string name="schedule_usage_body">点击课表名称切换课表，点击周次跳转到其他周。\n\n网格中，点击空白格新增课程，长按课程可拖动调课。\n\n右上角菜单可切换视图、从教务更新和分享，也可再次查看本提示。</string>
     <string name="schedule_usage_done">知道了</string>
+    <string name="background_adjust">调整背景</string>
+    <string name="background_preview">效果预览</string>
+    <string name="background_preview_course">课程名称 · 08:00–09:40</string>
+    <string name="background_adjust_hint">拖动可预览，松手即保存。文字不够清楚时，请调低背景浓淡。</string>
+    <string name="background_visibility">背景浓淡</string>
+    <string name="background_softness">模糊程度</string>
+    <string name="background_saturation">色彩浓度</string>
+    <string name="background_position_hint">图片会铺满课表。位置调节决定保留哪部分画面；对应方向没有裁切时，调节不会移动图片。预览与实际课表的裁切可能因屏幕比例不同而有差异。</string>
+    <string name="background_horizontal">左右位置</string>
+    <string name="background_vertical">上下位置</string>
+    <string name="background_reset">恢复默认效果</string>
 </resources>

@@ -276,3 +276,12 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 模拟器：540×960px/240dpi与1200×1600px/160dpi，English、1.5字号，ScheduleHeaderFlowTest各3项通过。含旧独立概览组件测试，不作为生产卡验收；不是实际平板验收。
 - 构建日志：E:/C015/99-整理记录/header-compact-release.log；测试header-compact-tests.txt、header-compact-wide-tests.txt。截图stage2-vivo-phone-device/header-compact-final.png、mine-shortcuts-final.png、mine-shortcut-courses.png、mine-shortcut-tables.png、mine-shortcut-week.png、header-help-reopened.png。
 - 本批未重跑此前全量JVM/lint，未宣称全路由性能完成；关于页品牌卡仍待实现。原始截图含用户课程信息，仅留本地。
+
+## BG-ADJUST-01 验证（2026-10-13）
+
+- Debug/Release/AndroidTest构建成功：background-adjust-final-build.log；测试源码的触点修正单独重建见background-adjust-test-build.log，生产代码未再改动。
+- 窄屏540×960px/240dpi、English/1.5字号：BackgroundAdjustmentsTest 4项与ScheduleBackgroundStoreTest 1项通过。覆盖真实滑动/松手保存回调/恢复默认、参数重新读取和边界、模糊尺寸和像素/原图不变、图片预览展开/移除入口可达、原安全导入回归。日志background-adjust-tests.txt。
+- 宽屏1200×1600px/160dpi、English/1.5字号：4项通过，background-adjust-wide-tests.txt；随后恢复模拟器窄屏。不是实际平板验收。
+- 早期测试从滑杆最左边缘起手未改变数值，修正为内部触点后手势链通过，未修改公共滑杆。早期误用不存在的未拆分Debug包路径已纠正，最终运行使用最新x86_64包。
+- vivo正式Release安装成功并打开外观页确认入口，background-adjust-phone-appearance.png；用户当前无背景，未替用户选择图片或改课程样式。带图调节视觉在独立测试环境核查，截图background-adjust-preview.png、background-adjust-wide-preview.png。真机带图片性能、暗色复杂照片对比度与实际平板仍待补验，不声称参数对任意图片自动最优。
+- 模糊是静态背景柔化，非液态玻璃。默认背景18%可见、无模糊、原饱和度、居中；不会因升级自动改已有背景效果。

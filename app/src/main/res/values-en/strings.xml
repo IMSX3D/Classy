@@ -1073,4 +1073,15 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="schedule_usage_title">Using your timetable</string>
     <string name="schedule_usage_body">Tap the timetable name to switch timetables, or the week to jump to another week.\n\nIn the grid, tap an empty cell to add a course. Hold a course to move it.\n\nUse the top-right menu to change views, refresh from school or share. You can reopen these tips there.</string>
     <string name="schedule_usage_done">Got it</string>
+    <string name="background_adjust">Adjust background</string>
+    <string name="background_preview">Preview</string>
+    <string name="background_preview_course">Course name · 08:00–09:40</string>
+    <string name="background_adjust_hint">Drag to preview; release to save. Lower background strength if text is hard to read.</string>
+    <string name="background_visibility">Background strength</string>
+    <string name="background_softness">Softness</string>
+    <string name="background_saturation">Saturation</string>
+    <string name="background_position_hint">Images fill the timetable. Position controls which cropped area stays visible; an uncropped axis does not move. Cropping may differ between this preview and your screen.</string>
+    <string name="background_horizontal">Horizontal position</string>
+    <string name="background_vertical">Vertical position</string>
+    <string name="background_reset">Reset adjustments</string>
 </resources>
