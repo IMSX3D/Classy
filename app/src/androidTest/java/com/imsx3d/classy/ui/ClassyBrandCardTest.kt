@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -24,6 +25,28 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class ClassyBrandCardTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun aboutLetterStaysHiddenUntilSecretEnvelopeIsOpenedAndSurvivesRestore() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val title = context.getString(com.imsx3d.classy.R.string.about_letter_title)
+        val body = context.resources.getStringArray(com.imsx3d.classy.R.array.about_heart_paragraphs)[0]
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            SleepyThemeProvider { com.imsx3d.classy.ui.screen.mine.AboutScreen(onBack = {}) }
+        }
+        compose.onNodeWithText(title).assertDoesNotExist()
+        compose.onNodeWithTag("classy-brand-card").performTouchInput {
+            repeat(5) { click(center); advanceEventTime(120) }
+        }
+        compose.onNodeWithTag("brand-secret-letter").assertIsDisplayed()
+        compose.onNodeWithText(title).assertDoesNotExist()
+        compose.onNodeWithTag("brand-secret-letter").performClick()
+        compose.onNodeWithText(body).assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText(body).assertIsDisplayed()
+        compose.onNodeWithText(title).performClick()
+        compose.onNodeWithText(body).assertDoesNotExist()
+    }
+
     @Test fun fiveQuickTapsRevealLetterWithoutOpeningItAutomatically() {
         var opened = 0
         compose.setContent { SleepyThemeProvider { ClassyBrandCard(onOpenLetter = { opened++ }) } }

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -90,8 +93,12 @@ fun AboutScreen(
     onOpenLicense: () -> Unit = {},
     updateNoticeVisible: Boolean = false
 ) {
+    var letterRevealed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var letterOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var letterOpenRequest by remember { mutableStateOf(0) }
     val aboutListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val density = LocalDensity.current
+    val letterTopInset = WindowInsets.statusBars.getTop(density) + with(density) { 12.dp.roundToPx() }
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -102,6 +109,15 @@ fun AboutScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val updateAvailable by UpdateNotifier.updateAvailable.collectAsState()
     var updateCheckEnabled by remember { mutableStateOf(AppPrefs.isUpdateCheckEnabled(context)) }
+
+    LaunchedEffect(letterOpenRequest) {
+        if (letterOpenRequest > 0) {
+            // Wait for the newly revealed list item; restored reading position takes precedence.
+            androidx.compose.runtime.withFrameNanos { }
+            val index = 2 + if (updateNoticeVisible && updateAvailable != null) 1 else 0
+            aboutListState.animateScrollToItem(index, scrollOffset = -letterTopInset)
+        }
+    }
 
     fun openUrl(url: String) {
         if (url.isBlank()) return
@@ -199,12 +215,9 @@ fun AboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 com.imsx3d.classy.ui.component.ClassyBrandCard(onOpenLetter = {
+                    letterRevealed = true
                     letterOpen = true
-                    scope.launch {
-                        // SettingsScaffold includes its page header as the first list item.
-                        val index = 2 + if (updateNoticeVisible && updateAvailable != null) 1 else 0
-                        aboutListState.animateScrollToItem(index)
-                    }
+                    letterOpenRequest++
                 })
                 Spacer(Modifier.height(12.dp))
                 Spacer(Modifier.height(2.dp))
@@ -218,8 +231,12 @@ fun AboutScreen(
             }
         }
 
-        // An optional letter keeps the first screen compact and invites exploration.
-        item { com.imsx3d.classy.ui.component.DeveloperLetter(letterOpen) { letterOpen = !letterOpen } }
+        // The letter is a discovery: it enters the page only after opening the secret envelope.
+        if (letterRevealed) {
+            item(key = "developer-letter") {
+                com.imsx3d.classy.ui.component.DeveloperLetter(letterOpen) { letterOpen = !letterOpen }
+            }
+        }
 
         // ── 开发者 ──
         item {
