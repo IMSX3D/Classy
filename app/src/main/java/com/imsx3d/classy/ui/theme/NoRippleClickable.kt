@@ -10,20 +10,47 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * 无涟漪点击 — 全 app 自定义可点面(Box/Row/Text 上的 clickable)唯一入口。
  * 视觉策略: 自定义表面用即时轻遮罩确认按压/键盘焦点，不缩放布局或排队播放动画；
  * 涟漪反馈只保留给 M3 标准组件(Button/Switch/IconButton/DropdownMenuItem)。
  */
-fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
+fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier =
+    shapedClickFeedback(null, Dp.Unspecified, Dp.Unspecified, 0.dp, onClick)
+
+/** Separate visual footprint from hit area. Share these bounds/shape with the selected indicator. */
+fun Modifier.noRippleClickable(
+    feedbackShape: Shape,
+    feedbackHeight: Dp = Dp.Unspecified,
+    feedbackWidth: Dp = Dp.Unspecified,
+    feedbackTop: Dp = 0.dp,
+    onClick: () -> Unit,
+): Modifier = shapedClickFeedback(feedbackShape, feedbackHeight, feedbackWidth, feedbackTop, onClick)
+
+private fun Modifier.shapedClickFeedback(shape: Shape?, height: Dp, width: Dp, top: Dp, onClick: () -> Unit): Modifier = composed {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val focused by source.collectIsFocusedAsState()
     val feedback = MaterialTheme.colorScheme.onSurface.copy(alpha = if (pressed) 0.08f else 0.06f)
     drawWithContent {
         drawContent()
-        if (pressed || focused) drawRect(feedback)
+        if (pressed || focused) {
+            if (shape == null) drawRect(feedback)
+            else {
+                val y = top.toPx().coerceIn(0f, size.height)
+                val h = (if (height == Dp.Unspecified) size.height - y else height.toPx()).coerceIn(0f, size.height - y)
+                val w = (if (width == Dp.Unspecified) size.width else width.toPx()).coerceIn(0f, size.width)
+                val outline = shape.createOutline(Size(w, h), layoutDirection, this)
+                translate(left = (size.width - w) / 2, top = y) { drawOutline(outline, feedback) }
+            }
+        }
     }.clickable(
         interactionSource = source,
         indication = null,

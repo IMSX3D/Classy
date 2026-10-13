@@ -292,3 +292,7 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 前一轮滚动测试错误地在SideEffect中读取滚动值，未订阅其变化，产生假失败；改为在断言时直接读取ScrollState后通过，未为了过测改变产品手势。
 - vivo正式Release安装成功；关于首屏品牌卡、信封入口、开发者及项目可见。真机信件开合、品牌卡按压倾斜/光泽、释放复位已检查。截图stage2-vivo-phone-device/brand-letter-about-final.png、brand-letter-open-final.png、brand-card-phone-pressed.png、brand-card-phone-released.png。没有改动用户课程或外观设置。
 - 卡片采用独立绘制的Classy日历矢量标识，消除启动图标位图白底；青绿渐变限定在品牌艺术区域。无帧耗时优化声明。暗色整页、键盘/读屏实机、系统禁用动画及真平板尚待补验；代码已提供对应路径，不能把未测项标通过。
+
+## PRESS-SHAPE-01 验证（2026-10-13）
+
+最终Debug/AndroidTest/Release构建成功：press-shape-delivery-build.log。PressShapeTest最终窄屏/宽屏各2项通过（两种底栏首/中/末项按压、角落像素、取消、点击），日志press-shape-final-tests.txt与press-shape-wide-tests.txt。模拟器English/1.5字号，测试后恢复540×960/240dpi。vivo正式Release覆盖成功，持续按住“今日”的反馈已是与选中块同尺寸的胶囊，不再出现方形；截图stage2-vivo-phone-device/press-shape-phone-held.png、press-shape-phone-selected.png。完成后回到原课表，没有修改课程/样式。贴底导航已仪器测试，SmartPeriodEditor修复完成但未补真实作息数据操作；复杂冲突叠卡专项PRESS-SHAPE-02仍待复核。以上不代表全应用全入口视觉验收完成。

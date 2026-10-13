@@ -212,3 +212,12 @@ IMPORT-ENTRY-02：方式选择改紧凑底部面板；文本输入、格式帮�
 ### LETTER-01 开发者来信
 
 用户要求心声收纳且鼓励探索：默认显示信封图标、标题“来自开发者的信”和“有几句话，想对你说”。整行可点击，原位展开全文与署名；打开时信封图标变为打开状态、箭头转向、提示改为“收起信件”。复用SettingsGroupCard与公共折叠动效；没有新增页面或接近全屏弹层。rememberSaveable保留本次页面状态，不全局记住永久展开。语义Role.Button与状态描述支持读屏。原文完整保留。
+
+## PRESS-SHAPE-01（2026-10-13）
+
+- 悬浮底栏：默认反馈覆盖56×64dp矩形，选中块却为56×52dp胶囊/y=6dp。现共用indicatorShape/indicatorHeight/indicatorTop，反馈与选中轮廓一致，命中区仍56×64dp。
+- 贴底底栏：按压整列矩形与64×32dp图标选中面不一致。反馈使用同形状与64×32dp、顶部4dp；大字体标签超过64dp也不会拉宽反馈。命中范围仍覆盖整列。
+- SmartPeriodEditor选项：background(bg, smallShape)只画圆角底色，不裁切后续drawRect。改显式同形状反馈。
+- 已核对：SegmentedSwitcher点击层indication=null，仅已有圆角滑块表达选择，没有矩形按压层；TimeSlotEditor选项、Appearance课程样式、Mine统计项已有clip后反馈；SettingsGroupRow/DisplayModeOption整行反馈由分组卡裁切，不能为了胶囊化破坏整行语义；AllTablesScreen父容器clip约束子行；侧栏/系统NavigationBarItem使用Material组件反馈。上述源码核查不等于全设备逐入口验收。
+- ConflictCard标准卡面已有clip(shape)，但复杂叠卡另有多个几何命中区，需专项设备样本继续核对，不机械套用胶囊或盲目改变叠卡命中。记录为PRESS-SHAPE-02待复核，不宣称整个应用绝无其他问题。
+- 回归：PressShapeTest持续按住两种导航首/中/末项，角落不得变色，取消恢复原像素；点击仍选择目标。规范已写AGENTS.md，后续改变公共反馈须重复这些检查。

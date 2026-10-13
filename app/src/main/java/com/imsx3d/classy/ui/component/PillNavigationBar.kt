@@ -242,7 +242,7 @@ fun PillNavigationBar(
 
                 Column(
                     modifier = Modifier
-                        .noRippleClickable { onSelect(i) }
+                        .noRippleClickable(feedbackShape = SleepyTheme.shapes.large, feedbackHeight = 32.dp, feedbackWidth = 64.dp, feedbackTop = 4.dp) { onSelect(i) }
                         .semantics { role = Role.Tab; selected = isSel }
                         .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -326,6 +326,9 @@ private fun DockNavigationBar(
     // 定宽几何 Seat 中心已知,首帧直接对齐 state.thumbX 与 state.thumbCenter。
 
     val capsuleShape = RoundedCornerShape(percent = 50)
+    val indicatorShape = RoundedCornerShape(percent = 50)
+    val indicatorHeight = 52.dp
+    val indicatorTop = (NavDockSpec.capsuleHeight - indicatorHeight) / 2
     val glassBg = colors.surfaceContainer.copy(alpha = 0.86f)
 
     // 座位中心 = 内边距 + 座位宽/2 + i*(座位+间距) — 定宽几何, 直接算, 不实测
@@ -365,14 +368,14 @@ private fun DockNavigationBar(
         // 横向定位: translationX = thumbX - seatHalf(28) → thumb 中心 = 座位中心
         Box(
             Modifier
-                .offset(y = 6.dp)
-                .size(width = NavDockSpec.itemSeat, height = 52.dp)
+                .offset(y = indicatorTop)
+                .size(width = NavDockSpec.itemSeat, height = indicatorHeight)
                 .graphicsLayer {
                     alpha = if (state.thumbPlaced) 1f else 0f
                     translationX = state.thumbX.value - seatHalf
                     translationY = 0f
                 }
-                .clip(RoundedCornerShape(percent = 50))
+                .clip(indicatorShape)
                 .background(colors.secondaryContainer)
         )
         Row(
@@ -390,7 +393,7 @@ private fun DockNavigationBar(
                 Column(
                     modifier = Modifier
                         .size(NavDockSpec.itemSeat, NavDockSpec.capsuleHeight)
-                        .noRippleClickable { onSelect(i) }
+                        .noRippleClickable(feedbackShape = indicatorShape, feedbackHeight = indicatorHeight, feedbackTop = indicatorTop) { onSelect(i) }
                         .semantics {
                             role = Role.Tab
                             selected = isSel

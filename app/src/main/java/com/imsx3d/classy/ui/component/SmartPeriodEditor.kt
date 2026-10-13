@@ -425,7 +425,7 @@ private fun PositionCard(
         modifier = modifier
             .heightIn(min = 36.dp)
             .background(bg, SleepyTheme.shapes.small)
-            .noRippleClickable(onClick)
+            .noRippleClickable(feedbackShape = SleepyTheme.shapes.small, onClick = onClick)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
