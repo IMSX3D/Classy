@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.Composable
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * One row on the "manage widgets" screen.
@@ -40,13 +46,15 @@ data class PlacedWidgetItem(
  */
 class WidgetManagementViewModel : ViewModel() {
 
-    private val _state = MutableStateFlow<List<PlacedWidgetItem>>(emptyList())
-    val state: StateFlow<List<PlacedWidgetItem>> = _state.asStateFlow()
+    private val _state = MutableStateFlow<List<PlacedWidgetItem>?>(null)
+    val state: StateFlow<List<PlacedWidgetItem>?> = _state.asStateFlow()
+    private var reloadJob: Job? = null
 
     init { reload() }
 
     fun reload() {
-        viewModelScope.launch {
+        if (reloadJob?.isActive == true) return
+        reloadJob = viewModelScope.launch {
             val ctx = SleepyApp.get()
             val repo = SleepyApp.get().repository
             val awm = AppWidgetManager.getInstance(ctx)
@@ -71,3 +79,10 @@ class WidgetManagementViewModel : ViewModel() {
         }
     }
 }
+
+/** Mine preloads the same Activity-owned list that the child page reads. */
+@Composable
+fun rememberWidgetManagementViewModel(): WidgetManagementViewModel = viewModel(
+    viewModelStoreOwner = (LocalActivity.current as? ViewModelStoreOwner)
+        ?: checkNotNull(LocalViewModelStoreOwner.current)
+)

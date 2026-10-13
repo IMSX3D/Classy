@@ -59,6 +59,10 @@ fun MineScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val widgets = com.imsx3d.classy.widget.rememberWidgetManagementViewModel()
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        widgets.reload()
+    }
     val g = GlasenseTheme.colors
     val type = GlasenseTheme.type
     val specs = GlasenseTheme.specs

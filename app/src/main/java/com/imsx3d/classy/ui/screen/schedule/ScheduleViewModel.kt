@@ -27,6 +27,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class ScheduleState(
+    /** Tables, courses and the initial week must be ready before mounting the pager. */
+    val loading: Boolean = true,
     val tables: List<TimeTableEntity> = emptyList(),
     val selectedTableId: Long? = null,
     val courses: List<CourseEntity> = emptyList(),
@@ -68,9 +70,9 @@ data class ScheduleState(
         com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.effectiveDayOfWeek(date, transfers)
 }
 
-class ScheduleViewModel : ViewModel() {
-
+class ScheduleViewModel(
     private val repo: ScheduleRepository = SleepyApp.get().repository
+) : ViewModel() {
 
     private val _state = MutableStateFlow(ScheduleState())
     val state: StateFlow<ScheduleState> = _state.asStateFlow()
@@ -112,11 +114,17 @@ class ScheduleViewModel : ViewModel() {
             ) { tables, _ -> tables }
                 .collect { tables ->
                     if (tables.isEmpty()) {
+                        coursesJob?.cancel()
                         // 没有课表就老实空着，不强行造占位表。
                         // selectedTableId = null，UI 走空态。
                         _state.update {
                             it.copy(
+                                loading = false,
                                 tables = emptyList(),
+                                courses = emptyList(),
+                                effectivePeriodTable = null,
+                                transfers = emptyList(),
+                                initialWeekSettled = false,
                                 selectedTableId = null,
                                 weekDisplayContext = null,
                                 weekSelectionManual = false
@@ -130,7 +138,13 @@ class ScheduleViewModel : ViewModel() {
                     } else {
                         tables.find { it.isDefault }?.id ?: tables.first().id
                     }
-                    _state.update { it.copy(tables = tables, selectedTableId = targetId) }
+                    _state.update {
+                        val changed = it.selectedTableId != targetId
+                        it.copy(tables = tables, selectedTableId = targetId,
+                            loading = it.loading || changed,
+                            initialWeekSettled = if (changed) false else it.initialWeekSettled,
+                            weekSelectionManual = if (changed) false else it.weekSelectionManual)
+                    }
                     loadCourses(targetId)
                 }
         }
@@ -150,6 +164,7 @@ class ScheduleViewModel : ViewModel() {
             ) { courses, periodTable -> courses to periodTable }
                 .collect { (courses, periodTable) ->
                     _state.update { st ->
+                        if (st.selectedTableId != tableId) return@update st
                         val rawTable = st.tables.find { it.id == tableId }
                         // 水合: 绑定存在时 nodesPerDay/timeJson/smartConfigJson 以时间节次表为准
                         val table = rawTable?.hydratedWith(periodTable)
@@ -174,6 +189,7 @@ class ScheduleViewModel : ViewModel() {
                         // 用户在第 x 周编辑/删课, 保存回来仍停在 x 周(此前被拽回真实周=跳回第一周体验)。
                         // 首次加载(initial=true)仍落真实周, 保持原行为
                         st.copy(
+                            loading = false,
                             courses = courses,
                             currentWeek = week,
                             selectedWeek = when {
@@ -202,6 +218,7 @@ class ScheduleViewModel : ViewModel() {
         // 切表 = 新学期语境, 周选择回到该表真实周(initialWeekSettled 复位, loadCourses 重新落周)
         _state.update {
             it.copy(
+                loading = true,
                 selectedTableId = id,
                 initialWeekSettled = false,
                 weekSelectionManual = false,

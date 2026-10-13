@@ -40,6 +40,7 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
     var lastRequest by remember { mutableStateOf("none") }
     var busy by remember { mutableStateOf(false) }
     var expanded by rememberSaveable { mutableStateOf(false) }
+    val diagnosticsVisible by rememberUpdatedState(expanded)
     var choicesExpanded by rememberSaveable { mutableStateOf(false) }
     fun refresh() {
         scope.launch {
@@ -48,15 +49,16 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
                     WidgetDiscoverySnapshot(WidgetDiscoveryState.UNKNOWN, "queryError=${it.javaClass.simpleName}")
                 }
             }
-            onRefresh()
         }
     }
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) { busy = false; refresh() }
+            if (event == Lifecycle.Event.ON_RESUME) {
+                busy = false
+                if (diagnosticsVisible) refresh()
+            }
         }
         lifecycle.addObserver(observer)
-        refresh()
         onDispose { lifecycle.removeObserver(observer) }
     }
     SettingsGroupCard {
@@ -80,7 +82,8 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
                         })
                         // No success claim or timeout-based failure: the launcher owns confirmation.
                         busy = false
-                        refresh()
+                        onRefresh()
+                        if (expanded) refresh()
                     }
                 ) { Text(stringResource(variant.displayNameRes)) }
             }

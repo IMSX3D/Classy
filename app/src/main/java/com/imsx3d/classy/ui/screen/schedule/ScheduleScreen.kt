@@ -153,7 +153,13 @@ fun ScheduleScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        if (!hasTable) {
+        if (state.loading) {
+            // Do not mount a week-1 pager or an empty-table action while Room is loading.
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Text(stringResource(R.string.loading),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else if (!hasTable) {
             // 真的没表：导入或建表 (不用加课 — 无表载体时加课无从谈起)
             Box(
                 modifier = Modifier

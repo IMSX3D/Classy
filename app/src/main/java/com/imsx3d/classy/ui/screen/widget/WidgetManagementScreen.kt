@@ -34,7 +34,6 @@ import com.imsx3d.classy.R
 import com.imsx3d.classy.ui.component.SettingsScaffold
 import com.imsx3d.classy.ui.component.SettingsGroupCard
 import com.imsx3d.classy.widget.PlacedWidgetItem
-import com.imsx3d.classy.widget.WidgetManagementViewModel
 
 /** 小组件：显示偏好、添加与管理，以及手动刷新。 */
 @Composable
@@ -64,7 +63,10 @@ fun WidgetManagementScreen(
     var widgetColorless by remember { mutableStateOf(AppPrefs.isWidgetColorless(context)) }
     var useAlias by remember { mutableStateOf(AppPrefs.isWidgetUseAlias(context)) }
     var nearestBusyDay by remember { mutableStateOf(AppPrefs.isNearestBusyDay(context)) }
-    val vm = remember { WidgetManagementViewModel() }
+    val vm = com.imsx3d.classy.widget.rememberWidgetManagementViewModel()
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        vm.reload()
+    }
     val items by vm.state.collectAsState()
     val colors = MaterialTheme.colorScheme
 
@@ -77,7 +79,9 @@ fun WidgetManagementScreen(
     ) {
 
         item { SectionHeader(stringResource(R.string.widget_placed_title), subtitle = stringResource(R.string.widget_placed_hint), topSpacing = 0.dp) }
-        if (items.isEmpty()) {
+        if (items == null) {
+            item { Text(stringResource(R.string.loading), Modifier.padding(24.dp), color = colors.onSurfaceVariant) }
+        } else if (items.orEmpty().isEmpty()) {
             item {
                 Column(
                     modifier = Modifier
@@ -94,7 +98,7 @@ fun WidgetManagementScreen(
                 }
             }
         } else {
-            items(items, key = { it.widgetId }) { item ->
+            items(items.orEmpty(), key = { it.widgetId }) { item ->
                 PlacedWidgetRow(item = item, onClick = { onSelect(item.widgetId) })
             }
         }
