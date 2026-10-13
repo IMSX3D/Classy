@@ -90,6 +90,8 @@ fun AboutScreen(
     onOpenLicense: () -> Unit = {},
     updateNoticeVisible: Boolean = false
 ) {
+    var letterOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val aboutListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -171,6 +173,7 @@ fun AboutScreen(
     }
 
     SettingsScaffold(
+        listState = aboutListState,
         title = stringResource(R.string.about_title),
         onBack = onBack,
         snackbarHost = { GlasenseSnackbarHost(hostState = snackbarHostState) },
@@ -195,7 +198,14 @@ fun AboutScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                com.imsx3d.classy.ui.component.ClassyBrandCard()
+                com.imsx3d.classy.ui.component.ClassyBrandCard(onOpenLetter = {
+                    letterOpen = true
+                    scope.launch {
+                        // SettingsScaffold includes its page header as the first list item.
+                        val index = 2 + if (updateNoticeVisible && updateAvailable != null) 1 else 0
+                        aboutListState.animateScrollToItem(index)
+                    }
+                })
                 Spacer(Modifier.height(12.dp))
                 Spacer(Modifier.height(2.dp))
                 Text(
@@ -209,7 +219,7 @@ fun AboutScreen(
         }
 
         // An optional letter keeps the first screen compact and invites exploration.
-        item { com.imsx3d.classy.ui.component.DeveloperLetter() }
+        item { com.imsx3d.classy.ui.component.DeveloperLetter(letterOpen) { letterOpen = !letterOpen } }
 
         // ── 开发者 ──
         item {

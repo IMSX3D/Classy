@@ -32,11 +32,16 @@ import com.imsx3d.classy.util.AppIdentity
 @Composable
 fun DeveloperLetter() {
     var open by rememberSaveable { mutableStateOf(false) }
+    DeveloperLetter(open = open, onToggle = { open = !open })
+}
+
+@Composable
+fun DeveloperLetter(open: Boolean, onToggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val angle by animateFloatAsState(if (open) 180f else 0f, sleepyIndicatorSpec(), label = "letter arrow")
     val stateLabel = stringResource(if (open) R.string.about_letter_close else R.string.about_letter_open)
     SettingsGroupCard {
-        Row(Modifier.fillMaxWidth().noRippleClickable { open = !open }
+        Row(Modifier.fillMaxWidth().noRippleClickable(onToggle)
             .semantics(mergeDescendants = true) { role = Role.Button; stateDescription = stateLabel }
             .padding(16.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)) {

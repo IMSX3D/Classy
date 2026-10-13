@@ -24,6 +24,34 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class ClassyBrandCardTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun fiveQuickTapsRevealLetterWithoutOpeningItAutomatically() {
+        var opened = 0
+        compose.setContent { SleepyThemeProvider { ClassyBrandCard(onOpenLetter = { opened++ }) } }
+        val card = compose.onNodeWithTag("classy-brand-card")
+        card.performTouchInput {
+            repeat(5) { click(center); advanceEventTime(120) }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag("brand-secret-letter").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, opened) }
+        capture("brand-secret-discovered")
+        compose.onNodeWithTag("brand-secret-letter").performClick()
+        compose.runOnIdle { assertEquals(1, opened) }
+    }
+
+    @Test fun spacedTapsAndDragsDoNotUnlockLetter() {
+        compose.setContent { SleepyThemeProvider { ClassyBrandCard() } }
+        val card = compose.onNodeWithTag("classy-brand-card")
+        card.performTouchInput {
+            repeat(5) { click(center); advanceEventTime(1000) }
+            repeat(5) {
+                down(center); moveBy(androidx.compose.ui.geometry.Offset(50f, 0f)); up()
+                advanceEventTime(100)
+            }
+        }
+        compose.onNodeWithTag("brand-secret-letter").assertDoesNotExist()
+    }
+
     private fun capture(name: String): Bitmap {
         val image = compose.onRoot().captureToImage().asAndroidBitmap()
         val context = InstrumentationRegistry.getInstrumentation().targetContext

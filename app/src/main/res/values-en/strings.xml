@@ -1092,4 +1092,5 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="about_letter_hint">A few words, just for you.</string>
     <string name="about_letter_open">Open letter</string>
     <string name="about_letter_close">Close letter</string>
+    <string name="about_brand_discovery">You found a letter</string>
 </resources>
