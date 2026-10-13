@@ -1,6 +1,10 @@
 package com.imsx3d.classy.ui.component
 
-import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -456,6 +461,13 @@ fun ConflictClusterCard(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val cardShape = SleepyTheme.shapes.medium
+    // Hit overlays relay feedback to the visible surface below them, never paint rectangles.
+    val switchSources = remember(cluster.courses.map { it.id }) {
+        cluster.courses.associate { it.id to MutableInteractionSource() }
+    }
+    val foldSwitchSource = remember { MutableInteractionSource() }
+    val foldPressed by foldSwitchSource.collectIsPressedAsState()
+    val foldFocused by foldSwitchSource.collectIsFocusedAsState()
 
     // v7.10.16r 轮换(issue#10, N≥3): 先按簇全量课解析「置顶感知基准序」(用户置顶层
     // 恒在基准首位),轮换步数在其上循环左移得「完整轮换层序」,经 layoutCluster 的
@@ -495,6 +507,8 @@ fun ConflictClusterCard(
     // 不再从 drawList 重算 chainGroups(出界过滤会让两模型分歧)。徽标「+N」= 层数-2
     // (评审 #3: 按层计,轮换中恒定;默认两层已显示,三层 +1 / 四层 +2)。
     val layerCount = clusterLayerCount
+    val rotationSource = remember { MutableInteractionSource() }
+    fun switchSourceOf(id: Long) = if (layerCount >= 3) rotationSource else switchSources.getValue(id)
     val hiddenLayerN = ConflictLayoutEngine.hiddenLayerCount(layerCount)
     val showBadge = conflictShowBadge(layerCount, hiddenLayerN)
     var showPicker by rememberSaveable { mutableStateOf(false) }
@@ -534,7 +548,7 @@ fun ConflictClusterCard(
             colorless = AppPrefs.isCourseColorless(context)
         )
         return if (isGrey || completed(course))
-            bg.copy(alpha = bg.alpha * com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA)
+            bg.copy(alpha = com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA).compositeOver(colors.surfaceContainerHigh)
         else bg
     }
     val courseById = drawList.associateBy { it.course.id }
@@ -702,7 +716,9 @@ fun ConflictClusterCard(
                                     .offset(x = r.x, y = r.y)
                                     .width(r.width)
                                     .height(r.height)
-                                    .noRippleClickable {
+                                    .padding(2.dp)
+                                    .clip(cardShape)
+                                    .conflictSwitchClickable(foldSwitchSource, paint = true) {
                                         if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(course.id) ?: course.id)
                                     }
                             )
@@ -713,9 +729,6 @@ fun ConflictClusterCard(
                                 .offset(x = r.x, y = r.y)
                                 .width(r.width)
                                 .height(r.height)
-                                .noRippleClickable {
-                                    if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(course.id) ?: course.id)
-                                }
                         ) {
                             ConflictCourseCard(
                                 course = course,
@@ -723,6 +736,7 @@ fun ConflictClusterCard(
                                 modifier = Modifier.fillMaxSize().then(courseGesture(course)),
                                 isGrey = isGrey,
                                 shape = cardShape,
+                                switchSource = switchSourceOf(course.id),
                                 groupRows = groupRowsForCard
                             )
                         }
@@ -753,7 +767,7 @@ fun ConflictClusterCard(
                                     .offset(x = hit.x, y = hit.y)
                                     .width(hit.width)
                                     .height(hit.height)
-                                    .noRippleClickable {
+                                    .conflictSwitchClickable(switchSourceOf(hiddenCourse.id)) {
                                         if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(item.hiddenCourseId) ?: item.hiddenCourseId)
                                     }
                             )
@@ -769,7 +783,7 @@ fun ConflictClusterCard(
                                     .offset(x = colW - hit.first, y = cardYOf(topCourse))
                                     .width(hit.first)
                                     .height(hit.second)
-                                    .noRippleClickable {
+                                    .conflictSwitchClickable(foldSwitchSource) {
                                         if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(item.hiddenCourseId) ?: item.hiddenCourseId)
                                     }
                             )
@@ -793,7 +807,7 @@ fun ConflictClusterCard(
                                     .offset(x = hit.x, y = hit.y)
                                     .width(hit.width)
                                     .height(hit.height)
-                                    .noRippleClickable {
+                                    .conflictSwitchClickable(switchSourceOf(hiddenCourse.id)) {
                                         if (layerCount >= 3) switchTap() else onPickTop(layerRepOf(item.hiddenCourseId) ?: item.hiddenCourseId)
                                     }
                             )
@@ -846,6 +860,9 @@ fun ConflictClusterCard(
                         close()
                     }
                     drawPath(flap, foldFlapColor(courseColorOf(host)))
+                    if (foldPressed || foldFocused) {
+                        drawPath(flap, colors.onSurface.copy(alpha = if (foldPressed) 0.08f else 0.06f))
+                    }
                 }
                 if (!markPresent && switchTarget != null) {
                     val hit = foldSwitchHitArea(
@@ -859,7 +876,7 @@ fun ConflictClusterCard(
                             )
                             .width(hit.first)
                             .height(hit.second)
-                            .noRippleClickable { if (layerCount >= 3) switchTap() else onPickTop(switchTarget) }
+                            .conflictSwitchClickable(foldSwitchSource) { if (layerCount >= 3) switchTap() else onPickTop(switchTarget) }
                     )
                 }
             }
@@ -973,6 +990,7 @@ private fun ConflictCourseCard(
     modifier: Modifier = Modifier,
     isGrey: Boolean = false,
     shape: Shape = SleepyTheme.shapes.medium,
+    switchSource: MutableInteractionSource? = null,
     groupRows: List<CourseEntity> = listOf(course)
 ) {
     val palette = SleepyTheme.palette
@@ -987,8 +1005,13 @@ private fun ConflictCourseCard(
         colorless = AppPrefs.isCourseColorless(context)
     )
     val fg = CourseColorUtil.textColorOn(bg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
-    val effectiveBg = bg
-    val effectiveFg = fg
+    // A dimmed overlapping card must remain opaque: alpha on the whole layer exposes
+    // hidden course names underneath. Resolve dimming into the surface/text colors.
+    val dimmed = isGrey || LocalCourseCompleted.current(course)
+    val dimAlpha = com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA
+    val effectiveBg = bg.copy(alpha = if (dimmed) dimAlpha else 1f)
+        .compositeOver(colors.surfaceContainerHigh)
+    val effectiveFg = if (dimmed) fg.copy(alpha = dimAlpha).compositeOver(effectiveBg) else fg
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") TextDecoration.LineThrough else null
     val subInfo = AppPrefs.getGridSubInfo(context)
@@ -1002,12 +1025,12 @@ private fun ConflictCourseCard(
 
     Box(
         modifier = modifier
-            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
             .padding(2.dp)
             .clip(shape)
             .background(effectiveBg)
             .border(CARD_BORDER_DP.dp, conflictBorderColor(effectiveBg), shape)
-            .noRippleClickable(onClick)
+            .then(if (switchSource == null) Modifier.noRippleClickable(onClick)
+                else Modifier.conflictSwitchClickable(switchSource, paint = true, onClick = onClick))
             .padding(4.dp)
     ) {
         if (subText.isBlank()) {
@@ -1155,4 +1178,20 @@ private fun ConflictCoursePickerDialog(
         confirmButton = {},
         dismissButton = {}
     )
+}
+
+/** Transparent targets share interactions with their actual card/flap surface. */
+@Composable
+private fun Modifier.conflictSwitchClickable(
+    source: MutableInteractionSource,
+    paint: Boolean = false,
+    onClick: () -> Unit,
+): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val focused by source.collectIsFocusedAsState()
+    val color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (pressed) 0.08f else 0.06f)
+    return drawWithContent {
+        drawContent()
+        if (paint && (pressed || focused)) drawRect(color)
+    }.clickable(interactionSource = source, indication = null, onClick = onClick)
 }
