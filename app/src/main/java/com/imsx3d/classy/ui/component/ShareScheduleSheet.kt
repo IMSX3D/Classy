@@ -3,6 +3,7 @@ package com.imsx3d.classy.ui.component
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -17,8 +18,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,7 @@ fun ShareScheduleSheet(
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
     val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -56,96 +62,101 @@ fun ShareScheduleSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-            Text(
-                text = stringResource(R.string.share_sheet_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-            ExportItem(
-                icon = Icons.Outlined.Code,
-                title = stringResource(R.string.export_json_title),
-                subtitle = stringResource(R.string.export_json_subtitle),
-                onClick = {
-                    scope.launch {
-                        exportAndShare(
-                            ctx = ctx,
-                            fileName = "classy_${table.name}_${stamp()}.json",
-                            mime = "application/json",
-                            content = ScheduleExporter.exportWakeUpJson(table, courses),
-                            displayName = table.name,
-                            onResult = { }
-                        )
+        Box(Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+                Text(
+                    text = stringResource(R.string.share_sheet_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.Code,
+                    title = stringResource(R.string.export_json_title),
+                    subtitle = stringResource(R.string.export_json_subtitle),
+                    onClick = {
+                        scope.launch {
+                            exportAndShare(
+                                ctx = ctx,
+                                fileName = "classy_${table.name}_${stamp()}.json",
+                                mime = "application/json",
+                                content = ScheduleExporter.exportWakeUpJson(table, courses),
+                                displayName = table.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
-            )
-            ExportItem(
-                icon = Icons.Outlined.Share,
-                title = stringResource(R.string.export_share_title),
-                subtitle = stringResource(R.string.export_share_subtitle),
-                onClick = {
-                    scope.launch {
-                        shareText(
-                            ctx = ctx,
-                            content = ScheduleExporter.exportWakeUpShareText(table, courses),
-                            subject = table.name,
-                            onResult = { }
-                        )
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.Share,
+                    title = stringResource(R.string.export_share_title),
+                    subtitle = stringResource(R.string.export_share_subtitle),
+                    onClick = {
+                        scope.launch {
+                            shareText(
+                                ctx = ctx,
+                                content = ScheduleExporter.exportWakeUpShareText(table, courses),
+                                subject = table.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
-            )
-            ExportItem(
-                icon = Icons.Outlined.CalendarMonth,
-                title = stringResource(R.string.export_ics_title),
-                subtitle = stringResource(R.string.export_ics_subtitle),
-                onClick = {
-                    scope.launch {
-                        exportAndShare(
-                            ctx = ctx,
-                            fileName = "classy_${table.name}_${stamp()}.ics",
-                            mime = "text/calendar",
-                            content = ScheduleExporter.exportIcs(table, courses, com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(ctx, table.id)),
-                            displayName = table.name,
-                            onResult = { }
-                        )
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.CalendarMonth,
+                    title = stringResource(R.string.export_ics_title),
+                    subtitle = stringResource(R.string.export_ics_subtitle),
+                    onClick = {
+                        scope.launch {
+                            exportAndShare(
+                                ctx = ctx,
+                                fileName = "classy_${table.name}_${stamp()}.ics",
+                                mime = "text/calendar",
+                                content = ScheduleExporter.exportIcs(table, courses, com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(ctx, table.id)),
+                                displayName = table.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
-            )
-            ExportItem(
-                icon = Icons.Outlined.Star,
-                title = stringResource(R.string.export_native_title),
-                subtitle = stringResource(R.string.export_native_subtitle),
-                onClick = {
-                    scope.launch {
-                        // 分享形态: marker 包裹 + 无 chk(IM 场景最小体积), 接收方粘贴导入
-                        shareText(
-                            ctx = ctx,
-                            content = SleepyNativeExporter.exportShareText(
-                                table.name, table.startDate, table.maxWeek, table.nodesPerDay,
-                                table.timeJson, courses
-                            ),
-                            subject = table.name,
-                            onResult = { }
-                        )
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.Star,
+                    title = stringResource(R.string.export_native_title),
+                    subtitle = stringResource(R.string.export_native_subtitle),
+                    onClick = {
+                        scope.launch {
+                            // 分享形态: marker 包裹 + 无 chk(IM 场景最小体积), 接收方粘贴导入
+                            shareText(
+                                ctx = ctx,
+                                content = SleepyNativeExporter.exportShareText(
+                                    table.name, table.startDate, table.maxWeek, table.nodesPerDay,
+                                    table.timeJson, courses
+                                ),
+                                subject = table.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
+                )
+            }
+            CompositionLocalProvider(LocalNavExtraBottomPadding provides 0.dp) {
+                GlasenseSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
         }
     }
 }

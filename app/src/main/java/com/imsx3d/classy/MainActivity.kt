@@ -483,7 +483,7 @@ internal fun MainTabs(
         }
         Tab.Mine -> holder.SaveableStateProvider(visibleTab.name) {
             MineScreen(
-                onOpenTables = { setCurrentTab(Tab.Manage) },
+                onOpenTables = { navigator.openAllTables() },
                 onOpenCourses = { navigator.openCourseList() },
                 onOpenCurrentWeek = {
                     tabsState.currentTable?.let { table ->

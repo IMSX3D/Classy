@@ -3,6 +3,7 @@ package com.imsx3d.classy.ui.component
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,8 +16,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +48,7 @@ fun PeriodTableShareSheet(
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
     val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -50,48 +56,53 @@ fun PeriodTableShareSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-            Text(
-                text = stringResource(R.string.period_table_share_sheet_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-            ExportItem(
-                icon = Icons.Outlined.Star,
-                title = stringResource(R.string.period_table_share_native_title),
-                subtitle = stringResource(R.string.period_table_share_native_sub),
-                onClick = {
-                    scope.launch {
-                        shareText(
-                            ctx = ctx,
-                            content = SleepyNativeExporter.exportPeriodTableShareText(periodTable),
-                            subject = periodTable.name,
-                            onResult = { }
-                        )
+        Box(Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+                Text(
+                    text = stringResource(R.string.period_table_share_sheet_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.Star,
+                    title = stringResource(R.string.period_table_share_native_title),
+                    subtitle = stringResource(R.string.period_table_share_native_sub),
+                    onClick = {
+                        scope.launch {
+                            shareText(
+                                ctx = ctx,
+                                content = SleepyNativeExporter.exportPeriodTableShareText(periodTable),
+                                subject = periodTable.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
-            )
-            ExportItem(
-                icon = Icons.Outlined.Code,
-                title = stringResource(R.string.period_table_share_json_title),
-                subtitle = stringResource(R.string.period_table_share_json_sub),
-                onClick = {
-                    scope.launch {
-                        shareText(
-                            ctx = ctx,
-                            content = SleepyNativeExporter.exportPeriodTableJson(periodTable),
-                            subject = periodTable.name,
-                            onResult = { }
-                        )
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = colors.outlineVariant.copy(alpha = SleepyTheme.Alpha.hairline)
+                )
+                ExportItem(
+                    icon = Icons.Outlined.Code,
+                    title = stringResource(R.string.period_table_share_json_title),
+                    subtitle = stringResource(R.string.period_table_share_json_sub),
+                    onClick = {
+                        scope.launch {
+                            shareText(
+                                ctx = ctx,
+                                content = SleepyNativeExporter.exportPeriodTableJson(periodTable),
+                                subject = periodTable.name,
+                                onResult = { snackbar.showSnackbar(it) }
+                            )
+                        }
                     }
-                }
-            )
+                )
+            }
+            CompositionLocalProvider(LocalNavExtraBottomPadding provides 0.dp) {
+                GlasenseSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
         }
     }
 }

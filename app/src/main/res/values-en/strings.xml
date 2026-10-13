@@ -638,7 +638,9 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="export_current_table_badge">Current timetable</string>
     <string name="export_saved_to">Saved to Download/Classy/%1$s</string>
     <string name="export_share_chooser">Share Schedule</string>
-    <string name="export_share_subtitle">Copy as text to share in a chat</string>
+    <string name="export_share_subtitle">Share the schedule as text</string>
+    <string name="export_share_failed">Could not open sharing. Retry or choose another format.</string>
+    <string name="export_saved_share_failed">Saved to Download/Classy/%1$s, but sharing could not open.</string>
     <string name="export_share_title">Share as Text</string>
     <string name="export_start_date">Term starts %1$s</string>
     <string name="export_section_formats">Export formats</string>

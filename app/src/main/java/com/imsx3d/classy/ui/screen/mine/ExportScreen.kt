@@ -531,8 +531,14 @@ internal suspend fun exportAndShare(
                 putExtra(Intent.EXTRA_SUBJECT, displayName)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            ctx.startActivity(Intent.createChooser(send, ctx.getString(R.string.export_share_chooser)))
-            onResult(ctx.getString(R.string.export_saved_to, fileName))
+            val opened = openShareChooser(ctx, send)
+            val result = when {
+                !opened && android.os.Build.VERSION.SDK_INT >= 29 -> ctx.getString(R.string.export_saved_share_failed, fileName)
+                !opened -> ctx.getString(R.string.export_share_failed)
+                android.os.Build.VERSION.SDK_INT >= 29 -> ctx.getString(R.string.export_saved_to, fileName)
+                else -> null // Cache-only export: the system chooser owns the next action.
+            }
+            result?.let { onResult(it) }
         }
     }
 }
@@ -546,6 +552,8 @@ private fun writeToDownloads(
     mime: String,
     content: String
 ): android.net.Uri? {
+    val resolver = ctx.contentResolver
+    var pendingUri: android.net.Uri? = null
     return try {
         val values = android.content.ContentValues().apply {
             put(android.provider.MediaStore.Downloads.DISPLAY_NAME, fileName)
@@ -553,17 +561,19 @@ private fun writeToDownloads(
             put(android.provider.MediaStore.Downloads.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/Classy")
             put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
         }
-        val resolver = ctx.contentResolver
         val collection = android.provider.MediaStore.Downloads.getContentUri(
             android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY
         )
         val uri = resolver.insert(collection, values) ?: return null
-        resolver.openOutputStream(uri)?.use { os -> os.write(content.toByteArray(Charsets.UTF_8)) }
+        pendingUri = uri
+        val output = resolver.openOutputStream(uri) ?: error("No export output stream")
+        output.use { os -> os.write(content.toByteArray(Charsets.UTF_8)) }
         values.clear()
         values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
-        resolver.update(uri, values, null, null)
+        check(resolver.update(uri, values, null, null) > 0) { "Export was not published" }
         uri
     } catch (e: Exception) {
+        pendingUri?.let { uri -> runCatching { resolver.delete(uri, null, null) } }
         android.util.Log.e("ExportScreen", "writeToDownloads failed", e)
         null
     }
@@ -598,6 +608,17 @@ internal suspend fun shareText(
         putExtra(Intent.EXTRA_TEXT, content)
         putExtra(Intent.EXTRA_SUBJECT, subject)
     }
+    withContext(Dispatchers.Main) {
+        // Opening a chooser is not a completed share; cancellation needs no stale prompt.
+        if (!openShareChooser(ctx, intent)) onResult(ctx.getString(R.string.export_share_failed))
+    }
+}
+
+private fun openShareChooser(ctx: android.content.Context, intent: Intent): Boolean = try {
     ctx.startActivity(Intent.createChooser(intent, ctx.getString(R.string.export_share_chooser)))
-    onResult(ctx.getString(R.string.export_copied_hint))
+    true
+} catch (_: android.content.ActivityNotFoundException) {
+    false
+} catch (_: SecurityException) {
+    false
 }
