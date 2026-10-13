@@ -285,3 +285,10 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 早期测试从滑杆最左边缘起手未改变数值，修正为内部触点后手势链通过，未修改公共滑杆。早期误用不存在的未拆分Debug包路径已纠正，最终运行使用最新x86_64包。
 - vivo正式Release安装成功并打开外观页确认入口，background-adjust-phone-appearance.png；用户当前无背景，未替用户选择图片或改课程样式。带图调节视觉在独立测试环境核查，截图background-adjust-preview.png、background-adjust-wide-preview.png。真机带图片性能、暗色复杂照片对比度与实际平板仍待补验，不声称参数对任意图片自动最优。
 - 模糊是静态背景柔化，非液态玻璃。默认背景18%可见、无模糊、原饱和度、居中；不会因升级自动改已有背景效果。
+
+## BRAND-01 / LETTER-01（2026-10-13）
+
+- 最终Debug/AndroidTest/Release构建成功：brand-letter-final-build.log。窄屏540×960/240dpi与宽屏1200×1600/160dpi，English/1.5字号，各3项通过：按压视觉改变/松手与Cancel恢复同像素画面、卡片不抢滚动、信件默认收起并可展开/收起。日志brand-letter-tests.txt、brand-letter-wide-tests.txt。之后恢复模拟器窄屏。
+- 前一轮滚动测试错误地在SideEffect中读取滚动值，未订阅其变化，产生假失败；改为在断言时直接读取ScrollState后通过，未为了过测改变产品手势。
+- vivo正式Release安装成功；关于首屏品牌卡、信封入口、开发者及项目可见。真机信件开合、品牌卡按压倾斜/光泽、释放复位已检查。截图stage2-vivo-phone-device/brand-letter-about-final.png、brand-letter-open-final.png、brand-card-phone-pressed.png、brand-card-phone-released.png。没有改动用户课程或外观设置。
+- 卡片采用独立绘制的Classy日历矢量标识，消除启动图标位图白底；青绿渐变限定在品牌艺术区域。无帧耗时优化声明。暗色整页、键盘/读屏实机、系统禁用动画及真平板尚待补验；代码已提供对应路径，不能把未测项标通过。

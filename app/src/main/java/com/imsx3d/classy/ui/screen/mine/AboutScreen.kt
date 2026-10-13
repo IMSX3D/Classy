@@ -195,17 +195,8 @@ fun AboutScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = painterResource(R.mipmap.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier.size(88.dp).clip(RoundedCornerShape(22.dp))
-                )
+                com.imsx3d.classy.ui.component.ClassyBrandCard()
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.onSurface
-                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = stringResource(
@@ -217,33 +208,8 @@ fun AboutScreen(
             }
         }
 
-        // ── 开发者的心声（长文：逐段 + 段间距，行高放宽到 22sp 才读得下去）──
-        item {
-            SectionHeader(title = stringResource(R.string.about_section_voice), topSpacing = 12.dp)
-        }
-        item {
-            SettingsGroupCard {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    stringArrayResource(R.array.about_heart_paragraphs).forEach { paragraph ->
-                        Text(
-                            text = paragraph,
-                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = "—— ${AppIdentity.AUTHOR_NAME}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
-                    )
-                }
-            }
-        }
+        // An optional letter keeps the first screen compact and invites exploration.
+        item { com.imsx3d.classy.ui.component.DeveloperLetter() }
 
         // ── 开发者 ──
         item {

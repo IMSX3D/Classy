@@ -1084,4 +1084,12 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="background_horizontal">Horizontal position</string>
     <string name="background_vertical">Vertical position</string>
     <string name="background_reset">Reset adjustments</string>
+    <string name="about_brand_description">Classy brand card</string>
+    <string name="about_brand_tagline">Your classes, beautifully in order.</string>
+    <string name="about_brand_hint">Press the card to feel it tilt</string>
+    <string name="about_brand_action">Play light effect</string>
+    <string name="about_letter_title">A letter from the developer</string>
+    <string name="about_letter_hint">A few words, just for you.</string>
+    <string name="about_letter_open">Open letter</string>
+    <string name="about_letter_close">Close letter</string>
 </resources>

@@ -1102,4 +1102,12 @@
     <string name="background_horizontal">左右位置</string>
     <string name="background_vertical">上下位置</string>
     <string name="background_reset">恢复默认效果</string>
+    <string name="about_brand_description">Classy 品牌卡片</string>
+    <string name="about_brand_tagline">让课程井然，让生活从容</string>
+    <string name="about_brand_hint">轻按卡片，感受倾斜</string>
+    <string name="about_brand_action">播放光泽效果</string>
+    <string name="about_letter_title">来自开发者的信</string>
+    <string name="about_letter_hint">有几句话，想对你说</string>
+    <string name="about_letter_open">展开信件</string>
+    <string name="about_letter_close">收起信件</string>
 </resources>
