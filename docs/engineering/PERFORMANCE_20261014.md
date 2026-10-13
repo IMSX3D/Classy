@@ -26,6 +26,8 @@ P99 有下降，P95 首组反而上升；不能承诺每一帧都改善，也不
 
 ## 复测边界
 
+品牌连续礼花另做一次优化构建样本：420 rendered frames，gfxinfo 判定 1 个 janky frame，P95 18ms、P99 25ms，GPU P95 13ms / P99 14ms。证据 `five-pack-brand-benchmark-gfx.txt` 与 `five-pack-brand-benchmark.png`。这是单设备单次样本，不能替代所有入口、长时间操作或跨设备验收。
+
 本机证据 `E:/C015/99-整理记录/five-pack-perf-{baseline,compiled,packaged-profile}/`，含三组原始 gfxinfo、启动报告、Perfetto、设备环境。首份 30 秒 trace 只涵盖部分轮次；三组 gfxinfo 均独立保存，不能把一个 trace 当作三组完整归因。
 
 仍未关闭：实体手机最终包、有 4 个实际绑定组件的同条件测量、全部入口极端配置、OEM 动态刷新率导致的长帧。约 40–50ms 尾部帧仍需后续专项证据；本次不通过反复改布局或缩短动画来隐瞒它。
