@@ -191,7 +191,10 @@ fun AddCourseScreen(
     onSaved: () -> Unit,
     editingCourse: CourseEntity? = null,
     prefill: com.imsx3d.classy.util.CourseGridPrefill? = null,
-    viewModel: ScheduleViewModel = viewModel()
+    viewModel: ScheduleViewModel = viewModel(),
+    loadGroupCourses: suspend (Long, String) -> List<CourseEntity> = { tableId, groupId ->
+        SleepyApp.get().repository.getGroupCourses(tableId, groupId)
+    }
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
@@ -272,13 +275,24 @@ fun AddCourseScreen(
     var originalDraft by rememberSaveable(editingCourse?.id) { mutableStateOf(draftFingerprint()) }
     var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
 
+    var loadFailed by remember(editingCourse?.id) { mutableStateOf(false) }
+    var loadAttempt by remember { mutableIntStateOf(0) }
+
     // 编辑模式：查同 groupId 全部课程，按时段分组回填多个 block (issue#22 分组规则不变)
-    LaunchedEffect(editingCourse?.id, state.selectedTableId) {
+    LaunchedEffect(editingCourse?.id, state.selectedTableId, loadAttempt) {
         if (blocksLoaded) return@LaunchedEffect
         val eg = editingCourse
         if (eg != null && eg.groupId.isNotBlank()) {
-            val tid = state.selectedTableId ?: return@LaunchedEffect
-            val groupCourses = SleepyApp.get().repository.getGroupCourses(tid, eg.groupId)
+            val tid = eg.tableId
+            loadFailed = false
+            val groupCourses = try {
+                loadGroupCourses(tid, eg.groupId).also { check(it.isNotEmpty()) }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                loadFailed = true
+                return@LaunchedEffect
+            }
             if (groupCourses.isNotEmpty()) {
                 // 组色源: 同组 colorMode=GROUP 中 id 最小行的 color (CourseColorUtil 单点)
                 groupSourceColorHex = CourseColorUtil.groupSourceColorHex(groupCourses)
@@ -331,16 +345,20 @@ fun AddCourseScreen(
         blocksLoaded = true
     }
 
+    val deleteFailure = stringResource(R.string.course_delete_failed)
+    val deletion = remember(editingCourse?.id, deleteFailure) { com.imsx3d.classy.ui.component.EditorActionState(deleteFailure) }
+    var showDeleteConfirm by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
     fun requestBack() {
-        if (saving) return
+        if (saving || deletion.busy) return
         if (draftFingerprint() != originalDraft) showDiscardConfirm = true else onBack()
     }
     // Clean exits belong to NavDisplay's predictive back; intercept only protected work.
-    androidx.activity.compose.BackHandler(enabled = saving || draftFingerprint() != originalDraft) { requestBack() }
-    val prefillReady = validPrefill == null || currentTable?.id == validPrefill.tableId
-    val canSave = !saving && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    androidx.activity.compose.BackHandler(enabled = saving || deletion.busy || draftFingerprint() != originalDraft) { requestBack() }
+    val prefillReady = (validPrefill == null || currentTable?.id == validPrefill.tableId) &&
+        (editingCourse == null || currentTable?.id == editingCourse.tableId)
+    val canSave = !saving && !deletion.busy && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -348,9 +366,9 @@ fun AddCourseScreen(
 
     // 保存主流程: 校验 → 草稿 → 冲突明细 → 落库。forceAfterConflict = 冲突弹窗「仍然保存」回调
     fun performSave(forceAfterConflict: Boolean) {
-        if (saving) return
+        if (saving || deletion.busy) return
         if (!prefillReady) {
-            saveError = "原课表暂不可用，请返回课表后重试"
+            saveError = context.getString(R.string.course_source_unavailable)
             return
         }
         val issues = validateCourseDraft(
@@ -364,7 +382,7 @@ fun AddCourseScreen(
         validationIssues = issues
         if (issues.isNotEmpty()) return
 
-        val draftTableId = validPrefill?.tableId ?: state.selectedTableId  // 进入 scope 前取，drafts 需要
+        val draftTableId = editingCourse?.tableId ?: validPrefill?.tableId ?: state.selectedTableId  // 进入 scope 前取，drafts 需要
         val drafts = meetingBlocks.flatMap { block ->
             block.days.sorted().map { day ->
                 buildCourseEntity(
@@ -421,19 +439,31 @@ fun AddCourseScreen(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                saveError = e.message ?: "保存失败，请重试"
+                saveError = context.getString(R.string.editor_action_failed)
             } finally {
                 saving = false
             }
         }
     }
 
+    if (showDeleteConfirm && editingCourse != null) {
+        CourseDeleteConfirmation(editingCourse.courseName, deletion,
+            onDismiss = { showDeleteConfirm = false },
+            onConfirm = {
+                deletion.launch(scope) {
+                    SleepyApp.get().repository.deleteCourseFromEditor(editingCourse)
+                    showDeleteConfirm = false
+                    onSaved()
+                }
+            })
+    }
+
     saveError?.let { message ->
         AlertDialog(
             onDismissRequest = { saveError = null },
-            title = { Text("保存失败") },
+            title = { Text(stringResource(R.string.course_save_failed)) },
             text = { Text(message) },
-            confirmButton = { TextButton(onClick = { saveError = null }) { Text("确定") } }
+            confirmButton = { TextButton(onClick = { saveError = null }) { Text(stringResource(R.string.action_confirm)) } }
         )
     }
 
@@ -506,7 +536,7 @@ fun AddCourseScreen(
                         confirmText = stringResource(R.string.action_confirm),
                         onConfirm = {
                             val gid = editingCourse?.groupId
-                            val tid = state.selectedTableId
+                            val tid = editingCourse?.tableId
                             pendingGroupColorHex = null
                             if (gid != null && tid != null) {
                                 scope.launch {
@@ -585,7 +615,16 @@ fun AddCourseScreen(
             title = stringResource(R.string.edit_course),
             onBack = { requestBack() }
         ) {
-            item { Text(stringResource(R.string.loading), modifier = Modifier.padding(16.dp)) }
+            item {
+                if (loadFailed) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(stringResource(R.string.course_load_failed))
+                        TextButton(onClick = { loadFailed = false; loadAttempt++ }) {
+                            Text(stringResource(R.string.update_retry))
+                        }
+                    }
+                } else Text(stringResource(R.string.loading), modifier = Modifier.padding(16.dp))
+            }
         }
         return
     }
@@ -787,12 +826,11 @@ fun AddCourseScreen(
 
         if (editingCourse != null) {
             item {
-                var showDeleteConfirm by remember { mutableStateOf(false) }
-
                 // [intentional custom] 官方 Button 无 error 语义变体(MD3 规范删除动作用
                 // TextButton+error 文字色); 此处沿用 errorContainer 色块 = Sleepy 视觉语言。
                 Button(
                     onClick = { showDeleteConfirm = true },
+                    enabled = !saving && !deletion.busy,
                     modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
                     shape = SleepyTheme.Buttons.shape,
                     colors = ButtonDefaults.buttonColors(containerColor = colors.errorContainer)
@@ -800,39 +838,6 @@ fun AddCourseScreen(
                     Icon(Icons.Outlined.Delete, contentDescription = null, tint = colors.onErrorContainer)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.delete_course), color = colors.onErrorContainer)
-                }
-
-                if (showDeleteConfirm) {
-                    AlertDialog(
-                        onDismissRequest = { showDeleteConfirm = false },
-                        title = { Text(stringResource(R.string.confirm_delete), color = colors.onSurface) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(stringResource(R.string.delete_course_confirm, editingCourse.courseName), color = colors.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(12.dp))
-                                // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
-                                com.imsx3d.classy.ui.component.DialogActionButtons(
-                                    confirmText = stringResource(R.string.delete),
-                                    onConfirm = {
-                                        showDeleteConfirm = false
-                                        scope.launch {
-                                            val repo = SleepyApp.get().repository
-                                            val tid = state.selectedTableId
-                                            if (tid != null) {
-                                                repo.deleteCourseGroup(tid, editingCourse.groupId)
-                                            }
-                                            onSaved()
-                                        }
-                                    },
-                                    dismissText = stringResource(R.string.cancel),
-                                    onDismiss = { showDeleteConfirm = false },
-                                    destructive = true
-                                )
-                            }
-                        },
-                        confirmButton = {},
-                        dismissButton = {}
-                    )
                 }
             }
         }

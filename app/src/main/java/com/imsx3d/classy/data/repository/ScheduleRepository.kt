@@ -495,6 +495,12 @@ class ScheduleRepository(private val db: AppDatabase) {
         onDataChanged()
     }
 
+    /** Use the edited row's identity, never the currently selected timetable. */
+    suspend fun deleteCourseFromEditor(course: CourseEntity) {
+        if (course.groupId.isBlank()) deleteCourse(course.id)
+        else deleteCourseGroup(course.tableId, course.groupId)
+    }
+
     suspend fun deleteCourse(id: Long): Unit = atomicEdit() {
         val course = courseDao.getById(id) ?: return@atomicEdit
         courseDao.deleteById(id)

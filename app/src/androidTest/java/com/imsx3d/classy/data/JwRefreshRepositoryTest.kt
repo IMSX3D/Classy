@@ -27,6 +27,24 @@ class JwRefreshRepositoryTest {
     }
     @After fun cleanup() { db.close(); UndoManager.clear() }
 
+    @Test fun editorDeleteUsesSourceTableAndBlankGroupsDeleteOnlyOneRow() = runBlocking {
+        val first = db.timeTableDao().insert(table)
+        val second = db.timeTableDao().insert(table.copy(name = "Other"))
+        val grouped = course(first)
+        val id = db.courseDao().insert(grouped)
+        db.courseDao().insert(grouped.copy(day = 2))
+        val otherId = db.courseDao().insert(course(second))
+        repo.deleteCourseFromEditor(grouped.copy(id = id))
+        assertTrue(db.courseDao().getByTable(first).isEmpty())
+        assertNotNull(db.courseDao().getById(otherId))
+        val single = course(first).copy(groupId = "")
+        val singleId = db.courseDao().insert(single)
+        val peer = db.courseDao().insert(single.copy(day = 3))
+        repo.deleteCourseFromEditor(single.copy(id = singleId))
+        assertNull(db.courseDao().getById(singleId))
+        assertNotNull(db.courseDao().getById(peer))
+    }
+
     @Test fun firstLinkPreservesLocalAndRoutineThenRepeatedRefreshIsIdempotent() = runBlocking {
         val id = db.timeTableDao().insert(table)
         db.courseDao().insert(course(id, "Local only"))

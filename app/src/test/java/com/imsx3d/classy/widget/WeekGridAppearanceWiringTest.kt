@@ -23,7 +23,8 @@ class WeekGridAppearanceWiringTest {
         assertTrue(render.contains("CourseColorUtil.softenedIndicator("))
         assertTrue(render.contains("if (s.barStyle) View.VISIBLE else View.GONE"))
         assertTrue(render.contains("tone(indicator)"))
-        assertTrue(render.contains("setViewPadding(R.id.wg_blk_name"))
+        assertTrue(render.contains("applyGridBlockTypography(context, block, room, s.barStyle)"))
+        assertTrue(source("widget/WidgetGridTypography.kt").contains("setViewPadding(R.id.wg_blk_name"))
     }
 
     @Test fun `course block owns one full height indicator`() {

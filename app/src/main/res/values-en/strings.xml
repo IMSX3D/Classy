@@ -293,7 +293,7 @@
     <string name="add_slot">Add time slot</string>
     <string name="save_course">Save Course</string>
     <string name="delete_course">Delete Course</string>
-    <string name="delete_course_confirm">Delete course \"%1$s\"? This cannot be undone.</string>
+    <string name="delete_course_confirm">Delete course \"%1$s\" and its class meetings?</string>
     <string name="select_at_least_one_day">Select at least one day</string>
     <string name="delete_slot">Remove slot</string>
     <string name="start_node">Start Period</string>
@@ -1095,4 +1095,9 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="about_brand_discovery">You found a letter</string>
     <string name="conflict_default_top_auto">Choose automatically</string>
     <string name="widget_tables_retry">Couldn’t load timetables. Tap to retry.</string>
+    <string name="course_deleting">Deleting…</string>
+    <string name="course_delete_failed">Could not delete the course. Please try again.</string>
+    <string name="course_save_failed">Could not save</string>
+    <string name="course_source_unavailable">The original timetable is unavailable. Return to the timetable and try again.</string>
+    <string name="course_load_failed">Could not load this course. Please try again.</string>
 </resources>

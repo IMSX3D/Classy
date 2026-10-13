@@ -1,5 +1,9 @@
 package com.imsx3d.classy.ui.screen.schedule
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+
 import com.imsx3d.classy.ui.component.CourseCompletionProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -424,7 +428,7 @@ fun ScheduleScreen(
  * 列出全部课表, 当前行 primaryContainer 高亮 + 对勾, 点击即切换。
  */
 @Composable
-private fun TableSwitcherDialog(
+internal fun TableSwitcherDialog(
     tables: List<TimeTableEntity>,
     selectedTableId: Long?,
     onSelect: (Long) -> Unit,
@@ -452,7 +456,9 @@ private fun TableSwitcherDialog(
                             .fillMaxWidth()
                             .clip(SleepyTheme.shapes.small)
                             .background(if (isCurrent) colors.primaryContainer else colors.surfaceContainer)
-                            .noRippleClickable { onSelect(table.id) }
+                            .noRippleClickable { if (isCurrent) onDismiss() else onSelect(table.id) }
+                            .heightIn(min = 48.dp)
+                            .semantics { role = androidx.compose.ui.semantics.Role.RadioButton; selected = isCurrent }
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
