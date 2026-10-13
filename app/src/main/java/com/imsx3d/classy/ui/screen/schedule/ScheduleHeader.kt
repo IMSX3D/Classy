@@ -61,7 +61,8 @@ internal fun ScheduleHeader(
     var actionsOpen by rememberSaveable { mutableStateOf(false) }
     var guideOpen by rememberSaveable { mutableStateOf(showInitialGuide) }
     val switchLabel = stringResource(R.string.schedule_switch_table)
-    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)) {
+    // Keep breathing room symmetric outside the 48dp controls; system insets belong to the host.
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)) {
         val weekLabel = stringResource(R.string.schedule_week_prefix, currentWeek)
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
