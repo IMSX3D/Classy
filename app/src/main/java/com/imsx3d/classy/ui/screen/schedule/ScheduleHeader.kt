@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,15 +62,32 @@ internal fun ScheduleHeader(
     var guideOpen by rememberSaveable { mutableStateOf(showInitialGuide) }
     val switchLabel = stringResource(R.string.schedule_switch_table)
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
-                .noRippleClickable(onSwitchTable).semantics { contentDescription = switchLabel }
+        val weekLabel = stringResource(R.string.schedule_week_prefix, currentWeek)
+        val measurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+        val weekWidth = with(density) {
+            measurer.measure(weekLabel, style = MaterialTheme.typography.labelLarge).size.width.toDp()
+        } + 30.dp
+        val tableControl: @Composable (Modifier) -> Unit = { modifier ->
+            Row(modifier.heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
+                .noRippleClickable(onSwitchTable).semantics { contentDescription = switchLabel; role = Role.Button }
                 .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(tableName, Modifier.weight(1f, fill = false),
-                    color = colors.onSurface, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp),
-                    tint = colors.onSurfaceVariant)
+                    color = colors.onSurface, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Medium),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp), tint = colors.onSurfaceVariant)
             }
+        }
+        val weekControl: @Composable () -> Unit = {
+            Row(Modifier.widthIn(min = 48.dp).heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
+                .noRippleClickable { weeksOpen = true }
+                .semantics(mergeDescendants = true) { role = Role.Button }
+                .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(weekLabel, color = colors.primary, style = MaterialTheme.typography.labelLarge)
+                Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp), tint = colors.primary)
+            }
+        }
+        val moreControl: @Composable () -> Unit = {
             Box {
                 IconButton(onClick = { actionsOpen = true }) {
                     Icon(Icons.Outlined.MoreHoriz, stringResource(R.string.schedule_actions), tint = colors.onSurface)
@@ -97,23 +117,24 @@ internal fun ScheduleHeader(
                 }
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
-                .noRippleClickable { weeksOpen = true }
-                .semantics(mergeDescendants = true) { role = Role.Button }
-                .padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.schedule_week_prefix, currentWeek),
-                    color = colors.primary, style = MaterialTheme.typography.labelLarge)
-                Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp), tint = colors.primary)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // Reserve a readable title fragment and the actual localized week label before choosing one row.
+            val oneRow = maxWidth >= weekWidth + 48.dp + 8.dp + (112 * density.fontScale).dp
+            Column(Modifier.fillMaxWidth().testTag(if (oneRow) "schedule-header-single" else "schedule-header-wrapped")) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    tableControl(Modifier.weight(1f))
+                    if (oneRow) {
+                        Spacer(Modifier.width(8.dp))
+                        weekControl()
+                    }
+                    moreControl()
+                }
+                if (!oneRow) { weekControl() }
             }
-            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                if (currentWeek != actualWeek && actualWeek in 1..maxWeek) {
-                    TextButton(onClick = onJumpToActual) { Text(stringResource(R.string.schedule_back_to_current_week)) }
-                }
-                if (scaleUncommitted) {
-                    TextButton(onClick = onScaleCommit) { Text(stringResource(R.string.schedule_scale_keep)) }
-                }
+        }
+        if (scaleUncommitted) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onScaleCommit) { Text(stringResource(R.string.schedule_scale_keep)) }
             }
         }
         hint?.let { Text(it, style = MaterialTheme.typography.bodySmall,
@@ -155,6 +176,13 @@ internal fun ScheduleHeader(
                             range?.let { Text(it, style = MaterialTheme.typography.labelSmall,
                                 color = if (week == actualWeek) colors.primary else colors.onSurfaceVariant) }
                         }
+                    }
+                }
+            },
+            dismissButton = {
+                if (currentWeek != actualWeek && actualWeek in 1..maxWeek) {
+                    TextButton(onClick = { weeksOpen = false; onJumpToActual() }) {
+                        Text(stringResource(R.string.schedule_back_to_current_week))
                     }
                 }
             },

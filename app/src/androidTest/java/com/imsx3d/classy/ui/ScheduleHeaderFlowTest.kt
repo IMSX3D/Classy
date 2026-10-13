@@ -42,6 +42,46 @@ class ScheduleHeaderFlowTest {
         compose.onNodeWithContentDescription(label(R.string.schedule_switch_table)).assertIsDisplayed()
     }
 
+    @Test fun compactHeaderFitsOneRowAndCurrentWeekActionLivesInPicker() {
+        var jumps = 0
+        val start = java.time.LocalDate.now().minusWeeks(6).toString()
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, 1f)) {
+                SleepyThemeProvider {
+                    Column(Modifier.widthIn(max = 340.dp)) {
+                        ScheduleHeader("A long timetable title that will be shortened", 1, 20, start, null,
+                            {}, false, {}, { jumps++ }, {}, {}, {}, {}, ViewMode.Cards, {})
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag("schedule-header-single").assertExists()
+        compose.onNodeWithText(label(R.string.schedule_back_to_current_week)).assertDoesNotExist()
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.schedule_week_prefix, 1)).performClick()
+        compose.onNodeWithText(label(R.string.schedule_back_to_current_week)).performClick()
+        compose.runOnIdle { assertEquals(1, jumps) }
+        compose.onNodeWithText(label(R.string.schedule_jump_week)).assertDoesNotExist()
+    }
+
+    @Test fun narrowLargeFontWrapsWithoutHidingWeekOrMore() {
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, 1.5f)) {
+                SleepyThemeProvider {
+                    Column(Modifier.widthIn(max = 260.dp)) {
+                        ScheduleHeader("A long timetable title", 12, 20, "2026-08-31", null,
+                            {}, false, {}, {}, {}, {}, {}, {}, ViewMode.Cards, {})
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag("schedule-header-wrapped").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.schedule_actions)).assertIsDisplayed()
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.schedule_week_prefix, 12)).assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.schedule_scale_keep)).assertDoesNotExist()
+    }
+
     @Test fun overviewExpandsLocallyAndSecondClickClosesDetails() {
         compose.setContent {
             SleepyThemeProvider {

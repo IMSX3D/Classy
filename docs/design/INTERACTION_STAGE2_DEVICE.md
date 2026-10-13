@@ -300,3 +300,9 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 ## BRAND-02（2026-10-13）
 
 brand-wordmark-build.log：Debug/Release/AndroidTest构建成功；窄屏与宽屏ClassyBrandCardTest各3项通过（brand-wordmark-tests.txt、brand-wordmark-wide-tests.txt），含按压像素变化、松手/Cancel复位、滚动与信件开合。模拟器English/1.5字号，测试后恢复540×960/240dpi。vivo正式版安装成功，关于页中文排版截图已核对：stage2-vivo-phone-device/brand-wordmark-phone.png、brand-wordmark-phone-crop.png。真实平板和暗色整页仍未补验；没有本批性能提升结论。
+
+## HEADER-03（2026-10-13）
+
+header-single-build.log：Debug/Release/AndroidTest构建通过；新增测试单独构建header-single-test-build.log。窄屏540×960/240dpi与宽屏1200×1600/160dpi，各5项ScheduleHeaderFlowTest通过（含1项旧概览组件回归，不计入顶栏覆盖）。新增明确1.0字号340dp单行与1.5字号260dp换行、回到本周仅在面板出现并执行关闭；既有长名称菜单与首次引导回归通过。日志header-single-tests.txt、header-single-wide-tests.txt。
+
+vivo已安装最终Release，header-single-phone.png确认课表名/周次/更多单行、课表上移52dp。实测第7周→第6周→重新打开周次面板→回到本周，恢复第7周，无课程数据改动。证据header-single-return-current.png。真实平板仍待验证，模拟器大窗口不冒充平板。保存缩放保留既有回调与条件出现，本批未用真实缩放改动用户偏好。
