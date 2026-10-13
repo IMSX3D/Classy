@@ -200,7 +200,8 @@ internal fun SleepyNavHost(
                     }
                 }
             }
-            AddCourseScreen(
+            // A lost process session must not briefly compose a new-course form as an editor.
+            if (!editing || editingCourse != null) AddCourseScreen(
                 onBack = {
                     session.clearEditCourse()
                     if (!navigator.pop()) {

@@ -25,7 +25,7 @@ internal fun CourseDeleteConfirmation(name: String, action: EditorActionState, o
         title = { Text(stringResource(R.string.confirm_delete)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                action.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                action.error?.let { Text(stringResource(R.string.course_delete_failed), color = MaterialTheme.colorScheme.error) }
                 Text(stringResource(R.string.delete_course_confirm, name))
 
             }

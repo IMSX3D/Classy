@@ -48,7 +48,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -204,7 +203,6 @@ fun AddCourseScreen(
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val currentTable = state.effectiveCurrentTable
     val validPrefill = prefill?.takeIf { editingCourse == null }
     LaunchedEffect(validPrefill?.tableId) {
@@ -364,11 +362,35 @@ fun AddCourseScreen(
         blocksLoaded = true
     }
 
-    val deleteFailure = stringResource(R.string.course_delete_failed)
-    val deletion = remember(editingCourse?.id, deleteFailure) { com.imsx3d.classy.ui.component.EditorActionState(deleteFailure) }
+    val operations: CourseEditorOperations = androidx.lifecycle.viewmodel.compose.viewModel(key = "course-write-$colorSession")
+    val creationGroupId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+    val deletion = operations.deletion
     var showDeleteConfirm by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
-    var saving by remember { mutableStateOf(false) }
-    var saveError by remember { mutableStateOf<String?>(null) }
+    val saving = operations.save.busy
+    var localSaveError by remember { mutableStateOf<String?>(null) }
+    val saveError = localSaveError ?: operations.save.error?.let { stringResource(R.string.editor_action_failed) }
+    val completed = operations.result
+    LaunchedEffect(completed?.first) {
+        completed?.let { (id, details) ->
+            if (details.isEmpty()) {
+                showDeleteConfirm = false
+                onSaved()
+            } else pendingConflictDetails = details
+            operations.consume(id)
+        }
+    }
+    LaunchedEffect(creationGroupId) {
+        if (editingCourse == null && !operations.save.busy && operations.result == null) {
+            try {
+                if (SleepyApp.get().repository.findCreatedCourseTable(creationGroupId) != null)
+                    operations.recoverCommittedCreation()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Recovery reads never trigger writes; explicit Save still uses transactional deduplication.
+            }
+        }
+    }
     fun requestBack() {
         if (saving || deletion.busy || groupColorAction.busy) return
         if (draftFingerprint() != originalDraft) showDiscardConfirm = true else onBack()
@@ -377,7 +399,7 @@ fun AddCourseScreen(
     androidx.activity.compose.BackHandler(enabled = saving || deletion.busy || groupColorAction.busy || draftFingerprint() != originalDraft) { requestBack() }
     val prefillReady = (validPrefill == null || currentTable?.id == validPrefill.tableId) &&
         (editingCourse == null || currentTable?.id == editingCourse.tableId)
-    val canSave = !saving && !deletion.busy && !groupColorAction.busy && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    val canSave = !operations.finished && !saving && !deletion.busy && !groupColorAction.busy && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -387,7 +409,7 @@ fun AddCourseScreen(
     fun performSave(forceAfterConflict: Boolean) {
         if (saving || deletion.busy || groupColorAction.busy) return
         if (!prefillReady) {
-            saveError = context.getString(R.string.course_source_unavailable)
+            localSaveError = context.getString(R.string.course_source_unavailable)
             return
         }
         val issues = validateCourseDraft(
@@ -420,51 +442,45 @@ fun AddCourseScreen(
                 }
             }
         }
-        saving = true
-        scope.launch {
-            try {
-                val repo = SleepyApp.get().repository
-                if (!forceAfterConflict && draftTableId != null) {
-                    val existing = repo.getCourses(draftTableId)
-                        .filter { it.groupId != editingCourse?.groupId }
-                    val details = ConflictDetailReporter.draftConflictDetails(
-                        drafts, existing, dayNames, effectiveTimeJson
-                    ).map { ConflictDetailReporter.formatDetail(it, conflictTemplate) }
-                    if (details.isNotEmpty()) {
-                        pendingConflictDetails = details
-                        return@launch
+        val inserts = pendingEdgeInserts.toList()
+        val edits = pendingEdgeEdits.toList()
+        val appContext = context.applicationContext
+        operations.save {
+            val repo = SleepyApp.get().repository
+            if (!forceAfterConflict && draftTableId != null) {
+                val existing = repo.getCourses(draftTableId)
+                    .filter { it.groupId != (editingCourse?.groupId ?: creationGroupId) }
+                val details = ConflictDetailReporter.draftConflictDetails(
+                    drafts, existing, dayNames, effectiveTimeJson
+                ).map { ConflictDetailReporter.formatDetail(it, conflictTemplate) }
+                if (details.isNotEmpty()) {
+                    return@save details
+                }
+            }
+            val names = repo.getAllTables().map { it.name }.toSet()
+            var index = names.size + 1
+            var name = appContext.getString(R.string.default_table_with_num, index)
+            while (name in names) { index++; name = appContext.getString(R.string.default_table_with_num, index) }
+            repo.saveCourseDrafts(
+                selectedTableId = draftTableId,
+                drafts = drafts,
+                editingGroupId = editingCourse?.groupId,
+                newTable = com.imsx3d.classy.data.entity.TimeTableEntity(
+                    name = name,
+                    startDate = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).minusWeeks(1).toString(),
+                    isDefault = true
+                ),
+                creationGroupId = creationGroupId,
+                updateTimeJson = { json ->
+                    val inserted = inserts.fold(json) { value, insert ->
+                        TimeTableUtils.insertEdgeNode(value, insert.edgeClass, insert.start, insert.end)
+                    }
+                    edits.fold(inserted) { value, edit ->
+                        TimeTableUtils.updateEdgeNodeTimes(value, edit.node, edit.start, edit.end)
                     }
                 }
-                val names = repo.getAllTables().map { it.name }.toSet()
-                var index = names.size + 1
-                var name = context.getString(R.string.default_table_with_num, index)
-                while (name in names) { index++; name = context.getString(R.string.default_table_with_num, index) }
-                repo.saveCourseDrafts(
-                    selectedTableId = draftTableId,
-                    drafts = drafts,
-                    editingGroupId = editingCourse?.groupId,
-                    newTable = com.imsx3d.classy.data.entity.TimeTableEntity(
-                        name = name,
-                        startDate = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY).minusWeeks(1).toString(),
-                        isDefault = true
-                    ),
-                    updateTimeJson = { json ->
-                        val inserted = pendingEdgeInserts.fold(json) { value, insert ->
-                            TimeTableUtils.insertEdgeNode(value, insert.edgeClass, insert.start, insert.end)
-                        }
-                        pendingEdgeEdits.fold(inserted) { value, edit ->
-                            TimeTableUtils.updateEdgeNodeTimes(value, edit.node, edit.start, edit.end)
-                        }
-                    }
-                )
-                onSaved()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                saveError = context.getString(R.string.editor_action_failed)
-            } finally {
-                saving = false
-            }
+            )
+            emptyList()
         }
     }
 
@@ -472,20 +488,18 @@ fun AddCourseScreen(
         CourseDeleteConfirmation(editingCourse.courseName, deletion,
             onDismiss = { showDeleteConfirm = false },
             onConfirm = {
-                deletion.launch(scope) {
+                operations.delete {
                     SleepyApp.get().repository.deleteCourseFromEditor(editingCourse)
-                    showDeleteConfirm = false
-                    onSaved()
                 }
             })
     }
 
     saveError?.let { message ->
         AlertDialog(
-            onDismissRequest = { saveError = null },
+            onDismissRequest = { localSaveError = null; operations.save.clearError() },
             title = { Text(stringResource(R.string.course_save_failed)) },
             text = { Text(message) },
-            confirmButton = { TextButton(onClick = { saveError = null }) { Text(stringResource(R.string.action_confirm)) } }
+            confirmButton = { TextButton(onClick = { localSaveError = null; operations.save.clearError() }) { Text(stringResource(R.string.action_confirm)) } }
         )
     }
 
@@ -707,7 +721,7 @@ fun AddCourseScreen(
                         GroupColorSection(
                             groupSourceColorHex = groupSourceColorHex,
                             onChangeGroupColor = {
-                                if (!saving && !deletion.busy && !groupColorAction.busy) {
+                                if (!operations.finished && !saving && !deletion.busy && !groupColorAction.busy) {
                                     groupColorAction.clearFailure()
                                     showGroupColorPicker = true
                                 }
@@ -859,7 +873,7 @@ fun AddCourseScreen(
                 // TextButton+error 文字色); 此处沿用 errorContainer 色块 = Sleepy 视觉语言。
                 Button(
                     onClick = { showDeleteConfirm = true },
-                    enabled = !saving && !deletion.busy,
+                    enabled = !operations.finished && !saving && !deletion.busy && !groupColorAction.busy,
                     modifier = Modifier.fillMaxWidth().height(SleepyTheme.Buttons.regularHeight),
                     shape = SleepyTheme.Buttons.shape,
                     colors = ButtonDefaults.buttonColors(containerColor = colors.errorContainer)

@@ -17,6 +17,8 @@ internal class EditorActionState(private val failureMessage: String) {
     var error by mutableStateOf<String?>(null)
         private set
 
+    fun clearError() { if (!busy) error = null }
+
     fun launch(scope: CoroutineScope, action: suspend () -> Unit) {
         if (busy) return
         busy = true

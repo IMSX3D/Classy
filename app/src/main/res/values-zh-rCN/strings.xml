@@ -302,7 +302,7 @@
     <string name="add_slot">新增一个上课时段</string>
     <string name="save_course">保存课程</string>
     <string name="delete_course">删除课程</string>
-    <string name="delete_course_confirm">确定要删除课程「%1$s」吗？此操作不可撤销。</string>
+    <string name="delete_course_confirm">删除课程「%1$s」及其上课安排？</string>
     <string name="select_at_least_one_day">至少选一天</string>
     <string name="delete_slot">删除时段</string>
     <string name="start_node">开始第几节</string>

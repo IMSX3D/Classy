@@ -365,16 +365,25 @@ class ScheduleRepository(private val db: AppDatabase) {
 
     suspend fun tableCount(): Int = tableDao.count()
 
+    suspend fun findCreatedCourseTable(creationGroupId: String): Long? =
+        courseDao.findTableByGroupId(creationGroupId)
+
     suspend fun saveCourseDrafts(
         selectedTableId: Long?,
         drafts: List<CourseEntity>,
         editingGroupId: String?,
         newTable: TimeTableEntity,
+        creationGroupId: String? = null,
         updateTimeJson: (String) -> String
     ): Long = atomicEdit {
+        // A restored new-course request may already have committed before its process died.
+        if (editingGroupId == null && creationGroupId != null) {
+            require(creationGroupId.isNotBlank())
+            courseDao.findTableByGroupId(creationGroupId)?.let { return@atomicEdit it }
+        }
         val tableId = selectedTableId ?: insertTable(newTable)
         val table = requireNotNull(getTable(tableId)) { "课表已不存在，请返回重新选择" }
-        val groupId = editingGroupId ?: java.util.UUID.randomUUID().toString()
+        val groupId = editingGroupId ?: creationGroupId ?: java.util.UUID.randomUUID().toString()
         val fixed = drafts.map { it.copy(tableId = tableId, groupId = groupId) }
         // Build slot changes from the pre-edit table; diff may reclaim unused nodes.
         val updatedJson = updateTimeJson(table.timeJson)

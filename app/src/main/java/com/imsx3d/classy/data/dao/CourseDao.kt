@@ -53,6 +53,9 @@ interface CourseDao {
     @Query("SELECT * FROM courses")
     suspend fun getAll(): List<CourseEntity>
 
+    @Query("SELECT tableId FROM courses WHERE groupId = :groupId LIMIT 1")
+    suspend fun findTableByGroupId(groupId: String): Long?
+
     @Query("SELECT * FROM courses WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): CourseEntity?
 

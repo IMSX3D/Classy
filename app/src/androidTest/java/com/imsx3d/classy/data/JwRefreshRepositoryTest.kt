@@ -27,6 +27,16 @@ class JwRefreshRepositoryTest {
     }
     @After fun cleanup() { db.close(); UndoManager.clear() }
 
+    @Test fun replayedCreationDoesNotDuplicateTableOrCourses() = runBlocking {
+        val token = "creation-fixture-token"
+        val created = repo.saveCourseDrafts(null, listOf(course(0)), null, table, token) { it }
+        val replayed = repo.saveCourseDrafts(null, listOf(course(0).copy(courseName = "stale restored draft")), null, table, token) { it }
+        assertEquals(created, replayed)
+        assertEquals(1, repo.getAllTables().size)
+        assertEquals(listOf("Math"), repo.getCourses(created).map { it.courseName })
+        assertEquals(created, repo.findCreatedCourseTable(token))
+    }
+
     @Test fun savingStaleEditorPreservesConfirmedGroupColorAndCustomColors() = runBlocking {
         val id = db.timeTableDao().insert(table)
         val original = course(id)
