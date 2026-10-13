@@ -249,11 +249,13 @@ fun CardsGridView(
     val cornerRatio = AppPrefs.getGridCornerRatio(context)
     val d = { v: Float -> (v * scale).dp }
 
-    // 布局常量（全 dp, 乘 scale）
-    // UI-4p: 显示日期时表头加高 —— 表头改两行（周X / 日期，同网格组件版式）。
-    // 起因：单列只有 ~40dp，"周一 09-21" 一行要 ~64dp，实测溢出 ~24dp，
-    // 日期被压到隔壁列上（且今天的主色胶囊会被白色日期文字"破框"）。
-    val headH = d(if (showDate) HEAD_CELL_H_DATE_SP else HEAD_CELL_H_SP)
+    // Reserve a shared badge row only when this visible week actually has a holiday mark.
+    val reserveDayMark = sortedDays.any { !greyMarks[it].isNullOrBlank() }
+    val headerDensity = LocalDensity.current
+    val headH = with(headerDensity) {
+        ((if (showDate) 26f else 14f) * scale).sp.toDp() +
+            (if (reserveDayMark) (BADGE_SLOT_SP * scale).sp.toDp() else 0.dp)
+    } + d(if (showDate) 12f else 8f)
     val timeW = d(44f)
     val gapH = d(4f)
     val gapW = d(4f)
@@ -265,7 +267,7 @@ fun CardsGridView(
         modifier = modifier
             .fillMaxSize()
             .background(colors.surfaceContainerHigh.copy(alpha = if (LocalScheduleBackground.current) .55f else 1f), gridBgShape)
-            .padding(d(6f))
+            .padding(d(8f))
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             // 自动适配只改变纵向行高；横向宽度、字号和卡片内容仍由原 gridScale 控制。
@@ -410,6 +412,7 @@ fun CardsGridView(
                             isToday = isTodayColumn(day, startDate, currentWeek, todayDate),
                             isGrey = day in greyDays,
                             mark = greyMarks[day],
+                            reserveMark = reserveDayMark,
                             courseCount = courses.count { it.day == day },
                             dateStr = dateStr,
                             scale = scale,
@@ -949,38 +952,17 @@ private const val BADGE_RADIUS_SP = 4f
 /** 角标槽高（sp）——略大于方章边长，给抗锯齿留余量。恒占高，保证各列星期文字同基线。 */
 private const val BADGE_SLOT_SP = 16f
 
-/** 表头格高（sp, ×scale）：默认 34dp；显示日期时 46dp 容纳"周X / 日期"两行。 */
-private const val HEAD_CELL_H_SP = 34f
-private const val HEAD_CELL_H_DATE_SP = 46f
-
 @Composable
-private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mark: String? = null, courseCount: Int, dateStr: String? = null, dayLabel: String = DateUtils.localizedDay(day, androidx.compose.ui.platform.LocalContext.current), modifier: Modifier = Modifier, scale: Float = 1f, cornerRatio: Float = 1f) {
+private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mark: String? = null, reserveMark: Boolean = false, courseCount: Int, dateStr: String? = null, dayLabel: String = DateUtils.localizedDay(day, androidx.compose.ui.platform.LocalContext.current), modifier: Modifier = Modifier, scale: Float = 1f, cornerRatio: Float = 1f) {
     val colors = glasenseM3Scheme()
     val sd = { v: Float -> (v * scale).dp }
     val density = LocalDensity.current
     val stampSlotH = with(density) { (BADGE_SLOT_SP * scale).sp.toDp() }
-    // UI-2c 重设计（2026-09-26）: 原「56dp 高的大圆角胶囊（周一 / N门）」小列宽下
-    // 16~18dp 圆角看着"圆不像圆、方不像方"，且纵向吃掉 22dp 课程空间、形状与全 App 割裂。
-    // 改为一行式：星期文字 + 日期小方章（今天=主色实心），高度 34dp。
-    // 课程数不再单独占一行；需要日期时在网格设置里开「显示日期」。
-    // UI-2f（2026-09-26 用户报障）: 「休/补」角标上移到**独占一行**（槽位恒占高，
-    //   无角标也留空，各列星期文字因此仍同基线）——7 列网格单列只有 ~42dp，
-    //   角标与"周五"同行放不下，会压住隔壁列（用户截图：周五的章盖在 周六 上）。
-    // UI-4p（2026-09-26 用户令「组件里有今日选中特效，App 里没有」）:
-    //   今天 = 表头铺主色胶囊（对齐网格组件的 wg_hdrN_pill），不再是"只有日期方章染个色"。
-    //   灰显不覆盖今天的高亮 —— 与组件同款行为，"今天在哪一列"是方向锚点，不该被休假淡出掉。
-    // UI-4r（2026-09-26 用户报障「深色下胶囊刺眼、字与底糊在一起」）:
-    //   浅色保持实心主色 + onPrimary 字（用户定稿）；深色改 M3 容器语义
-    //   （主色半透明暗底 + 主色当字色）—— 取值与理由见 util/TodayHighlight.kt。
     val dark = com.nevoit.glasense.theme.GlasenseTheme.darkTheme
     val pillBg = if (dark) {
         colors.primary.copy(alpha = com.imsx3d.classy.util.TodayHighlight.DARK_PILL_ALPHA)
     } else colors.primary
     val pillFg = if (dark) colors.primary else colors.onPrimary
-    // UI-5c（2026-09-27 用户令"表头恒显日期后，今日选中特效重新想一下"）：
-    // 胶囊内不再叠"次级小块"（休/补 角标 + 日期方章各压一块半透明底会变成**块里套块**），
-    // 内部一律纯文字；层次交给"有胶囊 vs 无胶囊"这一对比。
-    // UI-36a（2026-09-28 用户报障）：胶囊**只包文字**（角标槽位不含在内）——见下方注释。
     val fg = when {
         isToday -> pillFg
         isGrey -> colors.onSurfaceVariant.copy(alpha = SleepyTheme.Alpha.inactive)
@@ -989,33 +971,22 @@ private fun DayHeadCell(day: Int, isToday: Boolean, isGrey: Boolean = false, mar
     val todayPill = if (isToday) {
         Modifier.clip(RoundedCornerShape(sd(9f))).background(pillBg)
     } else Modifier
-    // UI-4p: 有日期 → 两行（周X / 日期），与网格组件的表头同构；
-    // 一行放不下是几何事实（列宽 ~40dp vs 内容 ~64dp），不是字号问题。
-    val stackedDate = dateStr != null
     Column(
-        modifier = modifier
-            .height(sd(if (stackedDate) HEAD_CELL_H_DATE_SP else HEAD_CELL_H_SP)),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // 休/补 角标槽位恒占高（UI-2f：无角标也留空，各列星期文字才同基线）。
-        Box(modifier = Modifier.height(stampSlotH), contentAlignment = Alignment.Center) {
-            val mk = mark
-            if (mk != null) DayMarkBadge(mark = mk, scale = scale)
+        if (reserveMark) {
+            Box(modifier = Modifier.height(stampSlotH), contentAlignment = Alignment.Center) {
+                if (!mark.isNullOrBlank()) DayMarkBadge(mark = mark, scale = scale)
+            }
         }
-        // 今日胶囊**只包文字**，角标留在胶囊外（它本来就是独立的"休/补"标记）。
-        //
-        // 用户 2026-09-28 报障：胶囊原来套在**整格**上（含上面那 16sp 角标槽位）——
-        // 今日那列若恰好没有休/补角标，槽位是空的，于是胶囊上半截变成"一大块没有内容的
-        // 主色"，看着像选中特效自己撑高了。胶囊改成只裹文字块后，高度随内容收紧，
-        // 有没有角标都不会再出现空块；文字基线不受影响（槽位照样占高）。
+        // Insets belong inside the highlight; badge spacing is shared by the whole row.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(todayPill)
-                // 只有一行（关掉「显示日期」时）补 2dp 垂直呼吸，免得胶囊退化成一条细杠；
-                // 两行时"角标槽位 + 两行"已经刚好填满 46dp 格高，不能再加内边距（会挤出格）。
-                .padding(vertical = if (stackedDate) 0.dp else sd(2f)),
+                .padding(vertical = sd(4f)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

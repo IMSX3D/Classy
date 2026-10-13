@@ -158,7 +158,6 @@ internal fun TodayContent(
             if (todayCourses.isEmpty()) {
                 item { EmptyToday(semesterStatus = semesterStatus) }
             } else {
-                item { SectionLabel(title = stringResource(R.string.widget_today_label), trailing = stringResource(R.string.n_periods, todayCourses.size)) }
                 // v7.10.10 今日页冲突分栏 — 分组已提至 LazyColumn 外
                 laneRows.forEach { row ->
                     if (row.laneCount == 1) {
@@ -283,20 +282,6 @@ private fun StatPill(label: String) {
             .background(g.cardBackground)
             .padding(horizontal = 10.dp, vertical = 5.dp)
     )
-}
-
-/** 分组小标题：左标题 + 右计数，均为 Glasense 字号阶梯内的次级样式。 */
-@Composable
-private fun SectionLabel(title: String, trailing: String) {
-    val g = GlasenseTheme.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = title, modifier = Modifier.weight(1f), style = GlasenseTheme.type.subHeadlineEmphasized, color = g.content)
-        HGap(8.dp)
-        Text(text = trailing, style = GlasenseTheme.type.footnote, color = g.contentVariant)
-    }
 }
 
 @Composable
