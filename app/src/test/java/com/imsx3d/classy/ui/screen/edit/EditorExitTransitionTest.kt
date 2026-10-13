@@ -16,7 +16,7 @@ class EditorExitTransitionTest {
     }
     @Test fun `clean editor exits are left to navigation`() {
         val course = read("screen/edit/AddCourseScreen.kt")
-        assertTrue(course.contains("BackHandler(enabled = saving || deletion.busy || draftFingerprint() != originalDraft)"))
+        assertTrue(course.contains("BackHandler(enabled = saving || deletion.busy || groupColorAction.busy || draftFingerprint() != originalDraft)"))
         for (name in listOf("EditTableScreen", "PeriodTableEditScreen")) {
             val source = read("screen/mine/$name.kt")
             assertTrue(source.contains("enabled = actions.busy || draft != originalDraft ||"))

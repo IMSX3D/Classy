@@ -46,6 +46,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -194,6 +196,9 @@ fun AddCourseScreen(
     viewModel: ScheduleViewModel = viewModel(),
     loadGroupCourses: suspend (Long, String) -> List<CourseEntity> = { tableId, groupId ->
         SleepyApp.get().repository.getGroupCourses(tableId, groupId)
+    },
+    writeGroupColor: suspend (Long, String, String) -> Unit = { tableId, groupId, hex ->
+        SleepyApp.get().repository.setGroupSourceColor(tableId, groupId, hex)
     }
 ) {
     val state by viewModel.state.collectAsState()
@@ -250,10 +255,23 @@ fun AddCourseScreen(
     // 改组色弹层状态(issue#22 spec §6.2 恢复): 编辑模式才有组色源, 新建模式无组
     var showGroupColorPicker by rememberSaveable { mutableStateOf(false) }
     // 组色源色值: 同组 colorMode=GROUP 中 id 最小行的 color — UI 显示 + 改组色弹层初值。
-    // 编辑回填 LaunchedEffect 里更新;新建模式恒空串(显示"自动(黄金角)",不显示改组色入口)
+    // 编辑时从数据库回填；新建时为草稿，随创建课程一起提交。
     var groupSourceColorHex by rememberSaveable { mutableStateOf("") }
     // 改组色两段式: 调色盘选中 → 暂存 → 确认对话框(spec §6.3"组色会影响本组所有跟随组色的节次")→ 落库
-    var pendingGroupColorHex by remember { mutableStateOf<String?>(null) }
+    var pendingGroupColorHex by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val colorSession = rememberSaveable { java.util.UUID.randomUUID().toString() }
+    val groupColorAction: CourseGroupColorAction = androidx.lifecycle.viewmodel.compose.viewModel(key = "group-color-$colorSession")
+    var appliedColorResult by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(groupColorAction.result) {
+        groupColorAction.result?.let { (version, hex) ->
+            if (appliedColorResult != version) {
+                groupSourceColorHex = hex
+                pendingGroupColorHex = null
+                appliedColorResult = version
+            }
+        }
+    }
 
     val meetingBlocks = rememberSaveable(editingCourse?.id, saver = MeetingBlocksSaver) {
         mutableStateListOf(initialMeetingBlock(editingCourse).also { block ->
@@ -271,7 +289,8 @@ fun AddCourseScreen(
 
     var blocksLoaded by rememberSaveable(editingCourse?.id) { mutableStateOf(false) }
     fun draftFingerprint() = courseDraftFingerprint(courseName, courseAlias, startWeek, endWeek,
-        meetingBlocks, pendingEdgeInserts, pendingEdgeEdits)
+        meetingBlocks, pendingEdgeInserts, pendingEdgeEdits) +
+        if (editingCourse == null) "|$groupSourceColorHex" else ""
     var originalDraft by rememberSaveable(editingCourse?.id) { mutableStateOf(draftFingerprint()) }
     var showDiscardConfirm by rememberSaveable { mutableStateOf(false) }
 
@@ -351,14 +370,14 @@ fun AddCourseScreen(
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
     fun requestBack() {
-        if (saving || deletion.busy) return
+        if (saving || deletion.busy || groupColorAction.busy) return
         if (draftFingerprint() != originalDraft) showDiscardConfirm = true else onBack()
     }
     // Clean exits belong to NavDisplay's predictive back; intercept only protected work.
-    androidx.activity.compose.BackHandler(enabled = saving || deletion.busy || draftFingerprint() != originalDraft) { requestBack() }
+    androidx.activity.compose.BackHandler(enabled = saving || deletion.busy || groupColorAction.busy || draftFingerprint() != originalDraft) { requestBack() }
     val prefillReady = (validPrefill == null || currentTable?.id == validPrefill.tableId) &&
         (editingCourse == null || currentTable?.id == editingCourse.tableId)
-    val canSave = !saving && !deletion.busy && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
+    val canSave = !saving && !deletion.busy && !groupColorAction.busy && blocksLoaded && prefillReady && courseName.isNotBlank() && meetingBlocks.isNotEmpty()
 
     // 星期名(1=周一..7=周日), 冲突明细文案取用;模板在此取(stringResource 不能进协程)
     val dayNames = context.resources.getStringArray(R.array.day_names)
@@ -366,7 +385,7 @@ fun AddCourseScreen(
 
     // 保存主流程: 校验 → 草稿 → 冲突明细 → 落库。forceAfterConflict = 冲突弹窗「仍然保存」回调
     fun performSave(forceAfterConflict: Boolean) {
-        if (saving || deletion.busy) return
+        if (saving || deletion.busy || groupColorAction.busy) return
         if (!prefillReady) {
             saveError = context.getString(R.string.course_source_unavailable)
             return
@@ -395,7 +414,10 @@ fun AddCourseScreen(
                     // 用户报障 2026-09-10: ownTime 课落库即反算真实节点 —
                     // 裸节点消费方(今日页/小组件/详情页)不再拿到表单占位节点
                     timeJson = effectiveTimeJson
-                )
+                ).let { course ->
+                    if (editingCourse == null && course.colorMode == com.imsx3d.classy.data.entity.CourseColorMode.GROUP && groupSourceColorHex.isNotBlank())
+                        course.copy(color = groupSourceColorHex) else course
+                }
             }
         }
         saving = true
@@ -505,7 +527,7 @@ fun AddCourseScreen(
     }
 
     // ── 改组色弹层(issue#22 spec §6.2/§6.3 恢复): 调色盘 + 全组影响确认 ──
-    // 编辑模式才弹(新建模式无 groupId, showGroupColorPicker 永远不会置 true)
+    // 已有课程确认即生效；新建课程仅更改草稿。
     if (showGroupColorPicker) {
         ColorPickerDialog(
             initialHex = groupSourceColorHex.ifBlank { "#FF6750A4" },
@@ -518,38 +540,40 @@ fun AddCourseScreen(
     }
     pendingGroupColorHex?.let { hex ->
         AlertDialog(
-            onDismissRequest = { pendingGroupColorHex = null },
+            onDismissRequest = { if (!groupColorAction.busy) pendingGroupColorHex = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = !groupColorAction.busy, dismissOnClickOutside = !groupColorAction.busy),
             title = { Text(stringResource(R.string.group_color_confirm_title)) },
-            confirmButton = {},
+            confirmButton = {
+                com.imsx3d.classy.ui.component.DialogActionButtons(
+                    confirmText = stringResource(if (groupColorAction.busy) R.string.move_saving else R.string.action_confirm),
+                    confirmEnabled = !groupColorAction.busy,
+                    dismissEnabled = !groupColorAction.busy,
+                    onConfirm = {
+                        groupColorAction.submit(hex) {
+                            editingCourse?.let { course ->
+                                writeGroupColor(course.tableId, course.groupId, hex)
+                            }
+                        }
+                    },
+                    dismissText = stringResource(R.string.cancel),
+                    onDismiss = { if (!groupColorAction.busy) pendingGroupColorHex = null }
+                )
+            },
             dismissButton = {},
             // 2026-09-16 用户: 裸 TextButton 无边界无色块 — 统一色块按钮行
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         GroupColorSwatch(hex = hex)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(hex, style = MaterialTheme.typography.bodySmall)
                     }
-                    Text(stringResource(R.string.group_color_confirm_msg), style = MaterialTheme.typography.bodySmall)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    com.imsx3d.classy.ui.component.DialogActionButtons(
-                        confirmText = stringResource(R.string.action_confirm),
-                        onConfirm = {
-                            val gid = editingCourse?.groupId
-                            val tid = editingCourse?.tableId
-                            pendingGroupColorHex = null
-                            if (gid != null && tid != null) {
-                                scope.launch {
-                                    SleepyApp.get().repository.setGroupSourceColor(tid, gid, hex)
-                                    // 组色源变了 → 刷新编辑回填的组色源显示
-                                    val fresh = SleepyApp.get().repository.getGroupCourses(tid, gid)
-                                    if (fresh.isNotEmpty()) groupSourceColorHex = CourseColorUtil.groupSourceColorHex(fresh)
-                                }
-                            }
-                        },
-                        dismissText = stringResource(R.string.cancel),
-                        onDismiss = { pendingGroupColorHex = null }
-                    )
+                    if (groupColorAction.failed) {
+                        Text(stringResource(R.string.group_color_failed), color = colors.error)
+                    } else {
+                        Text(stringResource(if (editingCourse == null) R.string.group_color_new_confirm_msg else R.string.group_color_confirm_msg))
+                    }
                 }
             }
         )
@@ -682,7 +706,12 @@ fun AddCourseScreen(
                     if (meetingBlocks.isNotEmpty()) {
                         GroupColorSection(
                             groupSourceColorHex = groupSourceColorHex,
-                            onChangeGroupColor = { showGroupColorPicker = true }
+                            onChangeGroupColor = {
+                                if (!saving && !deletion.busy && !groupColorAction.busy) {
+                                    groupColorAction.clearFailure()
+                                    showGroupColorPicker = true
+                                }
+                            }
                         )
                     }
                     // issue#22: teacher/room/note 仍下沉到每个 MeetingBlockDraft(同名多地点独立编辑)

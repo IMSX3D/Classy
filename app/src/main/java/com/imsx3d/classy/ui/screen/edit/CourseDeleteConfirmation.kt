@@ -1,5 +1,8 @@
 package com.imsx3d.classy.ui.screen.edit
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
@@ -21,9 +24,13 @@ internal fun CourseDeleteConfirmation(name: String, action: EditorActionState, o
         properties = DialogProperties(dismissOnBackPress = !action.busy, dismissOnClickOutside = !action.busy),
         title = { Text(stringResource(R.string.confirm_delete)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.delete_course_confirm, name))
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 action.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                Text(stringResource(R.string.delete_course_confirm, name))
+
+            }
+        },
+        confirmButton = {
                 DialogActionButtons(
                     confirmText = stringResource(if (action.busy) R.string.course_deleting else R.string.delete),
                     onConfirm = { if (!action.busy) onConfirm() },
@@ -32,8 +39,6 @@ internal fun CourseDeleteConfirmation(name: String, action: EditorActionState, o
                     confirmEnabled = !action.busy, dismissEnabled = !action.busy,
                     destructive = true
                 )
-            }
-        },
-        confirmButton = {}, dismissButton = {}
+        }, dismissButton = {}
     )
 }

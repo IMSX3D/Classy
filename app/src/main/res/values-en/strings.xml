@@ -251,7 +251,7 @@
     <string name="edit_course">Edit Course</string>
     <string name="create_course">Create Course</string>
     <string name="course_basic_info">Basic Info</string>
-    <string name="course_basic_info_sub">Enter the teacher and location, then add class times</string>
+    <string name="course_basic_info_sub">Enter the course name, then set class times</string>
     <string name="course_name_required">Course Name *</string>
     <string name="course_alias">Alias (optional)</string>
     <string name="course_teacher">Teacher</string>
@@ -1100,4 +1100,6 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="course_save_failed">Could not save</string>
     <string name="course_source_unavailable">The original timetable is unavailable. Return to the timetable and try again.</string>
     <string name="course_load_failed">Could not load this course. Please try again.</string>
+    <string name="group_color_failed">Couldn’t save the color. Please try again.</string>
+    <string name="group_color_new_confirm_msg">The group color will apply when you save the course.</string>
 </resources>

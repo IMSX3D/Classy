@@ -27,6 +27,28 @@ class JwRefreshRepositoryTest {
     }
     @After fun cleanup() { db.close(); UndoManager.clear() }
 
+    @Test fun savingStaleEditorPreservesConfirmedGroupColorAndCustomColors() = runBlocking {
+        val id = db.timeTableDao().insert(table)
+        val original = course(id)
+        db.courseDao().insert(original)
+        val custom = original.copy(day = 2, colorMode = CourseColorMode.CUSTOM, color = "#ABCDEF")
+        db.courseDao().insert(custom)
+        val drafts = repo.getCourses(id).map { it.copy(courseName = "Renamed") }
+        repo.setGroupSourceColor(id, "g", "#FF112233")
+        repo.saveCourseDrafts(id, drafts, "g", table) { it }
+        val after = repo.getCourses(id)
+        assertEquals("#FF112233", after.single { it.colorMode == CourseColorMode.GROUP }.color)
+        assertEquals("#ABCDEF", after.single { it.colorMode == CourseColorMode.CUSTOM }.color)
+        assertTrue(after.all { it.courseName == "Renamed" })
+    }
+
+    @Test fun missingGroupDoesNotReportColorWriteSuccess() = runBlocking {
+        val id = db.timeTableDao().insert(table)
+        try { repo.setGroupSourceColor(id, "missing", "#FF112233"); fail("must fail") }
+        catch (_: IllegalStateException) { }
+        assertTrue(repo.getCourses(id).isEmpty())
+    }
+
     @Test fun editorDeleteUsesSourceTableAndBlankGroupsDeleteOnlyOneRow() = runBlocking {
         val first = db.timeTableDao().insert(table)
         val second = db.timeTableDao().insert(table.copy(name = "Other"))

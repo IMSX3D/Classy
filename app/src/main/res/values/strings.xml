@@ -267,7 +267,7 @@
     <string name="edit_course">编辑课程</string>
     <string name="create_course">手动创建课程</string>
     <string name="course_basic_info">课程基础信息</string>
-    <string name="course_basic_info_sub">先填写教师和地点，再添加上课时段</string>
+    <string name="course_basic_info_sub">填写课程名称，再设置上课时段</string>
     <string name="course_name_required">课程名 *</string>
     <!-- issue#26 课程别名 -->
     <string name="course_alias">别名 (可选)</string>
@@ -1130,4 +1130,6 @@
     <string name="course_save_failed">保存失败</string>
     <string name="course_source_unavailable">原课表暂不可用，请返回课表后重试</string>
     <string name="course_load_failed">课程暂时无法加载，请重试。</string>
+    <string name="group_color_failed">颜色未能保存，请重试。</string>
+    <string name="group_color_new_confirm_msg">组色将在保存课程时生效。</string>
 </resources>

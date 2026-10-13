@@ -380,7 +380,13 @@ class ScheduleRepository(private val db: AppDatabase) {
         val updatedJson = updateTimeJson(table.timeJson)
         if (editingGroupId != null) {
             val existing = getCourses(tableId).filter { it.groupId == editingGroupId }
-            applyDiff(tableId, com.imsx3d.classy.data.diff.RowKeyDiffer.diff(fixed, existing))
+            // Group color is an independently confirmed edit; stale form rows must not undo it.
+            val source = com.imsx3d.classy.util.CourseColorUtil.groupSourceColorHex(existing)
+            val reconciled = fixed.map { row ->
+                if (row.colorMode == com.imsx3d.classy.data.entity.CourseColorMode.GROUP && source.isNotBlank())
+                    row.copy(color = source) else row
+            }
+            applyDiff(tableId, com.imsx3d.classy.data.diff.RowKeyDiffer.diff(reconciled, existing))
         } else {
             insertCourses(fixed)
         }
@@ -579,10 +585,10 @@ class ScheduleRepository(private val db: AppDatabase) {
      * RowKeyDiffer 把"只改了最小 id 行"之外的 GROUP 行 diff 出假更新。
      */
     suspend fun setGroupSourceColor(tableId: Long, groupId: String, hex: String): Unit = atomicEdit() {
-        if (groupId.isBlank()) return@atomicEdit
+        require(groupId.isNotBlank())
         val group = courseDao.getByGroupId(tableId, groupId)
             .filter { it.colorMode == com.imsx3d.classy.data.entity.CourseColorMode.GROUP }
-        if (group.isEmpty()) return@atomicEdit
+        check(group.isNotEmpty())
         courseDao.updateAll(group.map { it.copy(color = hex) })
         onDataChanged()
     }
