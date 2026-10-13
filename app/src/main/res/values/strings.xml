@@ -1132,4 +1132,6 @@
     <string name="course_load_failed">课程暂时无法加载，请重试。</string>
     <string name="group_color_failed">颜色未能保存，请重试。</string>
     <string name="group_color_new_confirm_msg">组色将在保存课程时生效。</string>
+    <string name="conflict_choose_visible">选择要查看的重叠课程</string>
+    <string name="conflict_switch_visible">切换显示的课程</string>
 </resources>

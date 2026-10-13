@@ -36,6 +36,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -1094,6 +1100,7 @@ private fun ConflictCourseCard(
 private fun ConflictBadge(hiddenCount: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val single = hiddenCount in 0..9
+    val label = stringResource(R.string.conflict_choose_visible)
     Box(
         modifier = modifier
             .then(
@@ -1102,11 +1109,13 @@ private fun ConflictBadge(hiddenCount: Int, onClick: () -> Unit, modifier: Modif
             )
             .clip(RoundedCornerShape(50))
             .background(colors.surface)
+            .semantics { contentDescription = label; role = Role.Button }
             .noRippleClickable(onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "+$hiddenCount",
+            modifier = Modifier.clearAndSetSemantics {},
             style = MaterialTheme.typography.labelSmall.copy(fontSize = BADGE_FONT_SP.sp),
             color = colors.onSurface,
             maxLines = 1
@@ -1150,6 +1159,8 @@ private fun ConflictCoursePickerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .semantics { selected = isTopLayer; role = Role.RadioButton }
                             .clip(SleepyTheme.shapes.small)
                             .background(if (isTopLayer) colors.primaryContainer else colors.surfaceContainer)
                             .noRippleClickable { onPick(course.id) }
@@ -1161,6 +1172,7 @@ private fun ConflictCoursePickerDialog(
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isTopLayer) colors.onPrimaryContainer else colors.onSurface,
                             maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
                         if (repId == course.id && isTopLayer) {
@@ -1190,8 +1202,11 @@ private fun Modifier.conflictSwitchClickable(
     val pressed by source.collectIsPressedAsState()
     val focused by source.collectIsFocusedAsState()
     val color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (pressed) 0.08f else 0.06f)
-    return drawWithContent {
-        drawContent()
-        if (paint && (pressed || focused)) drawRect(color)
-    }.clickable(interactionSource = source, indication = null, onClick = onClick)
+    val label = stringResource(R.string.conflict_switch_visible)
+    return semantics { if (!paint) contentDescription = label }
+        .drawWithContent {
+            drawContent()
+            if (paint && (pressed || focused)) drawRect(color)
+        }.clickable(interactionSource = source, indication = null,
+            role = Role.Button, onClickLabel = label, onClick = onClick)
 }

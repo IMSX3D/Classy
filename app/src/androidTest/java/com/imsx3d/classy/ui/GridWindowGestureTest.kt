@@ -59,6 +59,13 @@ class GridWindowGestureTest {
             if (recreate) scenario.recreate()
             else compose.runOnIdle { if (resizeWidth) width=280.dp else height=440.dp }
             compose.mainClock.advanceTimeBy(64)
+            if (resizeWidth) {
+                // Keep the pointer held while repeatedly changing the same window geometry.
+                for (next in listOf(310.dp, 260.dp, 340.dp, 280.dp)) {
+                    compose.runOnIdle { width=next }
+                    compose.mainClock.advanceTimeBy(32)
+                }
+            }
             compose.waitForIdle()
             compose.runOnIdle { assertFalse(active); assertEquals(0,moves); assertEquals(0,opens) }
             // A late release must not commit the target calculated using the old geometry.

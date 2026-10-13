@@ -20,12 +20,14 @@ import org.junit.Test
 
 class GridIrregularTimeTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun overlapEndsInGapAndKeepsRealTimeWhenOpened() {
-        val json = """[{"node":1,"start":"09:00","end":"09:45"},{"node":2,"start":"10:00","end":"10:45"},{"node":3,"start":"11:00","end":"11:45"}]"""
+    @Test fun overlapEndsInGapAndKeepsRealTimeWhenOpened() = verify(false)
+    @Test fun overlapAcrossLunchKeepsAfternoonSeparate() = verify(true)
+    private fun verify(lunch: Boolean) {
+        val json = if (lunch) """[{"node":1,"start":"11:00","end":"11:45"},{"node":2,"start":"14:00","end":"14:45"},{"node":3,"start":"15:00","end":"15:45"}]""" else """[{"node":1,"start":"09:00","end":"09:45"},{"node":2,"start":"10:00","end":"10:45"},{"node":3,"start":"11:00","end":"11:45"}]"""
         val regular = CourseEntity(id=96001, groupId="regular", tableId=96000,
             courseName="Regular", day=1,startNode=1,step=1,startWeek=1,endWeek=16,color="#AACCEE")
         val irregular=regular.copy(id=96002,groupId="irregular",courseName="Irregular",
-            ownTime=true,startTime="09:15",endTime="09:50",color="#BBDEAA")
+            ownTime=true,startTime=if(lunch) "11:15" else "09:15",endTime=if(lunch) "12:30" else "09:50",color="#BBDEAA")
         val next=regular.copy(id=96003,groupId="next",courseName="Next class",startNode=2)
         val rows=listOf(regular,irregular,next)
         val cluster=ConflictLayoutEngine.findClusters(rows,json).single()
@@ -49,6 +51,6 @@ class GridIrregularTimeTest {
         card.performTouchInput { click(center) }
         compose.runOnIdle { assertEquals(irregular,opened) }
         val dir=File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null),"irregular").apply { mkdirs() }
-        File(dir,"grid-gap.png").outputStream().use { compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) }
+        File(dir,if(lunch) "grid-lunch.png" else "grid-gap.png").outputStream().use { compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) }
     }
 }

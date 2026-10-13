@@ -1102,4 +1102,6 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="course_load_failed">Could not load this course. Please try again.</string>
     <string name="group_color_failed">Couldn’t save the color. Please try again.</string>
     <string name="group_color_new_confirm_msg">The group color will apply when you save the course.</string>
+    <string name="conflict_choose_visible">Choose an overlapping course to view</string>
+    <string name="conflict_switch_visible">Switch the visible course</string>
 </resources>
