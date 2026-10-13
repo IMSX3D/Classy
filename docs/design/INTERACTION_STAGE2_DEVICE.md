@@ -269,3 +269,10 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 未关闭：PERF-01、全入口/状态/配置矩阵、原子岛视觉、真实平板与长期省电投递。桌面小组件本批没有修改；自动添加此前未通过，不能记为本批成果。
 
 最终安装包：E:/C015/交付/Classy-主线优化-20261013/Classy-0.0.9-ui-refresh-arm64.apk。SHA256：236F42335735FAD2A9DF2C10C7B66F95268337AAEA7B9979929159EEDD3EE8A0。最后文字调整将厂商名开关改为“实时课程卡片”，其构建/资源校验通过；末尾导入专项5项通过，linked-refresh-entry-final确认已关联学校直达登录，退出删除本次临时草稿。正式包原课表可读，提醒07:00/22:00/提前10分钟保持，未改用户勿扰。
+
+## 2026-10-13 顶栏与三列统计本批设备证据
+
+- vivo 10AF9A2KMF004Y3：正式Release覆盖安装成功；课程数→课程列表→返回我的，课表数→管理，周次→第7周课表，更多→使用提示重开均完成。原课表与填充样式保留。
+- 模拟器：540×960px/240dpi与1200×1600px/160dpi，English、1.5字号，ScheduleHeaderFlowTest各3项通过。含旧独立概览组件测试，不作为生产卡验收；不是实际平板验收。
+- 构建日志：E:/C015/99-整理记录/header-compact-release.log；测试header-compact-tests.txt、header-compact-wide-tests.txt。截图stage2-vivo-phone-device/header-compact-final.png、mine-shortcuts-final.png、mine-shortcut-courses.png、mine-shortcut-tables.png、mine-shortcut-week.png、header-help-reopened.png。
+- 本批未重跑此前全量JVM/lint，未宣称全路由性能完成；关于页品牌卡仍待实现。原始截图含用户课程信息，仅留本地。

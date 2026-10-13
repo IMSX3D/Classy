@@ -40,7 +40,9 @@ internal fun ScheduleHeader(
     onShare: () -> Unit,
     onRefresh: () -> Unit,
     viewMode: ViewMode,
-    onViewModeChange: (ViewMode) -> Unit
+    onViewModeChange: (ViewMode) -> Unit,
+    showInitialGuide: Boolean = false,
+    onGuideDismissed: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val actualWeek = displayContext?.actualWeek ?: remember(startDate) {
@@ -54,14 +56,15 @@ internal fun ScheduleHeader(
     }
     var weeksOpen by rememberSaveable { mutableStateOf(false) }
     var actionsOpen by rememberSaveable { mutableStateOf(false) }
+    var guideOpen by rememberSaveable { mutableStateOf(showInitialGuide) }
     val switchLabel = stringResource(R.string.schedule_switch_table)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
                 .noRippleClickable(onSwitchTable).semantics { contentDescription = switchLabel }
-                .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(tableName, Modifier.weight(1f, fill = false),
-                    color = colors.onSurface, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    color = colors.onSurface, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp),
                     tint = colors.onSurfaceVariant)
             }
@@ -87,25 +90,41 @@ internal fun ScheduleHeader(
                     DropdownMenuItem(text = { Text(stringResource(R.string.schedule_share_table)) },
                         leadingIcon = { Icon(Icons.Outlined.IosShare, null) },
                         onClick = { actionsOpen = false; onShare() })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text(stringResource(R.string.schedule_usage_title)) },
+                        leadingIcon = { Icon(Icons.Outlined.HelpOutline, null) },
+                        onClick = { actionsOpen = false; guideOpen = true })
                 }
             }
         }
-        FlowRow(Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(onClick = { weeksOpen = true }) {
-                Text(stringResource(R.string.schedule_week_prefix, currentWeek))
-                Icon(Icons.Outlined.ExpandMore, null, Modifier.size(18.dp))
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.heightIn(min = 48.dp).clip(SleepyTheme.shapes.medium)
+                .noRippleClickable { weeksOpen = true }
+                .semantics(mergeDescendants = true) { role = Role.Button }
+                .padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.schedule_week_prefix, currentWeek),
+                    color = colors.primary, style = MaterialTheme.typography.labelLarge)
+                Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 4.dp).size(18.dp), tint = colors.primary)
             }
-            if (currentWeek != actualWeek && actualWeek in 1..maxWeek) {
-                TextButton(onClick = onJumpToActual) { Text(stringResource(R.string.schedule_back_to_current_week)) }
-            }
-            if (scaleUncommitted) {
-                TextButton(onClick = onScaleCommit) { Text(stringResource(R.string.schedule_scale_keep)) }
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+                if (currentWeek != actualWeek && actualWeek in 1..maxWeek) {
+                    TextButton(onClick = onJumpToActual) { Text(stringResource(R.string.schedule_back_to_current_week)) }
+                }
+                if (scaleUncommitted) {
+                    TextButton(onClick = onScaleCommit) { Text(stringResource(R.string.schedule_scale_keep)) }
+                }
             }
         }
         hint?.let { Text(it, style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)) }
+            color = colors.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp)) }
+    }
+    if (guideOpen) {
+        val dismiss = { guideOpen = false; onGuideDismissed() }
+        AlertDialog(onDismissRequest = dismiss,
+            title = { Text(stringResource(R.string.schedule_usage_title)) },
+            text = { Text(stringResource(R.string.schedule_usage_body), modifier = Modifier.verticalScroll(rememberScrollState())) },
+            confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.schedule_usage_done)) } })
     }
     if (weeksOpen) {
         AlertDialog(onDismissRequest = { weeksOpen = false },

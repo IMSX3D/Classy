@@ -44,9 +44,12 @@ import com.nevoit.glasense.core.component.Text
 import com.nevoit.glasense.core.component.VGap
 import com.nevoit.glasense.theme.GlasenseTheme
 
-/** A passive overview followed by five task-level entry points. */
+/** Three contextual shortcuts followed by five task-level entry points. */
 @Composable
 fun MineScreen(
+    onOpenTables: () -> Unit,
+    onOpenCourses: () -> Unit,
+    onOpenCurrentWeek: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenWidgets: () -> Unit,
@@ -101,18 +104,16 @@ fun MineScreen(
                     DateUtils.SemesterStatus.IN_RANGE -> DateUtils.currentWeek(table!!.startDate).toString()
                     null -> "—"
                 }
-                com.imsx3d.classy.ui.component.SemesterOverviewCard(table?.name.orEmpty(), table?.startDate) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatItem(state.tables.size.toString(), stringResource(R.string.mine_stat_tables), modifier = Modifier.weight(1f))
+                    StatItem(state.tables.size.toString(), stringResource(R.string.mine_stat_tables), onClick = onOpenTables, modifier = Modifier.weight(1f))
                     StatColumnDivider()
                     StatItem(
                         state.courses.filter { it.tableId == table?.id }
                             .distinctBy { it.courseName.ifBlank { it.groupId } to it.teacher.trim() }.size.toString(),
-                        stringResource(R.string.mine_stat_courses), modifier = Modifier.weight(1f)
+                        stringResource(R.string.mine_stat_courses), onClick = if (table != null) onOpenCourses else onOpenTables, modifier = Modifier.weight(1f)
                     )
                     StatColumnDivider()
-                    StatItem(week, stringResource(R.string.mine_stat_week), modifier = Modifier.weight(1f))
-                }
+                    StatItem(week, stringResource(R.string.mine_stat_week), onClick = if (table != null) onOpenCurrentWeek else onOpenTables, modifier = Modifier.weight(1f))
                 }
             }
 
@@ -139,13 +140,16 @@ fun MineScreen(
 private fun StatItem(
     value: String,
     label: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val g = GlasenseTheme.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .padding(vertical = 6.dp)
+            .clip(GlasenseTheme.specs.cardShape)
+            .noRippleClickable(onClick)
+            .padding(vertical = 10.dp)
     ) {
         Text(text = value, style = if (value.length <= 3) GlasenseTheme.type.title1Emphasized else MaterialTheme.typography.bodyMedium, color = g.primary, textAlign = TextAlign.Center)
         VGap(2.dp)

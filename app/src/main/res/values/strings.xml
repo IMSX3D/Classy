@@ -1100,4 +1100,7 @@
     <string name="jw_refresh_short">重新获取课程，保留现有作息</string>
     <string name="jw_refresh_done">课表已与教务核对，作息保持不变</string>
     <string name="import_draft_delete_confirm">删除后无法恢复这份导入草稿，已导入的课表不受影响。</string>
+    <string name="schedule_usage_title">使用提示</string>
+    <string name="schedule_usage_body">点击课表名称切换课表，点击周次跳转到其他周。\n\n网格中，点击空白格新增课程，长按课程可拖动调课。\n\n右上角菜单可切换视图、从教务更新和分享，也可再次查看本提示。</string>
+    <string name="schedule_usage_done">知道了</string>
 </resources>

@@ -1070,4 +1070,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="jw_refresh_short">Fetch courses again, keeping your routine</string>
     <string name="jw_refresh_done">Schedule checked with your school. Routine unchanged.</string>
     <string name="import_draft_delete_confirm">This import draft cannot be recovered after deletion. Imported timetables are unaffected.</string>
+    <string name="schedule_usage_title">Using your timetable</string>
+    <string name="schedule_usage_body">Tap the timetable name to switch timetables, or the week to jump to another week.\n\nIn the grid, tap an empty cell to add a course. Hold a course to move it.\n\nUse the top-right menu to change views, refresh from school or share. You can reopen these tips there.</string>
+    <string name="schedule_usage_done">Got it</string>
 </resources>

@@ -483,6 +483,14 @@ internal fun MainTabs(
         }
         Tab.Mine -> holder.SaveableStateProvider(visibleTab.name) {
             MineScreen(
+                onOpenTables = { setCurrentTab(Tab.Manage) },
+                onOpenCourses = { navigator.openCourseList() },
+                onOpenCurrentWeek = {
+                    tabsState.currentTable?.let { table ->
+                        mainVm.changeWeek(com.imsx3d.classy.util.DateUtils.currentWeek(table.startDate).coerceIn(1, table.maxWeek.coerceAtLeast(1)))
+                    }
+                    setCurrentTab(Tab.Schedule)
+                },
                 onOpenSettings = { navigator.openSettings() },
                 onOpenAppearance = { navigator.openAppearance() },
                 onOpenWidgets = { navigator.openWidgetManagement() },

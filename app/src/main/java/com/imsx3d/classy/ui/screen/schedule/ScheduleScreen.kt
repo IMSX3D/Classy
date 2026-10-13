@@ -167,7 +167,10 @@ fun ScheduleScreen(
             var showShareSheet by remember { mutableStateOf(false) }
             // v7.10.14 顶栏 logo → 课表切换弹窗
             var showTableSwitcher by remember { mutableStateOf(false) }
+            val guidePrefs = remember(context) { context.getSharedPreferences("schedule_guidance", android.content.Context.MODE_PRIVATE) }
             ScheduleHeader(
+                showInitialGuide = viewMode == ViewMode.Cards && !guidePrefs.getBoolean("grid_seen", false),
+                onGuideDismissed = { guidePrefs.edit().putBoolean("grid_seen", true).apply() },
                 tableName = state.currentTable?.name.orEmpty(),
                 viewMode = viewMode,
                 onViewModeChange = onViewModeChange,
@@ -205,11 +208,6 @@ fun ScheduleScreen(
                         onDismiss = { showShareSheet = false }
                     )
                 }
-            }
-
-            if (viewMode == ViewMode.Cards) {
-                Text(stringResource(R.string.schedule_grid_hint), modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             if (showTableSwitcher) {

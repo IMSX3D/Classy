@@ -54,4 +54,22 @@ class ScheduleHeaderFlowTest {
         compose.onNodeWithText(label(R.string.overview_title)).performClick()
         compose.onNodeWithText("Example semester").assertDoesNotExist()
     }
+
+    @Test fun initialGuideDismissesAndCanBeReopenedFromMenu() {
+        var dismissals = 0
+        compose.setContent {
+            SleepyThemeProvider {
+                ScheduleHeader("Example", 3, 20, "2026-08-31", null,
+                    {}, false, {}, {}, {}, {}, {}, {}, ViewMode.Cards, {},
+                    showInitialGuide = true, onGuideDismissed = { dismissals++ })
+            }
+        }
+        compose.onNodeWithText(label(R.string.schedule_usage_body)).assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.schedule_usage_done)).performClick()
+        compose.runOnIdle { assertEquals(1, dismissals) }
+        compose.onNodeWithText(label(R.string.schedule_usage_body)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(label(R.string.schedule_actions)).performClick()
+        compose.onNodeWithText(label(R.string.schedule_usage_title)).performScrollTo().performClick()
+        compose.onNodeWithText(label(R.string.schedule_usage_body)).assertIsDisplayed()
+    }
 }
