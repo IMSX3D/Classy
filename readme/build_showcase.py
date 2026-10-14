@@ -16,7 +16,7 @@ screens = {
     'phone-fill': 'phone-fill', 'phone-bar': 'phone-bar',
     'phone-dark-fill': 'phone-dark-fill', 'phone-dark-bar': 'phone-dark-bar',
     'phone-today': 'phone-today', 'phone-week': 'phone-week',
-    'phone-semester': 'phone-semester', 'phone-calendar': 'phone-calendar',
+    'phone-semester': 'phone-semester',
     'phone-background-light': 'phone-background-light',
     'phone-background-dark': 'phone-background-dark',
     'phone-guide': 'phone-guide', 'phone-guide-lesson': 'phone-guide-lesson',
@@ -53,8 +53,6 @@ def sheet(name, title, subtitle, items, dark=False):
 
 sheet('week-and-today','从整周，到今天。','看清课程、时间与地点。',
  [('phone-fill','整周课表'),('phone-week','按天浏览'),('phone-today','专注今天')])
-sheet('semester','把整个学期，看得更清楚。','从课程周次分布，走到具体上课日期。',
- [('phone-semester','课程总览'),('phone-calendar','上课日历')])
 sheet('appearance','你的课表，你的颜色。','色条与填充，浅色与深色。',
  [('phone-bar','浅色 · 色条'),('phone-dark-bar','深色 · 色条'),('phone-dark-fill','深色 · 填充')])
 sheet('background','换一张背景，也换一种心情。','真实自定义背景效果 · 原创渐变示例',
@@ -88,6 +86,9 @@ if tablet.exists():
     Image.open(tablet/'tablet-widget-expanded.png').crop((334,214,1671,1446)).save(output/'tablet-widget-week.png',optimize=True)
     sheet('tablet-portrait','大屏，也有舒适的阅读节奏。','vivo 平板竖屏实拍',
           [('tablet-semester-portrait','学期安排'),('tablet-calendar-portrait','日期详情')])
+    # Use verified clean captures; the retired phone calendar contains an alarm overlay.
+    sheet('semester','把整个学期，看得更清楚。','从课程周次分布，走到具体上课日期。 · 平板实拍',
+          [('tablet-semester-portrait','课程总览'),('tablet-calendar-portrait','上课日历')])
     hero=Image.new('RGB',(1600,1050),'#e9efeb');d=ImageDraw.Draw(hero)
     d.text((64,38),'MAKE TIME YOURS.',font=font(60),fill='#173c35')
     d.text((64,132),'手机、平板，一份从容的课程安排。',font=font(30),fill='#425b56')
