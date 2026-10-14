@@ -3,6 +3,9 @@ package com.imsx3d.classy.util
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -33,9 +36,15 @@ object HolidayManager {
     private const val READ_TIMEOUT_MS = 5000
     private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    private val entriesCache = mutableMapOf<Int, List<HolidayEntry>>()
+    private val entriesCache = java.util.concurrent.ConcurrentHashMap<Int, List<HolidayEntry>>()
     /** 各年数据是否拉取成功过(空结果+成功=false => 网络失败) */
-    private val yearFetchFailed = mutableMapOf<Int, Boolean>()
+    private val yearFetchFailed = java.util.concurrent.ConcurrentHashMap<Int, Boolean>()
+    private val _revision = MutableStateFlow(0L)
+    val revision = _revision.asStateFlow()
+
+    /** Local-only snapshot for first layout. Call on IO; network must not gate a timetable. */
+    fun cachedYearEntries(ctx: Context, year: Int): List<HolidayEntry> =
+        entriesCache[year] ?: diskCache(ctx, year)?.also { entriesCache[year] = it }.orEmpty()
 
     /**
      * 磁盘缓存 — 拉成功一次即落盘, 进程重启后仍有效。
@@ -155,6 +164,7 @@ object HolidayManager {
             // 成功(含空年份, loaded 标记保证空数据也算已缓存)才落盘; 网络失败不缓存失败态
             entriesCache[year] = entries
             writeDiskCache(ctx, year, entries)
+            _revision.update { it + 1 }
         }
         return entries
     }

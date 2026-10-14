@@ -53,7 +53,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -86,7 +85,6 @@ import com.imsx3d.classy.ui.theme.primaryFilledButtonColors
 import com.imsx3d.classy.ui.theme.selectedSurfaceColors
 import com.imsx3d.classy.util.AppPrefs
 import com.imsx3d.classy.util.DateUtils
-import com.imsx3d.classy.util.HolidayManager
 import com.imsx3d.classy.util.TimeTableUtils
 import com.imsx3d.classy.util.WeekDisplayContext
 import com.imsx3d.classy.util.WeekDisplayResolver
@@ -294,41 +292,19 @@ fun ScheduleScreen(
                         page + 1, table.startDate, table.maxWeek, state.courses, state.transfers
                     ).map { it.normalizeNode(table.timeJson) }
                 }.orEmpty()
-                // 本周哪些天该"整列变淡" —— 受用户三个灰显开关控制（可关）。
-                // 传入表 ID 使命中调休映射的放假日不灰。
-                val greyDays by produceState<Set<Int>>(
-                    emptySet(), page, state.currentTable?.startDate, state.transfers
-                ) {
-                    val start = state.currentTable?.startDate
-                    if (start.isNullOrBlank()) {
-                        value = emptySet()
-                    } else {
-                        val set = mutableSetOf<Int>()
-                        for (day in 1..7) {
-                            val date = DateUtils.dateOfWeek(start, page + 1, day)
-                            if (HolidayManager.shouldGrey(context, date, state.effectiveCurrentTable?.id)) {
-                                set.add(day)
-                            }
-                        }
-                        value = set
-                    }
+                // Local calendar facts arrive with courses. Do not render a short header
+                // then insert holiday badges or recolour columns in a later coroutine.
+                val weekDates = remember(page, state.currentTable?.startDate) {
+                    val start = state.currentTable?.startDate.orEmpty()
+                    (1..7).mapNotNull { day ->
+                        runCatching { day to DateUtils.dateOfWeek(start, page + 1, day) }.getOrNull()
+                    }.toMap()
                 }
-                // 星期头"休/补"角标 —— 只认节假日数据，与上面三个灰显开关解耦：
-                // 用户关掉灰显（不再变淡）后，今天是不是法定假日/补班日照样标出来。
-                val greyMarks by produceState<Map<Int, String>>(
-                    emptyMap(), page, state.currentTable?.startDate
-                ) {
-                    val start = state.currentTable?.startDate
-                    if (start.isNullOrBlank()) {
-                        value = emptyMap()
-                    } else {
-                        val marks = mutableMapOf<Int, String>()
-                        for (day in 1..7) {
-                            val date = DateUtils.dateOfWeek(start, page + 1, day)
-                            HolidayManager.dayMarker(context, date)?.let { marks[day] = it }
-                        }
-                        value = marks
-                    }
+                val greyDays = remember(weekDates, state.holidaySnapshot, state.transfers) {
+                    weekDates.filterValues { state.holidaySnapshot.grey(it, state.transfers) }.keys
+                }
+                val greyMarks = remember(weekDates, state.holidaySnapshot) {
+                    weekDates.mapNotNull { (day, date) -> state.holidaySnapshot.marker(date)?.let { day to it } }.toMap()
                 }
                 CourseCompletionProvider(
                     startDate = state.currentTable?.startDate.orEmpty(),

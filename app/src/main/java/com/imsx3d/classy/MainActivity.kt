@@ -216,7 +216,15 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
+        val startupDeadline = android.os.SystemClock.uptimeMillis() + 1500L
+        var initialContentCommitted = false
+        // Keep the system launch surface until Compose has committed the data-ready tree.
+        // This is a maximum wait, not a minimum delay; a slow/broken database must not
+        // trap the user on the splash forever. Warm re-entry never re-arms this gate.
+        splash.setKeepOnScreenCondition {
+            !initialContentCommitted && android.os.SystemClock.uptimeMillis() < startupDeadline
+        }
         super.onCreate(savedInstanceState)
         // uiNightModeState 初始值 = **系统**深浅（attachBaseContext 已抓过；
         // 此处不能读 resources —— 它已被覆写成"应用内模式"，语义不同）
@@ -259,6 +267,7 @@ class MainActivity : ComponentActivity() {
                 com.imsx3d.classy.ui.component.WhatsNewDialog()
                 // GlasenseTheme 现由 SleepyThemeProvider 统一提供（UI-3），此处不再重复包裹。
                 AppRoot(
+                        onInitialContentReady = { initialContentCommitted = true },
                         themeMode = themeMode,
                         onThemeModeChange = { mode ->
                             AppPrefs.setThemeMode(this@MainActivity, mode)
@@ -326,6 +335,7 @@ internal enum class Tab(val labelRes: Int, val icon: ImageVector) {
 
 @Composable
 private fun AppRoot(
+    onInitialContentReady: () -> Unit = {},
     themeMode: String = AppPrefs.THEME_MODE_SYSTEM,
     onThemeModeChange: (String) -> Unit = {},
     deepLinkCourse: CourseEntity? = null,
@@ -351,6 +361,9 @@ private fun AppRoot(
     // composition 内读 StateFlow.value 会被 lint(StateFlowValueCalledInComposition)拦:
     // 快照值不随 flow 更新重组。改订阅, holiday 设置页拿到的 tableId 恒为当前值。
     val mainState by mainVm.state.collectAsState()
+    androidx.compose.runtime.SideEffect {
+        if (!mainState.loading) onInitialContentReady()
+    }
     // Activity's first frame may still be a loading surface. Report usable content only
     // after the initial table/course/routine snapshot is ready (including a real empty DB).
     androidx.activity.compose.ReportDrawnWhen { !mainState.loading }

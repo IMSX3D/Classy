@@ -61,8 +61,8 @@ android {
         }
         release {
             isMinifyEnabled = true
-            // 保留 R8 shrinking 能力但关闭混淆改名(避免反射/序列化类被重命名后崩溃)
-            // 真正的混淆(mangling)由 shrinkResources + 下面的 keep 规则共同保护
+            // R8 shrinking/optimization stays enabled. proguard-rules.pro uses
+            // -dontobfuscate to retain names; resource shrinking is not name obfuscation.
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -76,6 +76,17 @@ android {
             // Optimized, profileable local build; never replaces production or Debug data.
             applicationIdSuffix = ".benchmark"
             versionNameSuffix = "-benchmark"
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        create("preview") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            // User acceptance uses release optimization while retaining the existing
+            // test app's data, signing identity and launcher widget bindings.
+            // Debug remains available for instrumentation; production stays separate.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-preview"
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
         }

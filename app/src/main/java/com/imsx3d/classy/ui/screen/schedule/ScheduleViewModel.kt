@@ -27,6 +27,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class ScheduleState(
+    val holidaySnapshot: com.imsx3d.classy.util.ScheduleHolidaySnapshot = com.imsx3d.classy.util.ScheduleHolidaySnapshot(),
     /** Tables, courses and the initial week must be ready before mounting the pager. */
     val loading: Boolean = true,
     val tables: List<TimeTableEntity> = emptyList(),
@@ -100,8 +101,12 @@ class ScheduleViewModel(
     init {
         loadTables()
         viewModelScope.launch {
+            com.imsx3d.classy.util.HolidayManager.revision.collect { refreshHolidaySnapshot() }
+        }
+        viewModelScope.launch {
             AppPrefs.changeBus.collect { key ->
                 if (key.startsWith("holiday_transfer_")) refreshTransfer()
+                if (key.startsWith("holiday_") || key == "__reset__") refreshHolidaySnapshot()
             }
         }
     }
@@ -163,6 +168,11 @@ class ScheduleViewModel(
                 repo.observeEffectivePeriodTable(tableId)
             ) { courses, periodTable -> courses to periodTable }
                 .collect { (courses, periodTable) ->
+                    val raw = _state.value.tables.find { it.id == tableId }
+                    val holidays = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.imsx3d.classy.util.ScheduleHolidaySnapshot.load(
+                            SleepyApp.get(), raw?.startDate.orEmpty(), raw?.maxWeek ?: 20)
+                    }
                     _state.update { st ->
                         if (st.selectedTableId != tableId) return@update st
                         val rawTable = st.tables.find { it.id == tableId }
@@ -189,6 +199,7 @@ class ScheduleViewModel(
                         // 用户在第 x 周编辑/删课, 保存回来仍停在 x 周(此前被拽回真实周=跳回第一周体验)。
                         // 首次加载(initial=true)仍落真实周, 保持原行为
                         st.copy(
+                            holidaySnapshot = holidays,
                             loading = false,
                             courses = courses,
                             currentWeek = week,
@@ -203,12 +214,9 @@ class ScheduleViewModel(
                             effectivePeriodTable = periodTable
                         )
                     }
-                    // 课程数据变更后刷新所有 widget
-                    try {
-                        com.imsx3d.classy.widget.WidgetUpdater.notifyDataChanged(
-                            com.imsx3d.classy.SleepyApp.get()
-                        )
-                    } catch (_: Exception) {}
+                    // Observing data is not a mutation. Repository.onDataChanged owns
+                    // refresh after writes; Application owns process-start recovery.
+                    // Refreshing here duplicated both paths and competed with first layout.
                 }
         }
     }
@@ -523,6 +531,16 @@ class ScheduleViewModel(
     fun refreshTransfer() {
         val id = _state.value.selectedTableId ?: return
         _state.update { it.copy(transfers = AppPrefs.getHolidayTransfers(SleepyApp.get(), id)) }
+    }
+
+    private fun refreshHolidaySnapshot() {
+        val table = _state.value.currentTable ?: return
+        viewModelScope.launch {
+            val snapshot = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.imsx3d.classy.util.ScheduleHolidaySnapshot.load(SleepyApp.get(), table.startDate, table.maxWeek)
+            }
+            _state.update { if (it.currentTable == table) it.copy(holidaySnapshot = snapshot) else it }
+        }
     }
 
     fun addEmptyCourse() {
