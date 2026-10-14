@@ -3,7 +3,7 @@
 <p align="center"><strong>MAKE TIME YOURS.</strong><br>Free, open-source and ad-free.<br>Your classes, from today to the whole semester — on your phone, tablet and home screen.</p>
 <p align="center"><a href="https://github.com/IMSX3D/Classy/releases/latest"><strong>Download for Android ↗</strong></a> · <a href="../README.md">简体中文</a> · <a href="GUIDE.zh-CN.md">User guide (Chinese)</a></p>
 
-![Real phone screenshots: weekly grid, day-by-day view and today's classes.](media/v0.1.1/hero.jpg)
+![Real phone and tablet timetable screenshots using the same fictional sample schedule.](media/v0.1.1/hero.jpg)
 
 Your timetable should give you clarity at a glance. See the shape of your week, find today's classroom, then get on with your day.
 
