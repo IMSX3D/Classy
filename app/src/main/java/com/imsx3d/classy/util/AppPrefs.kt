@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 /**
  * App 级别轻量设置 — 避免引入 DataStore 依赖。
  * 进程内 mutableStateOf 同步给 UI，磁盘做持久化。
+ * 默认值以 docs/engineering/DEFAULT_SETTINGS_20261014.md 的手机配置为准。
+ * 首次安装与 resetSettings 清除偏好后使用同一组 getter 默认值；勿另建重置专用参数。
  */
 object AppPrefs {
     private const val FILE = "sleepy_prefs"
@@ -46,18 +48,18 @@ object AppPrefs {
     }
     const val KEY_DARK = "dark_mode"
     const val KEY_REMINDER = "reminder_master"      // master toggle (default false)
-    const val KEY_DAILY_ENABLED = "daily_reminder"   // daily sub-toggle (default true)
+    const val KEY_DAILY_ENABLED = "daily_reminder"   // daily sub-toggle (default false)
     const val KEY_DAILY_TIME = "daily_reminder_time" // "HH:mm" default "07:00"
-    const val KEY_TOMORROW_REMINDER_ENABLED = "tomorrow_reminder" // bool default false
+    const val KEY_TOMORROW_REMINDER_ENABLED = "tomorrow_reminder" // bool default true; master remains off
     const val KEY_TOMORROW_REMINDER_TIME = "tomorrow_reminder_time" // "HH:mm" default "22:00"
     const val KEY_TODAY_REMINDER_ENABLED = "today_reminder" // bool default true
     const val DEFAULT_TODAY_REMINDER_ENABLED = true
-    const val DEFAULT_TOMORROW_REMINDER_ENABLED = false
+    const val DEFAULT_TOMORROW_REMINDER_ENABLED = true
     const val DEFAULT_TOMORROW_REMINDER_TIME = "22:00"
-    const val KEY_BEFORE_CLASS_ENABLED = "before_class_enabled"       // bool default false
-    const val KEY_BEFORE_CLASS_MINUTES = "before_class_minutes"       // int default 10
+    const val KEY_BEFORE_CLASS_ENABLED = "before_class_enabled"       // bool default true; master remains off
+    const val KEY_BEFORE_CLASS_MINUTES = "before_class_minutes"       // int default 5
     const val KEY_BEFORE_CLASS_BANNER = "before_class_banner"         // bool default true
-    const val KEY_BEFORE_CLASS_FLUID = "before_class_fluid"            // bool default false
+    const val KEY_BEFORE_CLASS_FLUID = "before_class_fluid"            // bool default true; master remains off
     const val KEY_BEFORE_CLASS_FLUID_FIELDS = "before_class_fluid_fields" // legacy multi-select
     const val KEY_BEFORE_CLASS_FLUID_PRIMARY = "before_class_fluid_primary" // name/time/room
     const val KEY_THEME = "theme_key"
@@ -89,7 +91,7 @@ object AppPrefs {
     const val KEY_WIDGET_SEPARATOR = "widget_separator" // bool default true (WeekView 纯文字课程间分隔线)
     const val KEY_GRID_SCALE = "grid_scale" // float 0.7~1.3 default 1.0 — 网格视图整体缩放(字号/行高/间距/圆角联动, issue#8)
     const val KEY_GRID_AUTO_HIDE_EMPTY_EVENING = "grid_auto_hide_empty_evening" // bool default false — 实验室: 网格视图自动收起无课晚间节次
-    const val KEY_GRID_ADAPTIVE_HEIGHT = "grid_adaptive_height" // bool default false — 实验室: 网格视图自适应行高(默认固定 52dp 基座)
+    const val KEY_GRID_ADAPTIVE_HEIGHT = "grid_adaptive_height" // bool default true — 实验室: 网格视图自适应行高(默认固定 52dp 基座)
     const val KEY_GRID_EVENING_START = "grid_evening_start" // string "HH:mm" default 18:00 — 实验室: 晚间起始时间(用户自定义)
     const val KEY_GRID_ROW_SCALE = "grid_row_scale" // float default 1.0 — 双指行高缩放确认值(相对基座; 顶栏 tick 落盘, 撤回回退)
     const val KEY_GRID_PINCH_ZOOM = "grid_pinch_zoom" // bool default false — 实验室: 网格视图双指捏放行高(v1.0.56 默认关, 关=手势不挂; 存量缩放值不清)
@@ -118,7 +120,7 @@ object AppPrefs {
     /** Independent reading preferences: center uses only the area above course metadata. */
     fun isCourseTitleCentered(ctx: Context, widget: Boolean = false): Boolean =
         displayValue {
-            sp(ctx).getBoolean(if (widget) "widget_title_centered" else "grid_title_centered", false)
+            sp(ctx).getBoolean(if (widget) "widget_title_centered" else "grid_title_centered", true)
         }
 
     fun setCourseTitleCentered(ctx: Context, centered: Boolean, widget: Boolean = false) {
@@ -187,9 +189,9 @@ object AppPrefs {
     // isSystemDark 由 UI 层用 isSystemInDarkTheme() 传入，避免在 object 里取系统配置。
 
 
-    /** 主题模式：light / dark / system。出厂默认 **system**（跟随系统）。 */
+    /** 主题模式：light / dark / system。出厂默认 **light**（2026-10-14 手机配置基线）。 */
     fun getThemeMode(ctx: Context): String =
-        sp(ctx).getString(KEY_THEME_MODE, THEME_MODE_SYSTEM) ?: THEME_MODE_SYSTEM
+        sp(ctx).getString(KEY_THEME_MODE, THEME_MODE_LIGHT) ?: THEME_MODE_LIGHT
 
     fun setThemeMode(ctx: Context, mode: String) {
         require(mode == THEME_MODE_LIGHT || mode == THEME_MODE_DARK || mode == THEME_MODE_SYSTEM)
@@ -223,20 +225,17 @@ object AppPrefs {
 
     // ===== 提醒 =====
 
-    /** Master toggle — default false */
-    /** 出厂默认 **开**（用户 2026-09-28 定）。
-     *  权限侧配套：ReminderScreen 进页时若"开着但没给通知权限"会补一次申请，
-     *  SleepyApp 启动时也会 scheduleAll 一次 —— 否则默认开着却不排任何提醒。 */
+    /** Phone baseline: reminders are off; sub-options retain the selected configuration. */
     fun isReminderEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_REMINDER, true)
+        sp(ctx).getBoolean(KEY_REMINDER, false)
 
     fun setReminderEnabled(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_REMINDER, v).apply()
     }
 
-    /** Daily reminder sub-toggle — default true (only active when master on) */
+    /** Daily reminder sub-toggle — default false (only active when master on) */
     fun isDailyReminderEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_DAILY_ENABLED, true)
+        sp(ctx).getBoolean(KEY_DAILY_ENABLED, false)
 
     fun setDailyReminderEnabled(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_DAILY_ENABLED, v).apply()
@@ -275,17 +274,17 @@ object AppPrefs {
         sp(ctx).edit().putString(KEY_TOMORROW_REMINDER_TIME, time).apply()
     }
 
-    /** Before-class reminder sub-toggle — default false */
+    /** Before-class reminder sub-toggle — default true (master defaults off) */
     fun isBeforeClassEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_BEFORE_CLASS_ENABLED, false)
+        sp(ctx).getBoolean(KEY_BEFORE_CLASS_ENABLED, true)
 
     fun setBeforeClassEnabled(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_BEFORE_CLASS_ENABLED, v).apply()
     }
 
-    /** Minutes before class to notify — default 10 */
+    /** Minutes before class to notify — default 5 */
     fun getBeforeClassMinutes(ctx: Context): Int =
-        sp(ctx).getInt(KEY_BEFORE_CLASS_MINUTES, 10)
+        sp(ctx).getInt(KEY_BEFORE_CLASS_MINUTES, 5)
 
     fun setBeforeClassMinutes(ctx: Context, minutes: Int) {
         sp(ctx).edit().putInt(KEY_BEFORE_CLASS_MINUTES, minutes).apply()
@@ -299,7 +298,7 @@ object AppPrefs {
     }
 
     fun isBeforeClassFluidEnabled(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_BEFORE_CLASS_FLUID, false)
+        sp(ctx).getBoolean(KEY_BEFORE_CLASS_FLUID, true)
 
     fun setBeforeClassFluidEnabled(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_BEFORE_CLASS_FLUID, v).apply()
@@ -541,9 +540,9 @@ object AppPrefs {
         sp(ctx).edit().putBoolean(KEY_VERT_PUNCT_REPLACE, v).apply()
     }
 
-    // Shared widget display preference; absence preserves existing headers after upgrade.
+    // Shared widget preference; phone baseline hides the timetable name.
     fun isWidgetShowTableName(ctx: Context): Boolean =
-        sp(ctx).getBoolean("widget_show_table_name", true)
+        sp(ctx).getBoolean("widget_show_table_name", false)
 
     fun setWidgetShowTableName(ctx: Context, value: Boolean) {
         sp(ctx).edit().putBoolean("widget_show_table_name", value).apply()
@@ -633,7 +632,7 @@ object AppPrefs {
 
     fun isGridAdaptiveHeight(ctx: Context): Boolean =
         displayValue {
-            sp(ctx).getBoolean(KEY_GRID_ADAPTIVE_HEIGHT, false)
+            sp(ctx).getBoolean(KEY_GRID_ADAPTIVE_HEIGHT, true)
         }
 
     fun setGridAdaptiveHeight(ctx: Context, v: Boolean) {
@@ -784,9 +783,9 @@ object AppPrefs {
         notifyChanged(KEY_HOLIDAY_GREY_HOLIDAY)
     }
 
-    /** 周末灰显开关 — 默认 true */
+    /** 旧周末偏好 — 默认 false；当前显示规则不会按周末灰显 */
     fun isHolidayGreyWeekend(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_HOLIDAY_GREY_WEEKEND, true)
+        sp(ctx).getBoolean(KEY_HOLIDAY_GREY_WEEKEND, false)
 
     fun setHolidayGreyWeekend(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_HOLIDAY_GREY_WEEKEND, v).apply()

@@ -2,7 +2,6 @@ package com.imsx3d.classy
 
 import com.imsx3d.classy.util.AppPrefs
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,10 +17,10 @@ class TomorrowReminderPrefsTest {
     }
 
     @Test
-    fun tomorrow_reminder_is_opt_in_at_ten_pm() {
+    fun tomorrow_suboption_matches_phone_baseline_at_ten_pm() {
         assertEquals("today_reminder", AppPrefs.KEY_TODAY_REMINDER_ENABLED)
         assertTrue("老用户的当天每日提醒行为必须保持开启", AppPrefs.DEFAULT_TODAY_REMINDER_ENABLED)
-        assertFalse(AppPrefs.DEFAULT_TOMORROW_REMINDER_ENABLED)
+        assertTrue(AppPrefs.DEFAULT_TOMORROW_REMINDER_ENABLED)
         assertEquals("22:00", AppPrefs.DEFAULT_TOMORROW_REMINDER_TIME)
     }
 }
