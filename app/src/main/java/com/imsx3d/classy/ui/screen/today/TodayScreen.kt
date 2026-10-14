@@ -351,7 +351,7 @@ private fun TodayCourseCard(
 
     Row(
         modifier = Modifier
-            .alpha(if (CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now)) CourseCompletion.DIM_ALPHA else 1f)
+            .alpha(if (CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now)) CourseCompletion.COMPLETED_ALPHA else 1f)
             .fillMaxWidth()
             .heightIn(min = ClassyLayout.minimumTouchTarget)
             .height(IntrinsicSize.Min)

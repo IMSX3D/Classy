@@ -132,13 +132,15 @@ fun ScheduleScreen(
     // v7.10.16r 轮换态(issue#10, 评审 #1): 簇键 → 轮换步数,与 topOverrides 同级持有 —
     // HorizontalPager 翻页/周切换不丢;纯会话级不落盘,离开课表页即重置。
     var rotationSteps by remember { mutableStateOf(mapOf<String, Int>()) }
-    val displayMode = remember { AppPrefs.getDisplayMode(context) }
+    var displayRevision by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) { AppPrefs.changeBus.collect { displayRevision++ } }
+    val displayMode = remember(displayRevision) { AppPrefs.getDisplayMode(context) }
     // UI-5c（2026-09-27 用户令）：表头**恒显日期**，不再区分是否本周。
     // 演进史：UI-5b 曾按"翻到非本周才带日期"做上下文自动；用户实测后认为"一直带着也不乱"，
     // 于是简化为恒显 —— 少一个分支、少一处状态依赖，也顺手让「显示日期」这个设置失去意义
     // （小组件真实表头本来就是恒显；该开关此前只影响这里和一条已废弃的位图渲染路径）。
     val showDate = true
-    val visibleDays = remember { AppPrefs.getVisibleDays(context) }
+    val visibleDays = remember(displayRevision) { AppPrefs.getVisibleDays(context) }
     // 双指行高缩放 (2026-09-16 用户令): 长期手势 — 初始=上次 tick 确认的持久值;
     // 捏合只改会话值, 顶栏 tick=落盘长期生效, 撤回=回到上次确认值。
     var rowHeightScale by remember(state.selectedTableId) { mutableFloatStateOf(AppPrefs.getGridRowScale(context)) }

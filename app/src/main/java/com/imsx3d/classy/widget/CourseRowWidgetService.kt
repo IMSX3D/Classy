@@ -177,7 +177,7 @@ class CourseRowWidgetService : RemoteViewsService() {
             )
             // Blend colors rather than remote View.setAlpha (not supported by every host).
             fun tone(color: androidx.compose.ui.graphics.Color): Int =
-                (if (completed) lerp(scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
+                (if (completed) lerp(scheme.bg, color, CourseCompletion.COMPLETED_ALPHA) else color).toArgb()
             return Row(
                 name = name,
                 // 极端情况（导入数据缺地点/教师）也给一行可见文案，不留空行

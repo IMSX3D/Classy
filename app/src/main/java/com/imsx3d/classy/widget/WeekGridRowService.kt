@@ -167,7 +167,7 @@ class WeekGridRowFactory(
                 val infoFg = if (s.barStyle) s.scheme.onSurfaceVariant else fg
                 val completed = day != null && CourseCompletion.isCompleted(course, day.date, day.timeJson, s.now)
                 fun tone(color: androidx.compose.ui.graphics.Color): Int =
-                    (if (completed) lerp(s.scheme.bg, color, CourseCompletion.DIM_ALPHA) else color).toArgb()
+                    (if (completed) lerp(s.scheme.bg, color, CourseCompletion.COMPLETED_ALPHA) else color).toArgb()
                 val bgInt = tone(bg)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     // 圆角 shape + 动态 tint（不能用 setBackgroundColor，那会变成方形色块）

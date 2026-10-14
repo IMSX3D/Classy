@@ -554,7 +554,7 @@ fun ConflictClusterCard(
             colorless = AppPrefs.isCourseColorless(context)
         ), CourseColorUtil.isPaletteDark(palette))
         return if (isGrey || completed(course))
-            bg.copy(alpha = com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA).compositeOver(colors.surfaceContainerHigh)
+            bg.copy(alpha = if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA).compositeOver(colors.surfaceContainerHigh)
         else bg
     }
     val courseById = drawList.associateBy { it.course.id }
@@ -1014,10 +1014,11 @@ private fun ConflictCourseCard(
     // A dimmed overlapping card must remain opaque: alpha on the whole layer exposes
     // hidden course names underneath. Resolve dimming into the surface/text colors.
     val dimmed = isGrey || LocalCourseCompleted.current(course)
-    val dimAlpha = com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA
+    val dimAlpha = if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA
     val effectiveBg = bg.copy(alpha = if (dimmed) dimAlpha else 1f)
         .compositeOver(colors.surfaceContainerHigh)
     val effectiveFg = if (dimmed) fg.copy(alpha = dimAlpha).compositeOver(effectiveBg) else fg
+    val titleAlignment = if (AppPrefs.isCourseTitleCentered(context)) Alignment.Center else Alignment.TopCenter
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") TextDecoration.LineThrough else null
     val subInfo = AppPrefs.getGridSubInfo(context)
@@ -1052,7 +1053,7 @@ private fun ConflictCourseCard(
                 maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                modifier = Modifier.fillMaxWidth().align(titleAlignment)
             )
         } else {
             Column(
@@ -1060,7 +1061,7 @@ private fun ConflictCourseCard(
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = titleAlignment) {
                     Text(
                         text = name,
                         style = MaterialTheme.typography.labelSmall.copy(

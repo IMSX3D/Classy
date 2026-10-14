@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">Classy 课表</string>
-    <string name="widget_today_label">Classy · 2. 今日课程 · 4×2</string>
-    <string name="widget_today_small_label">Classy · 1. 今日课程 · 小 · 2×2</string>
+    <string name="widget_today_label">今日</string>
+    <string name="widget_today_small_label">今日·小</string>
     <string name="widget_today_wide_label">今日课程 · 中</string>
     <string name="widget_twoday_wide_label">两日课程 · 中</string>
     <string name="widget_week_list_wide_label">周列表 · 中</string>
     <string name="widget_week_list_label">本周课表（列表）</string>
     <string name="widget_week_list_small_label">本周课表（列表）· 小</string>
-    <string name="widget_week_grid_label">Classy · 4. 本周课表（网格） · 4×4</string>
+    <string name="widget_week_grid_label">本周</string>
     <string name="widget_week_grid_small_label">本周课表（网格）· 小</string>
-    <string name="widget_twoday_label">Classy · 3. 最近两天 · 4×2</string>
+    <string name="widget_twoday_label">两日</string>
     <string name="widget_twoday_small_label">最近两天 · 小</string>
     <string name="widget_week_view_label">本周课表（周视图）</string>
     <string name="widget_week_view_small_label">本周课表（周视图）· 小</string>
@@ -440,8 +440,8 @@
     <string name="settings_widget_separator">周视图小组件分隔线</string>
     <string name="settings_widget_separator_sub">在周视图小组件的课程之间显示分隔线</string>
     <string name="settings_holiday_holiday">法定节假日课程灰显</string>
-    <string name="settings_holiday_holiday_sub">按所选灰显样式显示节假日课程，不删除课程</string>
-    <string name="settings_holiday_entry_sub">选择灰显日期，安排调休补课</string>
+    <string name="settings_holiday_holiday_sub">淡化放假日期中的课程，不删除课程或关闭提醒</string>
+    <string name="settings_holiday_entry_sub">设置放假日期，安排哪天补课</string>
     <string name="holiday_page_title">节假日调休设置</string>
     <string name="holiday_data_source">数据源</string>
     <string name="holiday_source_label">节假日数据 · 中国 · holiday-calendar</string>
@@ -1017,7 +1017,7 @@
     <string name="display_week_section">周视图</string>
     <string name="display_start_hint">打开课表时优先显示的视图</string>
     <string name="display_time_hint">选择显示“第几节”或具体起止时间</string>
-    <string name="display_card_hint">课程名下方的补充信息</string>
+    <string name="display_card_hint">优先显示的补充信息；较高课程块还会显示另一项</string>
     <string name="display_empty_hint">仅隐藏周视图中没有课程的日期，不删除课程</string>
     <string name="display_holiday_section">节假日与灰显</string>
     <string name="display_style_hint">用于需要灰显的课程；具体日期规则在下方设置</string>
@@ -1150,4 +1150,8 @@
     <string name="semester_transferred_from">由%1$s调至当天</string>
     <string name="semester_regular_pattern">通常：%1$s</string>
     <string name="semester_outside_term">含学期外的调课，具体日期见日历</string>
+    <string name="course_title_position">课程名位置</string>
+    <string name="widget_course_title_position">本周组件课程名位置</string>
+    <string name="course_title_top">顶部</string>
+    <string name="course_title_center">居中</string>
 </resources>

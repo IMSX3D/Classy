@@ -92,15 +92,12 @@ object HolidayManager {
         val networkEntries = getYearEntries(ctx, date.year)
         val merged = HolidayRangeOps.mergeSegments(networkEntries, ranges)
         val (holidays, workdays) = HolidayRangeOps.toSets(merged.active)
-        val workdaysForWeekend = if (AppPrefs.isHolidayGreyWeekend(ctx) && AppPrefs.isHolidayIgnoreWorkday(ctx)) {
-            workdays
-        } else emptySet()
         val hasTransfer = tableId != null &&
             AppPrefs.getHolidayTransfers(ctx, tableId).any { it.targetDate == date }
         return decideGrey(
             date = date,
             holidays = holidays,
-            workdays = workdaysForWeekend,
+            workdays = workdays,
             greyHoliday = AppPrefs.isHolidayGreyHoliday(ctx),
             greyWeekend = AppPrefs.isHolidayGreyWeekend(ctx),
             ignoreWorkday = AppPrefs.isHolidayIgnoreWorkday(ctx),
@@ -115,7 +112,7 @@ object HolidayManager {
      *   null = 普通日 / 普通周末
      *
      * 职责划分（2026-09-26 用户报障后定稿）：
-     *   · 「整列变淡」= 用户偏好，归 [shouldGrey] 的三个开关管，可以关；
+     *   · 「整列变淡」= 用户偏好，由 [shouldGrey] 的假期显示偏好决定，可以关；
      *   · 「休/补 角标」= 客观事实（这天是不是法定假日/补班日），常显。
      * 之前角标挂在 [shouldGrey] 上，等于把事实绑在偏好上 —— 用户关掉灰显，
      * 角标一起消失；而让课程"看着像被取消"的恰恰是变淡本身，不是角标。
@@ -249,8 +246,8 @@ object HolidayManager {
 
     /**
      * 灰显判定纯函数(无 Context/网络, 单测覆盖)。
-     * [greyHoliday]/[greyWeekend]/[ignoreWorkday] 对应用户三个开关,
-     * [workdays] 为该年补班日集合(仅周末判定分支用到)。
+     * [greyHoliday] controls holiday decoration; weekend/workday flags are legacy compatibility only.
+     * [workdays] always remain normal, independently of weekday.
      */
     fun decideGrey(
         date: LocalDate,
@@ -261,17 +258,9 @@ object HolidayManager {
         ignoreWorkday: Boolean,
         dateHasTransfer: Boolean = false
     ): Boolean {
-        // 补课目标日上来源日的课，不灰显。
-        if (dateHasTransfer) return false
-
-        // 法定节假日（独立开关）
-        if (greyHoliday && date in holidays) return true
-
-        // 周末; 补班日(transfer_workday)是"周末但要上课"的日子, 开关开时豁免
-        if (greyWeekend && isWeekend(date)) {
-            if (ignoreWorkday && date in workdays) return false
-            return true
-        }
-        return false
+        // Explicit teaching days take precedence over holiday decoration. Weekend alone
+        // never means a class is cancelled. Legacy boolean arguments are ignored.
+        if (dateHasTransfer || date in workdays) return false
+        return greyHoliday && date in holidays
     }
 }

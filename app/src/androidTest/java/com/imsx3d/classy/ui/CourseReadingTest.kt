@@ -23,7 +23,7 @@ import java.io.File
 
 class CourseReadingTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun insetBarsRemainReadableOnShortAndTallCards() {
+    @Test fun barsRemainReadableOnShortAndTallCards() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val old = com.imsx3d.classy.util.AppPrefs.getCourseColorStyle(context)
         com.imsx3d.classy.util.AppPrefs.setCourseColorStyle(context, "bar")
@@ -49,6 +49,35 @@ class CourseReadingTest {
             }
         } finally { com.imsx3d.classy.util.AppPrefs.setCourseColorStyle(context, old) }
     }
+    @Test fun titlePositionUpdatesImmediatelyAndDoesNotMoveMetadataOrWidgetPreference() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = com.imsx3d.classy.util.AppPrefs
+        val old = prefs.isCourseTitleCentered(context)
+        val widget = prefs.isCourseTitleCentered(context, widget = true)
+        val info = prefs.getGridSubInfo(context)
+        val course = CourseEntity(id = 998, groupId = "position", tableId = -10,
+            courseName = "Title", room = "Room", day = 1, startNode = 1,
+            step = 2, startWeek = 1, endWeek = 4, color = "#FF66BB88")
+        try {
+            prefs.setCourseTitleCentered(context, false)
+            prefs.setGridSubInfo(context, "room")
+            compose.setContent { SleepyThemeProvider(darkTheme = false) {
+                CourseOverlayCard(course, {}, Modifier.width(90.dp).height(180.dp))
+            } }
+            val top = compose.onNodeWithText("Title", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.top
+            val room = compose.onNodeWithText("Room", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.top
+            compose.runOnIdle { prefs.setCourseTitleCentered(context, true) }
+            val centered = compose.onNodeWithText("Title", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            assertTrue("top=$top centered=$centered room=$room pref=${prefs.isCourseTitleCentered(context)}", centered.top > top + 10f)
+            assertTrue(centered.bottom < room)
+            assertEquals(room, compose.onNodeWithText("Room", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.top, 1f)
+            assertEquals(widget, prefs.isCourseTitleCentered(context, widget = true))
+        } finally {
+            prefs.setCourseTitleCentered(context, old)
+            prefs.setGridSubInfo(context, info)
+        }
+    }
+
     @Test fun titlesKeepSameTopOriginWithAndWithoutMetadata() {
         var dark by mutableStateOf(false)
         var font by mutableFloatStateOf(1f)

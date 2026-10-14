@@ -32,6 +32,18 @@ object AppPrefs {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val changeBus: Flow<String> = _changeBus.asSharedFlow()
+    // Compose consumers subscribe while reading display values. Recomposition cannot rely
+    // on an unrelated timer or a parent whose unchanged children may be skipped.
+    private val displayRevision = androidx.compose.runtime.mutableIntStateOf(0)
+    @Synchronized
+    private fun notifyChanged(key: String) {
+        displayRevision.intValue++
+        _changeBus.tryEmit(key)
+    }
+    private inline fun <T> displayValue(read: () -> T): T {
+        displayRevision.intValue
+        return read()
+    }
     const val KEY_DARK = "dark_mode"
     const val KEY_REMINDER = "reminder_master"      // master toggle (default false)
     const val KEY_DAILY_ENABLED = "daily_reminder"   // daily sub-toggle (default true)
@@ -103,11 +115,23 @@ object AppPrefs {
     const val THEME_MODE_DARK = "dark"
     const val THEME_MODE_SYSTEM = "system"
 
+    /** Independent reading preferences: center uses only the area above course metadata. */
+    fun isCourseTitleCentered(ctx: Context, widget: Boolean = false): Boolean =
+        displayValue {
+            sp(ctx).getBoolean(if (widget) "widget_title_centered" else "grid_title_centered", false)
+        }
+
+    fun setCourseTitleCentered(ctx: Context, centered: Boolean, widget: Boolean = false) {
+        val key = if (widget) "widget_title_centered" else "grid_title_centered"
+        sp(ctx).edit().putBoolean(key, centered).apply()
+        notifyChanged(key)
+    }
+
     // ===== 节假日灰显开关 =====
     const val KEY_HOLIDAY_GREY_HOLIDAY = "holiday_grey_holiday"   // bool default true
-    const val KEY_HOLIDAY_GREY_WEEKEND = "holiday_grey_weekend"   // bool default true
+    const val KEY_HOLIDAY_GREY_WEEKEND = "holiday_grey_weekend"   // legacy storage; ordinary weekends never dim
     const val KEY_HOLIDAY_STYLE = "holiday_style"                  // "grey" / "strikethrough" default "grey"
-    const val KEY_HOLIDAY_IGNORE_WORKDAY = "holiday_ignore_workday" // bool default true (补班日忽略)
+    const val KEY_HOLIDAY_IGNORE_WORKDAY = "holiday_ignore_workday" // legacy storage; makeup days always remain normal
     const val KEY_HOLIDAY_OVERRIDES = "holiday_overrides"           // JSON — 用户范围化覆盖(编辑/新增/删除节日段)
     const val KEY_CONFLICT_DEFAULT_TOP = "conflict_default_top"      // JSON {"day:startNode:step": layerRepId} — 冲突簇默认置顶图层; 默认空 = 全由 primaryComparator 决
 
@@ -143,7 +167,7 @@ object AppPrefs {
         }
         editor.apply()
         // 通知订阅方（UI 用 changeBus 主动 recompose）
-        _changeBus.tryEmit("__reset__")
+        notifyChanged("__reset__")
     }
 
     /** 实际是否深色：dark→true, light→false, system→isSystemDark。isSystemDark 由调用方传入。 */
@@ -313,6 +337,7 @@ object AppPrefs {
 
     fun setDisplayMode(ctx: Context, mode: String) {
         sp(ctx).edit().putString(KEY_DISPLAY_MODE, mode).apply()
+        notifyChanged(KEY_DISPLAY_MODE)
     }
 
     // ===== 高刷新率(流畅优先) =====
@@ -342,11 +367,14 @@ object AppPrefs {
     // ===== 网格卡片副信息：教室 / 教师 / 无 =====
 
     fun getGridSubInfo(ctx: Context): String =
-        sp(ctx).getString(KEY_GRID_SUB_INFO, "room") ?: "room"
+        displayValue {
+            sp(ctx).getString(KEY_GRID_SUB_INFO, "room") ?: "room"
+        }
 
     fun setGridSubInfo(ctx: Context, value: String) {
         require(value == "room" || value == "teacher" || value == "none")
         sp(ctx).edit().putString(KEY_GRID_SUB_INFO, value).apply()
+        notifyChanged(KEY_GRID_SUB_INFO)
     }
 
     // ===== 冲突课程显示样式：叠层 / 折角 / 竖轨 =====
@@ -419,7 +447,7 @@ object AppPrefs {
     fun setConflictDefaultTop(ctx: Context, map: Map<String, Long>) {
         _conflictDefaultTopState.value = map.toMap()   // 同步内存 → 瞬时驱动 UI
         sp(ctx).edit().putString(KEY_CONFLICT_DEFAULT_TOP, encodeDefaultTopMap(map)).apply()
-        _changeBus.tryEmit(KEY_CONFLICT_DEFAULT_TOP)
+        notifyChanged(KEY_CONFLICT_DEFAULT_TOP)
     }
 
     /** 修改单个 clusterKey;传 null = 删除该键(回退系统默认)。 */
@@ -501,6 +529,7 @@ object AppPrefs {
 
     fun setVisibleDays(ctx: Context, days: Set<Int>) {
         sp(ctx).edit().putString(KEY_VISIBLE_DAYS, days.sorted().joinToString(",")).apply()
+        notifyChanged(KEY_VISIBLE_DAYS)
     }
 
     // ===== 竖排标点优化(方案B: 标点替换为 Unicode Vertical Forms) — 默认 false =====
@@ -532,11 +561,15 @@ object AppPrefs {
     // ===== App 课程胶囊无色模式 — 默认 false =====
 
     fun isCourseColorless(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_COURSE_COLORLESS, false)
+        displayValue {
+            sp(ctx).getBoolean(KEY_COURSE_COLORLESS, false)
+        }
 
     /** Effective fill/bar rendering for the unified choice under Appearance. */
     fun getCourseColorStyle(ctx: Context): String =
-        getCourseAppearance(ctx).style
+        displayValue {
+            getCourseAppearance(ctx).style
+        }
 
     fun getCourseAppearance(ctx: Context): CourseAppearance = CourseAppearance.fromLegacy(
         sp(ctx).getString(KEY_COURSE_COLOR_STYLE, COURSE_STYLE_FILL),
@@ -549,7 +582,7 @@ object AppPrefs {
             .putString(KEY_COURSE_COLOR_STYLE, value.style)
             .putBoolean(KEY_COURSE_COLORLESS, value.colorless)
             .apply()
-        _changeBus.tryEmit(KEY_COURSE_COLOR_STYLE)
+        notifyChanged(KEY_COURSE_COLOR_STYLE)
     }
 
     fun setCourseColorStyle(ctx: Context, v: String) {
@@ -557,7 +590,7 @@ object AppPrefs {
             KEY_COURSE_COLOR_STYLE,
             if (v == COURSE_STYLE_FILL) COURSE_STYLE_FILL else COURSE_STYLE_BAR
         ).apply()
-        _changeBus.tryEmit(KEY_COURSE_COLOR_STYLE)
+        notifyChanged(KEY_COURSE_COLOR_STYLE)
     }
 
     fun setCourseColorless(ctx: Context, v: Boolean) {
@@ -579,27 +612,33 @@ object AppPrefs {
     // 联动项: 字号/行高/间距/圆角/内边距; 不影响小组件与列表视图
 
     fun getGridScale(ctx: Context): Float =
-        sp(ctx).getFloat(KEY_GRID_SCALE, 1.0f).coerceIn(0.7f, 1.3f)
+        displayValue {
+            sp(ctx).getFloat(KEY_GRID_SCALE, 1.0f).coerceIn(0.7f, 1.3f)
+        }
 
     fun setGridScale(ctx: Context, v: Float) {
         sp(ctx).edit().putFloat(KEY_GRID_SCALE, v.coerceIn(0.7f, 1.3f)).apply()
-        _changeBus.tryEmit(KEY_GRID_SCALE)
+        notifyChanged(KEY_GRID_SCALE)
     }
 
     fun isGridAutoHideEmptyEvening(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_GRID_AUTO_HIDE_EMPTY_EVENING, false)
+        displayValue {
+            sp(ctx).getBoolean(KEY_GRID_AUTO_HIDE_EMPTY_EVENING, false)
+        }
 
     fun setGridAutoHideEmptyEvening(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_GRID_AUTO_HIDE_EMPTY_EVENING, v).apply()
-        _changeBus.tryEmit(KEY_GRID_AUTO_HIDE_EMPTY_EVENING)
+        notifyChanged(KEY_GRID_AUTO_HIDE_EMPTY_EVENING)
     }
 
     fun isGridAdaptiveHeight(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_GRID_ADAPTIVE_HEIGHT, false)
+        displayValue {
+            sp(ctx).getBoolean(KEY_GRID_ADAPTIVE_HEIGHT, false)
+        }
 
     fun setGridAdaptiveHeight(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_GRID_ADAPTIVE_HEIGHT, v).apply()
-        _changeBus.tryEmit(KEY_GRID_ADAPTIVE_HEIGHT)
+        notifyChanged(KEY_GRID_ADAPTIVE_HEIGHT)
     }
 
     // Manual mode supports resizing directly; auto-fit must not acquire a competing gesture.
@@ -609,7 +648,7 @@ object AppPrefs {
 
     fun setGridPinchZoom(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_GRID_PINCH_ZOOM, v).apply()
-        _changeBus.tryEmit(KEY_GRID_PINCH_ZOOM)
+        notifyChanged(KEY_GRID_PINCH_ZOOM)
     }
 
     fun isNearestBusyDay(ctx: Context): Boolean =
@@ -617,15 +656,17 @@ object AppPrefs {
 
     fun setNearestBusyDay(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_NEAREST_BUSY_DAY, v).apply()
-        _changeBus.tryEmit(KEY_NEAREST_BUSY_DAY)
+        notifyChanged(KEY_NEAREST_BUSY_DAY)
     }
 
     fun getGridEveningStart(ctx: Context): String =
-        sp(ctx).getString(KEY_GRID_EVENING_START, "18:00") ?: "18:00"
+        displayValue {
+            sp(ctx).getString(KEY_GRID_EVENING_START, "18:00") ?: "18:00"
+        }
 
     fun setGridEveningStart(ctx: Context, v: String) {
         sp(ctx).edit().putString(KEY_GRID_EVENING_START, v).apply()
-        _changeBus.tryEmit(KEY_GRID_EVENING_START)
+        notifyChanged(KEY_GRID_EVENING_START)
     }
 
     fun getGridRowScale(ctx: Context): Float =
@@ -633,26 +674,30 @@ object AppPrefs {
 
     fun setGridRowScale(ctx: Context, v: Float) {
         sp(ctx).edit().putFloat(KEY_GRID_ROW_SCALE, v).apply()
-        _changeBus.tryEmit(KEY_GRID_ROW_SCALE)
+        notifyChanged(KEY_GRID_ROW_SCALE)
     }
 
     fun getWeekScale(ctx: Context): Float =
-        sp(ctx).getFloat(KEY_WEEK_SCALE, 1.0f).coerceIn(0.7f, 1.3f)
+        displayValue {
+            sp(ctx).getFloat(KEY_WEEK_SCALE, 1.0f).coerceIn(0.7f, 1.3f)
+        }
 
     fun setWeekScale(ctx: Context, v: Float) {
         sp(ctx).edit().putFloat(KEY_WEEK_SCALE, v.coerceIn(0.7f, 1.3f)).apply()
-        _changeBus.tryEmit(KEY_WEEK_SCALE)
+        notifyChanged(KEY_WEEK_SCALE)
     }
 
     // ===== 网格/周视图圆角比例(issue#8) — 0.0~2.0, 默认 1.0 =====
     // 系数乘基准圆角(网格卡 12dp/列表外框 16dp): 0=直角, 1=默认, 2=超圆。两视图共用一个值。
 
     fun getGridCornerRatio(ctx: Context): Float =
-        sp(ctx).getFloat(KEY_GRID_CORNER_RATIO, 1.0f).coerceIn(0f, 2f)
+        displayValue {
+            sp(ctx).getFloat(KEY_GRID_CORNER_RATIO, 1.0f).coerceIn(0f, 2f)
+        }
 
     fun setGridCornerRatio(ctx: Context, v: Float) {
         sp(ctx).edit().putFloat(KEY_GRID_CORNER_RATIO, v.coerceIn(0f, 2f)).apply()
-        _changeBus.tryEmit(KEY_GRID_CORNER_RATIO)
+        notifyChanged(KEY_GRID_CORNER_RATIO)
     }
 
     // ===== 周视图两栏(issue#8) — 默认关 =====
@@ -661,28 +706,34 @@ object AppPrefs {
     //   balance = 按当天课程数动态平衡(逐天放进课少的栏, 两栏高度接近; 天位置不固定)
 
     fun isWeekTwoColumn(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_WEEK_TWO_COLUMN, false)
+        displayValue {
+            sp(ctx).getBoolean(KEY_WEEK_TWO_COLUMN, false)
+        }
 
     fun setWeekTwoColumn(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_WEEK_TWO_COLUMN, v).apply()
-        _changeBus.tryEmit(KEY_WEEK_TWO_COLUMN)
+        notifyChanged(KEY_WEEK_TWO_COLUMN)
     }
 
     // Fixed presentation policy; legacy preference is retained for rollback.
     fun getWeekTwoColumnMode(ctx: Context): String =
-        "days"
+        displayValue {
+            "days"
+        }
 
     fun setWeekTwoColumnMode(ctx: Context, v: String) {
         sp(ctx).edit().putString(KEY_WEEK_TWO_COLUMN_MODE, if (v == "balance") "balance" else "days").apply()
-        _changeBus.tryEmit(KEY_WEEK_TWO_COLUMN_MODE)
+        notifyChanged(KEY_WEEK_TWO_COLUMN_MODE)
     }
 
     fun isWeekHideEmptyDays(ctx: Context): Boolean =
-        sp(ctx).getBoolean(KEY_WEEK_HIDE_EMPTY_DAYS, false)
+        displayValue {
+            sp(ctx).getBoolean(KEY_WEEK_HIDE_EMPTY_DAYS, false)
+        }
 
     fun setWeekHideEmptyDays(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_WEEK_HIDE_EMPTY_DAYS, v).apply()
-        _changeBus.tryEmit(KEY_WEEK_HIDE_EMPTY_DAYS)
+        notifyChanged(KEY_WEEK_HIDE_EMPTY_DAYS)
     }
 
     // ===== Timetable views prefer aliases; widget display retains its independent setting. =====
@@ -691,20 +742,24 @@ object AppPrefs {
 
     // Fixed presentation policy; legacy preference is retained for rollback.
     fun isWeekUseAlias(ctx: Context): Boolean =
-        true
+        displayValue {
+            true
+        }
 
     fun setWeekUseAlias(ctx: Context, v: Boolean) {
         sp(ctx).edit { putBoolean(KEY_WEEK_USE_ALIAS, v) }
-        _changeBus.tryEmit(KEY_WEEK_USE_ALIAS)
+        notifyChanged(KEY_WEEK_USE_ALIAS)
     }
 
     // Fixed presentation policy; legacy preference is retained for rollback.
     fun isGridUseAlias(ctx: Context): Boolean =
-        true
+        displayValue {
+            true
+        }
 
     fun setGridUseAlias(ctx: Context, v: Boolean) {
         sp(ctx).edit { putBoolean(KEY_GRID_USE_ALIAS, v) }
-        _changeBus.tryEmit(KEY_GRID_USE_ALIAS)
+        notifyChanged(KEY_GRID_USE_ALIAS)
     }
 
     fun isWidgetUseAlias(ctx: Context): Boolean =
@@ -712,7 +767,7 @@ object AppPrefs {
 
     fun setWidgetUseAlias(ctx: Context, v: Boolean) {
         sp(ctx).edit { putBoolean(KEY_WIDGET_USE_ALIAS, v) }
-        _changeBus.tryEmit(KEY_WIDGET_USE_ALIAS)
+        notifyChanged(KEY_WIDGET_USE_ALIAS)
     }
 
     // 强制滚动(实验) — 旧全局一档 (设计 §6)。2026-09-14 起滚动改为 per-widget
@@ -726,6 +781,7 @@ object AppPrefs {
 
     fun setHolidayGreyHoliday(ctx: Context, v: Boolean) {
         sp(ctx).edit().putBoolean(KEY_HOLIDAY_GREY_HOLIDAY, v).apply()
+        notifyChanged(KEY_HOLIDAY_GREY_HOLIDAY)
     }
 
     /** 周末灰显开关 — 默认 true */
@@ -738,11 +794,14 @@ object AppPrefs {
 
     /** 灰显样式 — 默认 "grey" */
     fun getHolidayStyle(ctx: Context): String =
-        sp(ctx).getString(KEY_HOLIDAY_STYLE, "grey") ?: "grey"
+        displayValue {
+            sp(ctx).getString(KEY_HOLIDAY_STYLE, "grey") ?: "grey"
+        }
 
     fun setHolidayStyle(ctx: Context, style: String) {
         require(style == "grey" || style == "strikethrough")
         sp(ctx).edit().putString(KEY_HOLIDAY_STYLE, style).apply()
+        notifyChanged(KEY_HOLIDAY_STYLE)
     }
 
     /** 忽略补班日 — 默认 true */
@@ -761,6 +820,7 @@ object AppPrefs {
 
     fun setHolidayRanges(ctx: Context, ranges: List<com.imsx3d.classy.util.HolidayRange>) {
         sp(ctx).edit().putString(KEY_HOLIDAY_OVERRIDES, com.imsx3d.classy.util.HolidayRangeOps.encodeOverrides(ranges)).apply()
+        notifyChanged(KEY_HOLIDAY_OVERRIDES)
     }
 
     // ===== issue#44 调休映射(按课表隔离, 放假日→补班日) =====
@@ -782,7 +842,7 @@ object AppPrefs {
             transferKey(tableId),
             com.imsx3d.classy.util.HolidayRangeOps.HolidayTransferOps.encodeTransfers(transfers)
         ).apply()
-        _changeBus.tryEmit(transferKey(tableId))
+        notifyChanged(transferKey(tableId))
     }
 
     /**
@@ -809,7 +869,7 @@ object AppPrefs {
     /** 删表时清掉该表映射 */
     fun clearHolidayTransfers(ctx: Context, tableId: Long) {
         sp(ctx).edit().remove(transferKey(tableId)).apply()
-        _changeBus.tryEmit(transferKey(tableId))
+        notifyChanged(transferKey(tableId))
     }
 
     // ===== 启动检查更新开关 =====

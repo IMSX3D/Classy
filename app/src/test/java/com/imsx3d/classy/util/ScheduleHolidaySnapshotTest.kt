@@ -18,12 +18,12 @@ class ScheduleHolidaySnapshotTest {
         val snapshot = ScheduleHolidaySnapshot(workdays = setOf(sunday))
         assertEquals("补", snapshot.marker(sunday))
         assertFalse(snapshot.grey(sunday, emptyList()))
-        assertTrue(snapshot.copy(ignoreWorkday = false).grey(sunday, emptyList()))
+        assertFalse(snapshot.copy(ignoreWorkday = false).grey(sunday, emptyList()))
         assertEquals("补", snapshot.copy(greyWeekend = false).marker(sunday))
     }
 
-    @Test fun missingNetworkDataStillRespectsLocalWeekendPreference() {
-        assertTrue(ScheduleHolidaySnapshot().grey(sunday, emptyList()))
+    @Test fun missingNetworkDataNeverInventsCancelledWeekendClasses() {
+        assertFalse(ScheduleHolidaySnapshot().grey(sunday, emptyList()))
         assertFalse(ScheduleHolidaySnapshot(greyWeekend = false).grey(sunday, emptyList()))
         assertNull(ScheduleHolidaySnapshot().marker(sunday))
     }

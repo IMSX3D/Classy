@@ -51,6 +51,8 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
+    var holidayGrey by remember { mutableStateOf(AppPrefs.isHolidayGreyHoliday(context)) }
+    var titleCentered by remember { mutableStateOf(AppPrefs.isCourseTitleCentered(context)) }
     var style by remember { mutableStateOf(AppPrefs.getHolidayStyle(context)) }
     var displayMode by remember { mutableStateOf(AppPrefs.getDisplayMode(context)) }
     var gridSubInfo by remember { mutableStateOf(AppPrefs.getGridSubInfo(context)) }
@@ -91,19 +93,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                             startView = v; AppPrefs.setStartView(context, v)
                         },
                 )
-                SettingsRowDivider()
-                SettingsSegmentedRow(
-                    title = stringResource(R.string.settings_display_mode),
-                    options = listOf(
-                            stringResource(R.string.settings_display_node),
-                            stringResource(R.string.settings_display_time)
-                        ),
-                    selectedKey = if (displayMode == "node") 0 else 1,
-                    onSelect = { i ->
-                            val v = if (i == 0) "node" else "time"
-                            displayMode = v; AppPrefs.setDisplayMode(context, v); refreshWidgets()
-                        },
-                )
+
             }
         }
         item {
@@ -114,6 +104,13 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
         }
         item {
             SettingsGroupCard {
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.course_title_position),
+                    options = listOf(stringResource(R.string.course_title_top), stringResource(R.string.course_title_center)),
+                    selectedKey = if (titleCentered) 1 else 0,
+                    onSelect = { titleCentered = it == 1; AppPrefs.setCourseTitleCentered(context, titleCentered) }
+                )
+                SettingsRowDivider()
                 SettingsSegmentedRow(
                     title = stringResource(R.string.settings_grid_sub_info),
                     subtitle = stringResource(R.string.display_card_hint),
@@ -157,6 +154,19 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
         item { SectionHeader(stringResource(R.string.display_week_section)) }
         item {
             SettingsGroupCard {
+                SettingsSegmentedRow(
+                    title = stringResource(R.string.settings_display_mode),
+                    options = listOf(
+                            stringResource(R.string.settings_display_node),
+                            stringResource(R.string.settings_display_time)
+                        ),
+                    selectedKey = if (displayMode == "node") 0 else 1,
+                    onSelect = { i ->
+                            val v = if (i == 0) "node" else "time"
+                            displayMode = v; AppPrefs.setDisplayMode(context, v); refreshWidgets()
+                        },
+                )
+                SettingsRowDivider()
             SettingsSliderRow(
                 title = stringResource(R.string.settings_pill_week_scale),
                 valueText = "${(weekScale * 100).roundToInt()}%",
@@ -221,6 +231,14 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
         item { SectionHeader(stringResource(R.string.display_holiday_section)) }
         item {
             SettingsGroupCard {
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_holiday_holiday),
+                    subtitle = stringResource(R.string.settings_holiday_holiday_sub),
+                    checked = holidayGrey,
+                    onCheckedChange = { holidayGrey = it; AppPrefs.setHolidayGreyHoliday(context, it); refreshWidgets() }
+                )
+                SettingsRowDivider()
+                if (holidayGrey) {
                 SettingsSegmentedRow(
                     title = stringResource(R.string.settings_holiday_style),
                     subtitle = stringResource(R.string.display_style_hint),
@@ -233,6 +251,7 @@ fun ScheduleDisplayScreen(onBack: () -> Unit, onOpenHoliday: () -> Unit = {}) {
                     }
                 )
                 SettingsRowDivider()
+                }
                 SettingsGroupRow(
                     title = stringResource(R.string.settings_holiday_title),
                     subtitle = stringResource(R.string.settings_holiday_entry_sub),

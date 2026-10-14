@@ -799,7 +799,7 @@ internal fun CourseOverlayCard(
         colorless = AppPrefs.isCourseColorless(context),
         slot = colorSlots[CourseColorUtil.colorSeed(course)]
     ) else bg
-    val shape = RoundedCornerShape((minOf(12f * cornerRatio, 16f) * scale).dp)
+    val shape = RoundedCornerShape((if (accentBarStyle) 2f * scale else minOf(12f * cornerRatio, 16f) * scale).dp)
     val sd = { v: Float -> (v * scale).dp }
     // 副信息（教室/教师/无）— 左栏 SingleTimeHeadCell 已有节次+时间，卡片 y 位置本身编码节次，
     // 故卡内不再显示节次/时间，改由 grid_sub_info 设置决定
@@ -818,13 +818,9 @@ internal fun CourseOverlayCard(
     val primaryInfo = if (subInfo == "teacher") teacherText else roomText
     val secondaryInfo = if (subInfo == "teacher") roomText else teacherText
 
-    // Keep the original palette; dim the composed card once, regardless of the reason.
-    // Keep an opaque surface for photo backgrounds, but reduce the nested dark-card contrast.
-    val effectiveBg = if (accentBarStyle) {
-        if (CourseColorUtil.isPaletteDark(palette)) androidx.compose.ui.graphics.lerp(
-            colors.surfaceContainer, colors.surfaceContainerHigh, .55f)
-        else androidx.compose.ui.graphics.lerp(colors.surfaceContainerHigh, colors.onSurface, .045f)
-    } else bg
+    // Bar mode shares the timetable plane; only filled courses have a card surface.
+    val effectiveBg = if (accentBarStyle) colors.surfaceContainerHigh else bg
+    val titleAlignment = if (AppPrefs.isCourseTitleCentered(context)) Alignment.Center else Alignment.TopCenter
     val effectiveFg = if (accentBarStyle) colors.onSurface else fg
     val effectiveInfoFg = if (accentBarStyle) colors.onSurfaceVariant
         else effectiveFg
@@ -847,23 +843,18 @@ internal fun CourseOverlayCard(
 
     BoxWithConstraints(
         modifier = modifier
-            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
+            .alpha(if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else if (LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA else 1f)
             .padding(sd(1.5f))
             .clip(shape)
-            .background(effectiveBg)
+            .then(if (accentBarStyle) Modifier else Modifier.background(effectiveBg))
             .noRippleClickable(onClick)
-            .padding(sd(3f))
+            .padding(horizontal = sd(if (accentBarStyle) 0f else 3f), vertical = sd(3f))
     ) {
         if (accentBarStyle) {
-            // The marker belongs inside the card, not on its curved edge. Insets scale with
-            // the card radius; cap vertical space for short periods without shrinking text.
-            val radius = sd(minOf(12f * cornerRatio, 16f))
-            val insetY = minOf(maxOf(sd(6f), radius * .65f), (maxHeight + sd(6f)) / 4)
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = sd(3f), top = maxOf(0.dp, insetY - sd(3f)),
-                        bottom = maxOf(0.dp, insetY - sd(3f)))
+                    .padding(vertical = sd(1f))
                     .width(sd(3f))
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(sd(1.5f)))
@@ -888,8 +879,8 @@ internal fun CourseOverlayCard(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .then(if (accentBarStyle) Modifier.padding(start = sd(8f)) else Modifier)
+                    .align(titleAlignment)
+                    .then(if (accentBarStyle) Modifier.padding(start = sd(5f)) else Modifier)
             )
         } else {
             // Reserve measured text height for the selected detail; extra metadata must not crowd the name.
@@ -898,13 +889,13 @@ internal fun CourseOverlayCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (accentBarStyle) Modifier.padding(start = sd(8f)) else Modifier),
+                    .then(if (accentBarStyle) Modifier.padding(start = sd(5f)) else Modifier),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter
+                    contentAlignment = titleAlignment
                 ) {
                     // UI-4g（用户报障）：课程名没做居中 —— 短名字（如"微观经济学"竖排 5 个字）
                     // 会贴在胶囊左侧、右边留一大片空。textAlign 缺省 = Start，必须显式居中；
@@ -1646,7 +1637,7 @@ private fun LessonRow(
 
     Row(
         modifier = Modifier
-            .alpha(if (isGrey || LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else 1f)
+            .alpha(if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else if (LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA else 1f)
             .fillMaxWidth()
             // IntrinsicSize.Min：左侧色条要 fillMaxHeight 撑到内容高（今日页同款写法）
             .height(IntrinsicSize.Min)

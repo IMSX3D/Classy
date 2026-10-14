@@ -8,6 +8,12 @@ import kotlin.math.roundToInt
 
 /** Geometry is anchored to the shared period sizer in XML, never to intrinsic text height. */
 internal fun applyGridBlockTypography(context: Context, block: RemoteViews, room: String, barStyle: Boolean) {
+    // RemoteViews is the live desktop path; bitmap rendering alone only fixes previews.
+    block.setInt(R.id.wg_blk_name, "setGravity",
+        android.view.Gravity.CENTER_HORIZONTAL or
+            if (com.imsx3d.classy.util.AppPrefs.isCourseTitleCentered(context, widget = true))
+                android.view.Gravity.CENTER_VERTICAL else android.view.Gravity.TOP)
+    block.setViewVisibility(R.id.wg_blk_bg, if (barStyle) View.GONE else View.VISIBLE)
     val density = context.resources.displayMetrics.density
     fun dp(value: Float) = (value * density).roundToInt()
     val left = dp(if (barStyle) 9f else 1f)

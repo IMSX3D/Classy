@@ -18,10 +18,9 @@ internal object TwoDayColumnsPusher {
         val views = RemoteViews(context.packageName, R.layout.widget_twoday_columns)
         val table = WidgetTableResolver.resolveBoundTable(id) ?: WidgetTableResolver.resolveCurrentTable()
         views.setTextViewText(R.id.twoday_header, table?.name.orEmpty())
-        // GONE releases title space while keeping the date and course content intact.
-        views.setViewVisibility(R.id.twoday_header,
-            if (com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context))
-                android.view.View.VISIBLE else android.view.View.GONE)
+        val showName = com.imsx3d.classy.util.AppPrefs.isWidgetShowTableName(context)
+        views.setViewVisibility(R.id.twoday_header_row,
+            if (showName) android.view.View.VISIBLE else android.view.View.GONE)
         views.setTextViewText(R.id.twoday_date, DateUtils.shortDateSlash(LocalDate.now()))
         views.setInt(R.id.widget_card_background, "setColorFilter", scheme.bg.toArgb())
         views.setInt(R.id.twoday_divider, "setBackgroundColor", scheme.surfaceVariant.toArgb())
@@ -29,8 +28,10 @@ internal object TwoDayColumnsPusher {
             R.id.twoday_left_empty, R.id.twoday_right_empty).forEach {
             views.setTextColor(it, scheme.onSurfaceVariant.toArgb())
         }
-        views.setTextViewText(R.id.twoday_left_title, context.getString(R.string.widget_day_today))
-        views.setTextViewText(R.id.twoday_right_title, context.getString(R.string.widget_day_tomorrow))
+        views.setTextViewText(R.id.twoday_left_title, context.getString(R.string.widget_day_today) +
+            if (showName) "" else " · " + DateUtils.shortDateSlash(LocalDate.now().plusDays(0)))
+        views.setTextViewText(R.id.twoday_right_title, context.getString(R.string.widget_day_tomorrow) +
+            if (showName) "" else " · " + DateUtils.shortDateSlash(LocalDate.now().plusDays(1)))
         val click = PendingIntent.getActivity(context, WidgetRoutes.tapRequestCode(id),
             WidgetRoutes.tapIntent(context), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         views.setOnClickPendingIntent(R.id.twoday_root, click)

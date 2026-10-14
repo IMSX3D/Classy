@@ -603,7 +603,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                     val radius = dp(4f).toFloat()
                     p.color = cardColor
                     p.alpha = 255
-                    c.drawRoundRect(cardRect, radius, radius, p)
+                    if (!barStyle) c.drawRoundRect(cardRect, radius, radius, p)
                     val stripWidth = if (barStyle) minOf(3f * density, laneW * 0.12f) else 0f
                     if (barStyle) {
                         val accent = CourseColorUtil.pickAccentComposeWithGroupRows(
@@ -614,7 +614,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                             accent, scheme.surface
                         ).toArgb()
                         val inset = minOf(6f * density, cardRect.height() * 0.25f)
-                        val insetX = minOf(4f * density, cardRect.width() * 0.08f)
+                        val insetX = 0f
                         c.drawRoundRect(
                             RectF(cardRect.left + insetX, cardRect.top + inset,
                                 cardRect.left + insetX + stripWidth, cardRect.bottom - inset),
@@ -654,7 +654,8 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         bold = true, widthPx = innerW, maxLines = nameLines, alpha = 255
                     )
                     val nameTop = cardRect.top + unifiedPad +
-                        ((nameAvailH - nameLayout.height).coerceAtLeast(0f)) / 2f
+                        if (AppPrefs.isCourseTitleCentered(context, widget = true))
+                            ((nameAvailH - nameLayout.height).coerceAtLeast(0f)) / 2f else 0f
                     c.save()
                     c.translate(contentLeft, nameTop)
                     nameLayout.draw(c)

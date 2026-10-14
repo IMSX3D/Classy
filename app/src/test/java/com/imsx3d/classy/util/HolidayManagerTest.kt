@@ -19,8 +19,8 @@ class HolidayManagerTest {
     }
 
     @Test
-    fun decideGrey_respects_weekend_toggle() {
-        assertTrue(HolidayManager.decideGrey(saturday, emptySet(), emptySet(), false, true, false))
+    fun decideGrey_never_dims_only_because_it_is_weekend() {
+        assertFalse(HolidayManager.decideGrey(saturday, emptySet(), emptySet(), false, true, false))
         assertFalse(HolidayManager.decideGrey(saturday, emptySet(), emptySet(), false, false, false))
     }
 
@@ -28,12 +28,21 @@ class HolidayManagerTest {
     fun decideGrey_can_ignore_makeup_workday() {
         val workdays = setOf(sundayWorkday)
         assertFalse(HolidayManager.decideGrey(sundayWorkday, emptySet(), workdays, false, true, true))
-        assertTrue(HolidayManager.decideGrey(sundayWorkday, emptySet(), workdays, false, true, false))
+        assertFalse(HolidayManager.decideGrey(sundayWorkday, emptySet(), workdays, false, true, false))
     }
 
     @Test
     fun decideGrey_never_greys_normal_weekday_without_holiday() {
         assertFalse(HolidayManager.decideGrey(weekday, emptySet(), emptySet(), true, true, false))
+    }
+
+    @Test
+    fun holidayWeekendAndWorkdayUseCalendarMeaningNotLegacyFlags() {
+        for (weekendFlag in listOf(false, true)) for (workdayFlag in listOf(false, true)) {
+            assertTrue(HolidayManager.decideGrey(saturday, setOf(saturday), emptySet(), true, weekendFlag, workdayFlag))
+            assertFalse(HolidayManager.decideGrey(saturday, setOf(saturday), setOf(saturday), true, weekendFlag, workdayFlag))
+            assertFalse(HolidayManager.decideGrey(saturday, setOf(saturday), emptySet(), true, weekendFlag, workdayFlag, true))
+        }
     }
 
     @Test

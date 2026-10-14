@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">Classy Schedule</string>
-    <string name="widget_today_label">Classy · 2. Today\’s Classes · 4×2</string>
+    <string name="widget_today_label">Today</string>
     <string name="widget_today_wide_label">Today · Medium</string>
     <string name="widget_twoday_wide_label">Two Days · Medium</string>
     <string name="widget_week_list_wide_label">Week List · Medium</string>
-    <string name="widget_today_small_label">Classy · 1. Today\’s Classes · Small · 2×2</string>
+    <string name="widget_today_small_label">Today · Small</string>
     <string name="widget_week_list_label">This Week (List)</string>
     <string name="widget_week_list_small_label">This Week (List) · Small</string>
-    <string name="widget_week_grid_label">Classy · 4. This Week (Grid) · 4×4</string>
+    <string name="widget_week_grid_label">This Week</string>
     <string name="widget_week_grid_small_label">This Week (Grid) · Small</string>
-    <string name="widget_twoday_label">Classy · 3. Next Two Days · 4×2</string>
+    <string name="widget_twoday_label">Two Days</string>
     <string name="widget_twoday_small_label">Next Two Days · Small</string>
     <string name="widget_week_view_label">This Week (View)</string>
     <string name="widget_week_view_small_label">This Week (View) · Small</string>
@@ -764,8 +764,8 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="settings_course_colorless_sub">Applies to in-app timetables only; custom course colors are kept</string>
     <string name="settings_widget_separator">Week-widget separator</string>
     <string name="settings_holiday_holiday">Gray out public holidays</string>
-    <string name="settings_holiday_holiday_sub">Apply the selected dimming style on holidays; courses are kept</string>
-    <string name="settings_holiday_entry_sub">Choose days to dim and arrange make-up classes</string>
+    <string name="settings_holiday_holiday_sub">Dim classes on holiday dates; does not cancel classes or reminders</string>
+    <string name="settings_holiday_entry_sub">Set holidays and move classes to another date</string>
     <string name="holiday_page_title">Holiday &amp; Make-up Schedule</string>
     <string name="holiday_data_source">Data source</string>
     <string name="holiday_source_label">Holiday data · China · holiday-calendar</string>
@@ -987,7 +987,7 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="display_week_section">Weekly view</string>
     <string name="display_start_hint">The view shown when you open your timetable</string>
     <string name="display_time_hint">Show period numbers or start and end times</string>
-    <string name="display_card_hint">Extra information below the course name</string>
+    <string name="display_card_hint">Preferred detail below the title; taller blocks can also show the other detail</string>
     <string name="display_empty_hint">Hide days with no classes in the weekly view; courses are kept</string>
     <string name="display_holiday_section">Holidays and dimming</string>
     <string name="display_style_hint">Appearance of dimmed courses; choose which days below</string>
@@ -1120,4 +1120,8 @@ Your timetables, custom themes and holiday-transfer mappings are kept.</string>
     <string name="semester_transferred_from">Moved from %1$s</string>
     <string name="semester_regular_pattern">Usually: %1$s</string>
     <string name="semester_outside_term">Includes classes moved beyond the term; see calendar</string>
+    <string name="course_title_position">Course title position</string>
+    <string name="widget_course_title_position">Weekly widget title position</string>
+    <string name="course_title_top">Top</string>
+    <string name="course_title_center">Center</string>
 </resources>

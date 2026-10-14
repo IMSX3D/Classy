@@ -112,9 +112,6 @@ fun HolidaySettingsScreen(
 
     var year by rememberSaveable { mutableStateOf(LocalDate.now().year) }
     var helpExpanded by rememberSaveable { mutableStateOf(false) }
-    var holidayGrey by remember { mutableStateOf(AppPrefs.isHolidayGreyHoliday(context)) }
-    var weekendGrey by remember { mutableStateOf(AppPrefs.isHolidayGreyWeekend(context)) }
-    var ignoreWorkday by remember { mutableStateOf(AppPrefs.isHolidayIgnoreWorkday(context)) }
     var state by remember { mutableStateOf<HolidayUiState>(HolidayUiState.Loading) }
     var loadJob by remember { mutableStateOf<Job?>(null) }
     var overrides by remember { mutableStateOf(AppPrefs.getHolidayRanges(context)) }
@@ -229,35 +226,6 @@ fun HolidaySettingsScreen(
                     contentDescription = stringResource(R.string.holiday_year_next),
                     onClick = { year++ },
                     enabled = year < MAX_YEAR)
-            }
-        }
-
-        item { SectionHeader(stringResource(R.string.holiday_rules_title)) }
-
-        item {
-            // UI-28a：原来卡壳自己 padding(16) + 行内又 16 → 文字落在 48dp（别的设置页是 32dp），
-            // 分隔线还是通贯的 M3 HorizontalDivider。换成标准行 + 发丝线后左线与行高都与大部队一致。
-            SettingsGroupCard {
-                SettingsSwitchRow(
-                    title = stringResource(R.string.settings_holiday_holiday),
-                    subtitle = stringResource(R.string.settings_holiday_holiday_sub),
-                    checked = holidayGrey,
-                    onCheckedChange = { holidayGrey = it; AppPrefs.setHolidayGreyHoliday(context, it) }
-                )
-                SettingsRowDivider()
-                SettingsSwitchRow(
-                    title = stringResource(R.string.settings_holiday_weekend),
-                    subtitle = stringResource(R.string.settings_holiday_weekend_sub),
-                    checked = weekendGrey,
-                    onCheckedChange = { weekendGrey = it; AppPrefs.setHolidayGreyWeekend(context, it) }
-                )
-                SettingsRowDivider()
-                SettingsSwitchRow(
-                    title = stringResource(R.string.settings_holiday_workday),
-                    subtitle = stringResource(R.string.settings_holiday_workday_sub),
-                    checked = ignoreWorkday,
-                    onCheckedChange = { ignoreWorkday = it; AppPrefs.setHolidayIgnoreWorkday(context, it) }
-                )
             }
         }
 

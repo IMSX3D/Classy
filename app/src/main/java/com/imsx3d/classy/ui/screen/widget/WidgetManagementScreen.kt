@@ -61,6 +61,7 @@ fun WidgetManagementScreen(
         }
     }
     var widgetColorless by remember { mutableStateOf(AppPrefs.isWidgetColorless(context)) }
+    var titleCentered by remember { mutableStateOf(AppPrefs.isCourseTitleCentered(context, widget = true)) }
     var showTableName by remember { mutableStateOf(AppPrefs.isWidgetShowTableName(context)) }
     var useAlias by remember { mutableStateOf(AppPrefs.isWidgetUseAlias(context)) }
     var nearestBusyDay by remember { mutableStateOf(AppPrefs.isNearestBusyDay(context)) }
@@ -107,6 +108,17 @@ fun WidgetManagementScreen(
         item { SectionHeader(stringResource(R.string.widget_shared_title), subtitle = stringResource(R.string.widget_shared_hint)) }
         item {
             SettingsGroupCard {
+                com.imsx3d.classy.ui.component.SettingsSegmentedRow(
+                    title = stringResource(R.string.widget_course_title_position),
+                    options = listOf(stringResource(R.string.course_title_top), stringResource(R.string.course_title_center)),
+                    selectedKey = if (titleCentered) 1 else 0,
+                    onSelect = {
+                        titleCentered = it == 1
+                        AppPrefs.setCourseTitleCentered(context, titleCentered, widget = true)
+                        refreshWidgets()
+                    }
+                )
+                SettingsRowDivider()
                 SettingsSwitchRow(
                     title = stringResource(R.string.widget_show_table_name),
                     checked = showTableName,
