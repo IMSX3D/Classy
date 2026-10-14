@@ -1,22 +1,22 @@
 {
-  "versionCode": 10,
-  "versionName": "0.1.0",
+  "versionCode": 11,
+  "versionName": "0.1.1",
   "notes": {
     "zh": [
-      "课表顶部更简洁，设置和导入步骤更清楚；编辑、返回和切换课表时更好地保留当前状态。",
-      "支持从教务更新当前课表，保留现有作息，并在更新前核对课程变化。",
-      "课表支持自定义背景，可调整浓淡、模糊、色彩和图片位置。",
-      "改善平板排版和桌面小组件的圆角、尺寸与显示，网格小组件支持跟随课程色条样式。",
-      "修正课表首次加载时误显示空课表、跳到错误周次的问题，并改进部分学校作息导入和课程提醒。",
-      "「我的」三列统计可以点击查看详情；关于页加入互动品牌卡，连续点击可发现一封信。"
+      "新增学期安排：一眼查看每门课在哪几周上课，点开日历查看具体日期、时间和教室。",
+      "新增可反复使用的使用指南，通过小示例学习看课表、导入、调课和设置。",
+      "改善首次打开课表时的等待和闪动，减少课程分批出现的情况。",
+      "色条显示更简洁，已结束和节假日课程的灰显更统一；课表与本周小组件可分别选择课程名靠上或居中。",
+      "桌面小组件名称更简短，可隐藏课表名称；关于页的新版本提示可以直接进入下载更新。",
+      "关于页品牌卡焕新，连续点击可持续喷射礼花；新安装或恢复默认设置后，课前提醒的提前时间为 5 分钟。"
     ],
     "en": [
-      "A cleaner timetable header and clearer settings and import steps, with better state preservation while editing, returning and switching timetables.",
-      "Refresh the current timetable from your school, keeping your daily time schedule and reviewing course changes before applying them.",
-      "Customize your timetable background with strength, blur, saturation and image-position controls.",
-      "Improved tablet layouts and widget corners, sizing and display. The weekly grid widget can follow the course color-bar style.",
-      "Fixed a temporary empty timetable and incorrect week during initial loading, and improved some school time-schedule imports and class reminders.",
-      "Tap the three statistics in My to explore details. Repeatedly tap the interactive brand card in About to discover a letter."
+      "New semester overview: see which weeks each course runs, then open its calendar for dates, times and rooms.",
+      "A replayable user guide helps you learn timetable viewing, importing, editing and settings through interactive examples.",
+      "Reduced waiting, flashing and courses appearing in batches when first opening the timetable.",
+      "Cleaner color bars and more consistent dimming for completed and holiday classes. Choose top or centered course titles separately for the timetable and weekly widget.",
+      "Shorter widget names and an option to hide timetable names. The new-version notice in About now opens the download flow.",
+      "A refreshed brand card keeps launching confetti as you tap. New installations and restored defaults use a 5-minute lead time for class reminders."
     ]
   }
 }

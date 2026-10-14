@@ -6,6 +6,8 @@
 
 ## 环境
 
+涉及更新说明或发布时，必须遵守 [发布维护与长期文案规则](docs/releases/MAINTAINING.md)：面向用户的说明只用通俗语言讲实际体验变化，专业实现与测试细节留在仓库开发文档。这是后续版本持续适用的产品要求。
+
 ```bash
 git clone https://github.com/IMSX3D/Classy.git
 cd Classy
