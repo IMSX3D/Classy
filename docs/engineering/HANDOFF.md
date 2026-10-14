@@ -1,5 +1,7 @@
 # Classy 开发接手指南
 
+手机共用优化已在 vivo V2507A 上验收首批，范围与大字号七列限制见 [手机验收](PHONE_ACCEPTANCE_20261014.md)。平板已获用户明确认可，不因手机验收重启平板视觉微调。
+
 最后一轮执行见 [有界收口](FINAL_BOUNDED_PASS_20261014.md)。用户体验包使用 `:app:assemblePreview`：Release 优化、`.debug` 测试身份和原 debug 签名，保留测试版课程与组件绑定；不是正式发布包。`Debug` 留给 instrumentation/诊断，`Benchmark` 仍是独立合成数据身份。性能对比不可把三者或不同数据混为同一条件；同身份覆盖安装也不应卸载/清数据。
 
 最新批次入口：[五工作包收口](FIVE_PACK_CLOSEOUT_20261014.md)。性能 profile 来源、再生成方法与适用范围见 [性能记录](PERFORMANCE_20261014.md)。自动更新检查的生命周期门控为 `StartupCheck`；成功无更新也缓存，失败可重试，关闭时旧请求不能回写。
