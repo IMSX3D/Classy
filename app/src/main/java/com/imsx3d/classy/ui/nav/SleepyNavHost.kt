@@ -327,6 +327,36 @@ internal fun SleepyNavHost(
             ReminderScreen(onBack = { navigator.pop() })
         }
 
+        entry<SleepyRoute.Welcome> {
+            com.imsx3d.classy.ui.screen.mine.GuideWelcomeScreen(
+                onBack = { navigator.pop() },
+                onTry = { navigator.pop(); navigator.push(SleepyRoute.GuideTopic(0)) },
+                onImport = {
+                    navigator.popToMain(); setCurrentTab(Tab.Manage)
+                    MainActivity.autoShowImportOnceState.value = true
+                })
+        }
+        entry<SleepyRoute.Guide> {
+            com.imsx3d.classy.ui.screen.mine.GuideScreen(
+                onBack = { navigator.pop() },
+                onTopic = { navigator.push(SleepyRoute.GuideTopic(it)) },
+                onWelcome = { navigator.push(SleepyRoute.Welcome) })
+        }
+        entry<SleepyRoute.GuideTopic> { key ->
+            com.imsx3d.classy.ui.screen.mine.GuideTopicScreen(key.topic, onBack = { navigator.pop() },
+                onDone = { navigator.pop(); navigator.openGuide() }, onOpen = {
+                when (key.topic) {
+                    0, 1 -> { navigator.popToMain(); setCurrentTab(if (key.topic == 0) Tab.Schedule else Tab.Manage)
+                        if (key.topic == 1) MainActivity.autoShowImportOnceState.value = true }
+                    2 -> navigator.openCourseList()
+                    3 -> navigator.openAppearance()
+                    4 -> navigator.openWidgetManagement()
+                    5 -> navigator.openReminder()
+                    6 -> navigator.openSemester()
+                    7 -> navigator.openPeriodTables()
+                }
+            })
+        }
         entry<SleepyRoute.About> {
             AboutScreen(
                 onBack = { navigator.pop() },

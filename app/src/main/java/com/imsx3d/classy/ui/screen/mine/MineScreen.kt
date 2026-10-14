@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Notifications
@@ -55,6 +56,7 @@ fun MineScreen(
     onOpenWidgets: () -> Unit,
     onOpenReminder: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
+    onOpenGuide: () -> Unit = {},
     updateNoticeVisible: Boolean = false,
     viewModel: ScheduleViewModel = viewModel()
 ) {
@@ -130,6 +132,8 @@ fun MineScreen(
                     SettingsRow(Icons.Outlined.Widgets, stringResource(R.string.appearance_section_widget), onOpenWidgets)
                     RowHairline()
                     SettingsRow(Icons.Outlined.Tune, stringResource(R.string.settings_home_title), onOpenSettings)
+                    RowHairline()
+                    SettingsRow(Icons.Outlined.MenuBook, stringResource(R.string.guide_title), onOpenGuide)
                     RowHairline()
                     SettingsRow(Icons.Outlined.Info, stringResource(R.string.about_title), onOpenAbout,
                         highlighted = updateNoticeVisible)

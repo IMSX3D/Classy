@@ -1,0 +1,131 @@
+<resources>
+    <string name="guide_title">使用指南</string>
+    <string name="guide_subtitle">边试边学，随时回来重看。</string>
+    <string name="guide_welcome">你好，Classy</string>
+    <string name="guide_welcome_body">把课程安排得清清楚楚。先导入自己的课表，或用示例试一试。</string>
+    <string name="guide_import">导入我的课表</string>
+    <string name="guide_try">先体验一下</string>
+    <string name="guide_skip">暂时跳过</string>
+    <string name="guide_replay">重新体验快速上手</string>
+    <string name="guide_sample">互动示例 · 不会修改真实课表</string>
+    <string name="guide_step">第 %1$d / %2$d 步</string>
+    <string name="guide_next">下一步</string>
+    <string name="guide_previous">上一步</string>
+    <string name="guide_done">完成，返回指南</string>
+    <string name="guide_open">进入实际功能</string>
+    <string name="guide_example_course">设计基础</string>
+    <string name="guide_example_room">教学楼 302 · 陈老师</string>
+    <string name="guide_tap_course">点击课程卡，展开上课信息</string>
+    <string name="guide_example_time">周二 · 08:25–10:00</string>
+    <string name="guide_week">第 %1$d 周</string>
+    <string name="guide_ended">模拟已上完</string>
+    <string name="guide_normal">模拟还未上课</string>
+    <string name="guide_detail">查看详情</string>
+    <string name="guide_fill">填充</string>
+    <string name="guide_bar">色条</string>
+    <string name="guide_top">顶部</string>
+    <string name="guide_center">居中</string>
+    <string name="guide_example_title">示例课程名称</string>
+    <string name="guide_save">保存示例</string>
+    <string name="guide_saved">已保存到示例，可以继续修改</string>
+    <string name="guide_notify">课前 %1$d 分钟提醒</string>
+    <string name="guide_notice">即将上课 · 设计基础</string>
+    <string name="guide_notice_body">08:25–10:00 · 教学楼 302</string>
+    <string name="guide_preview">点选下方选项，看看变化</string>
+    <string name="guide_week_pattern">有色块的周有课，点选一周查看日期示例</string>
+    <string name="guide_pattern_date">示例：9月 %1$d 日，周二 08:25–10:00</string>
+    <string name="guide_period">第 1–2 节 · 08:25–10:00</string>
+    <string name="guide_period_alt">第 1–2 节 · 09:00–10:35</string>
+    <string name="guide_switch_period">切换示例作息</string>
+    <string name="guide_import_sample">选择导入方式，查看适用场景</string>
+    <string name="guide_school">教务导入</string>
+    <string name="guide_file">文件 / 文本</string>
+    <string name="guide_school_hint">选择学校，登录教务，核对课程与作息后确认导入。</string>
+    <string name="guide_file_hint">在课表管理中打开导入，选择文件或粘贴支持的课表文本。</string>
+    <string name="guide_widget_small">今日·小</string>
+    <string name="guide_widget_today">今日</string>
+    <string name="guide_widget_two">两日</string>
+    <string name="guide_widget_week">本周</string>
+    <string name="guide_widget_hint">这里只预览内容。添加时按手机桌面的提示操作；无法直接添加时，在桌面小组件列表选择 Classy。</string>
+    <string-array name="guide_topics">
+        <item>看懂课表</item>
+        <item>导入与更新</item>
+        <item>编辑与调课</item>
+        <item>我的课表外观</item>
+        <item>桌面小组件</item>
+        <item>课程提醒</item>
+        <item>学期安排</item>
+        <item>作息表</item>
+    </string-array>
+    <string-array name="guide_topic_subtitles">
+        <item>切周、详情与灰显</item>
+        <item>导入课程，保留作息</item>
+        <item>修改课程与临时调整</item>
+        <item>颜色、文字与背景</item>
+        <item>选择、添加和设置</item>
+        <item>提醒时间与系统权限</item>
+        <item>从整个学期看到某一天</item>
+        <item>让节次对应真实时间</item>
+    </string-array>
+    <string-array name="guide_steps">
+        <item>先选对周次</item>
+        <item>点击课程看详情</item>
+        <item>灰显表示什么</item>
+        <item>选择导入方式</item>
+        <item>确认前先核对</item>
+        <item>课程变了怎么更新</item>
+        <item>找到要改的课程</item>
+        <item>先编辑，再保存</item>
+        <item>只调整某一次课</item>
+        <item>选适合你的配色</item>
+        <item>课程名放在哪里</item>
+        <item>用背景保持可读性</item>
+        <item>按需要选择组件</item>
+        <item>添加到桌面</item>
+        <item>外观与内容分开设置</item>
+        <item>先选提前多久</item>
+        <item>打开提醒与必要权限</item>
+        <item>留意后台限制</item>
+        <item>看整学期分布</item>
+        <item>点课程看具体日期</item>
+        <item>调休看实际安排</item>
+        <item>节次不等于时间</item>
+        <item>选择适合的作息</item>
+        <item>更新课程保留作息</item>
+    </string-array>
+    <string-array name="guide_bodies">
+        <item>课表顶部的周次可以切换。回到本周也在周次面板里；试着切换下面的示例。</item>
+        <item>点击课程查看时间、教室和教师，再进入编辑。试着点开下面的课程卡。</item>
+        <item>课程已结束，或开启假期灰显且当天是假期时会变淡。多个原因不会叠加；普通周末有课仍正常显示。灰显不会删除课程，也不等于取消提醒。</item>
+        <item>课表管理 → 导入课表。学校支持教务导入时可登录获取，也可使用支持的文件或文本。</item>
+        <item>导入前核对学期开始日期、周次和作息。节次数量应符合学校实际情况，不必为了导入凑成 12 节。</item>
+        <item>课表顶部更多 → 更新当前课表，可从教务重新获取课程并保留现有作息；确认时留意本地修改的处理提示。</item>
+        <item>点击课表中的课程进入详情，再选择编辑；也可以从课表管理的课程列表进入。下面的名称可以安全试改。</item>
+        <item>课程名称、教室、上课周次和节次都应核对后再保存。离开未保存的编辑时，按提示选择保留或放弃。</item>
+        <item>长期变更使用课程编辑；节假日或临时换课，到设置的节假日调休中查看和配置，不要为了挪一次课改掉整学期。</item>
+        <item>填充用柔和底色区分课程；色条更简洁。试着切换示例，再到外观与主题选择喜欢的方式。</item>
+        <item>课表显示与本周桌面组件的课程名位置独立设置。居中只使用底部教室、教师上方的空间。</item>
+        <item>外观与主题可选择课表背景并调整显现程度、柔化、饱和度和位置。先确保课程文字看得清，再追求装饰效果。</item>
+        <item>今日·小适合快速查看；今日展示更多信息；两日便于提前准备；本周用于总览。试着切换下面的内容预览。</item>
+        <item>从我的 → 小组件进入。部分桌面不支持应用直接添加，可长按桌面空白处，在小组件列表里选择 Classy。</item>
+        <item>小组件可以选择课表并调整显示选项。隐藏课表名称、课程名位置等在小组件设置中；实际尺寸由桌面网格决定。</item>
+        <item>课前提醒适合提前出发，每日摘要适合查看一天安排。下面只是通知示例，不会发送真实通知。</item>
+        <item>我的 → 提醒，打开总开关，再选择所需提醒。系统通知权限、声音与横幅也要允许；默认总开关关闭。</item>
+        <item>若退出后收不到提醒，请按提醒页的设备指引检查后台耗电和自启动。进度卡在通知栏展示，不代表所有手机都支持原子岛。</item>
+        <item>课表顶部更多 → 学期安排。每门课程的周次分布帮助判断单双周、前半学期或后半学期。</item>
+        <item>点击课程进入上课日历，再选日期查看具体时间、地点与教师。下面以固定示例展示周次，不读取你的课程。</item>
+        <item>遇到调休，以课程详情中的实际日期与调整说明为准，不只依赖原来的星期规律。</item>
+        <item>第几节只是编号，通知和已结束判断需要对应的真实开始、结束时间。点按钮比较两套示例。</item>
+        <item>课表管理中可以管理作息表并为课表选择适合的作息；核对上午、下午和晚间的实际时间。</item>
+        <item>更新当前课表时保留既有作息。如果学校调整了上课时间，需要另外检查并修改作息，而不是只刷新课程。</item>
+    </string-array>
+    <string-array name="guide_weekdays">
+        <item>周一</item>
+        <item>周二</item>
+        <item>周三</item>
+        <item>周四</item>
+        <item>周五</item>
+    </string-array>
+    <string name="guide_today">今天</string>
+    <string name="guide_tomorrow">明天</string>
+</resources>

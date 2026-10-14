@@ -1,0 +1,131 @@
+<resources>
+    <string name="guide_title">User guide</string>
+    <string name="guide_subtitle">Learn by trying. Come back any time.</string>
+    <string name="guide_welcome">Hello, Classy</string>
+    <string name="guide_welcome_body">Make your schedule easy to follow. Import your timetable or explore a safe example.</string>
+    <string name="guide_import">Import my timetable</string>
+    <string name="guide_try">Try an example</string>
+    <string name="guide_skip">Skip for now</string>
+    <string name="guide_replay">Replay quick start</string>
+    <string name="guide_sample">Interactive example · Your timetable stays unchanged</string>
+    <string name="guide_step">Step %1$d of %2$d</string>
+    <string name="guide_next">Next</string>
+    <string name="guide_previous">Previous</string>
+    <string name="guide_done">Finish and return to guide</string>
+    <string name="guide_open">Open this feature</string>
+    <string name="guide_example_course">Design basics</string>
+    <string name="guide_example_room">Building A, 302 · Chen</string>
+    <string name="guide_tap_course">Tap the course to see its details</string>
+    <string name="guide_example_time">Tuesday · 08:25–10:00</string>
+    <string name="guide_week">Week %1$d</string>
+    <string name="guide_ended">Simulate completed</string>
+    <string name="guide_normal">Simulate upcoming</string>
+    <string name="guide_detail">Course details</string>
+    <string name="guide_fill">Fill</string>
+    <string name="guide_bar">Color bar</string>
+    <string name="guide_top">Top</string>
+    <string name="guide_center">Center</string>
+    <string name="guide_example_title">Example course name</string>
+    <string name="guide_save">Save example</string>
+    <string name="guide_saved">Saved in this example. You can keep editing.</string>
+    <string name="guide_notify">Remind %1$d minutes before</string>
+    <string name="guide_notice">Starting soon · Design basics</string>
+    <string name="guide_notice_body">08:25–10:00 · Building A, 302</string>
+    <string name="guide_preview">Choose an option to preview the change</string>
+    <string name="guide_week_pattern">Colored weeks have classes. Tap a week for an example date.</string>
+    <string name="guide_pattern_date">Example: September %1$d, Tuesday 08:25–10:00</string>
+    <string name="guide_period">Periods 1–2 · 08:25–10:00</string>
+    <string name="guide_period_alt">Periods 1–2 · 09:00–10:35</string>
+    <string name="guide_switch_period">Switch example routine</string>
+    <string name="guide_import_sample">Choose an import method to learn when to use it</string>
+    <string name="guide_school">School portal</string>
+    <string name="guide_file">File / text</string>
+    <string name="guide_school_hint">Choose your school, sign in, then review courses and times before importing.</string>
+    <string name="guide_file_hint">Open Import in timetable management, then choose a file or paste supported timetable text.</string>
+    <string name="guide_widget_small">Today · small</string>
+    <string name="guide_widget_today">Today</string>
+    <string name="guide_widget_two">Two days</string>
+    <string name="guide_widget_week">This week</string>
+    <string name="guide_widget_hint">This is a content preview. Follow your launcher when adding a widget. If direct adding fails, select Classy from the home screen widget list.</string>
+    <string-array name="guide_topics">
+        <item>Read your timetable</item>
+        <item>Import and refresh</item>
+        <item>Edit and move courses</item>
+        <item>Timetable appearance</item>
+        <item>Home screen widgets</item>
+        <item>Course reminders</item>
+        <item>Semester overview</item>
+        <item>Class times</item>
+    </string-array>
+    <string-array name="guide_topic_subtitles">
+        <item>Weeks, details and dimming</item>
+        <item>Import courses, keep class times</item>
+        <item>Edit courses and make one-off changes</item>
+        <item>Colors, text and backgrounds</item>
+        <item>Choose, add and configure</item>
+        <item>Timing and system permissions</item>
+        <item>From the semester to one date</item>
+        <item>Match periods to actual times</item>
+    </string-array>
+    <string-array name="guide_steps">
+        <item>Choose the right week</item>
+        <item>Tap for course details</item>
+        <item>Understand dimming</item>
+        <item>Choose an import method</item>
+        <item>Review before confirming</item>
+        <item>Refresh changed courses</item>
+        <item>Find the course to edit</item>
+        <item>Edit, then save</item>
+        <item>Move a single occurrence</item>
+        <item>Choose a color style</item>
+        <item>Position course titles</item>
+        <item>Keep backgrounds readable</item>
+        <item>Choose the right widget</item>
+        <item>Add it to your home screen</item>
+        <item>Separate content from appearance</item>
+        <item>Choose reminder timing</item>
+        <item>Enable reminders and permissions</item>
+        <item>Check background restrictions</item>
+        <item>See the semester pattern</item>
+        <item>Open a course calendar</item>
+        <item>Check adjusted dates</item>
+        <item>Periods and actual times</item>
+        <item>Choose a class routine</item>
+        <item>Keep times when refreshing</item>
+    </string-array>
+    <string-array name="guide_bodies">
+        <item>Use the week control above the timetable. Return to the current week from that panel. Try switching the example below.</item>
+        <item>Tap a course for its time, room and teacher, then choose Edit. Try opening the example card.</item>
+        <item>Completed classes and enabled holiday dimming share one dim state. Causes never compound; weekends alone do not dim classes. Dimming does not delete a course or cancel reminders.</item>
+        <item>Open timetable management → Import. Use a supported school portal, file or text.</item>
+        <item>Check the semester start, weeks and class times before confirming. Use your actual number of periods; twelve is not required.</item>
+        <item>Use the timetable More menu → Refresh current timetable to fetch courses while keeping class times. Review how local edits are handled before confirming.</item>
+        <item>Tap a course and choose Edit, or open the course list in timetable management. Safely try editing the example name below.</item>
+        <item>Review the name, room, weeks and periods before saving. When leaving unsaved edits, follow the prompt to keep or discard them.</item>
+        <item>Edit a course for permanent changes. Use holiday adjustments in Settings for temporary moves; do not change the whole semester to move one class.</item>
+        <item>Fill distinguishes classes with soft surfaces; color bars keep the grid simple. Try both below, then choose in Appearance.</item>
+        <item>Timetable and weekly widget title positions are independent. Centered titles use only the space above room and teacher details.</item>
+        <item>Appearance supports a timetable background with visibility, softness, saturation and position controls. Keep course text readable first.</item>
+        <item>Today · small is for a quick glance; Today shows more; Two days helps you prepare; This week gives an overview. Try the content previews below.</item>
+        <item>Open My → Widgets. If your launcher cannot add directly, touch and hold an empty home screen area and select Classy in the widget list.</item>
+        <item>Choose the timetable and display options in widget settings. Timetable names and title alignment belong there; actual size depends on the launcher grid.</item>
+        <item>Before-class reminders help you leave on time; daily summaries help plan your day. This example does not send notifications.</item>
+        <item>Open My → Reminders, enable the master switch, then choose reminders. Also allow system notification, sound and banner permissions. The master switch is off by default.</item>
+        <item>If reminders stop in the background, follow the device guidance on the reminder page. Progress cards appear in notifications; this does not mean every phone supports a top-of-screen island.</item>
+        <item>Open More → Semester overview on the timetable. Week markers reveal alternating weeks and courses held in only part of the semester.</item>
+        <item>Open a course calendar, then select a date for times, room and teacher. The example below uses fixed sample weeks, not your courses.</item>
+        <item>For moved classes, follow the actual date and adjustment notes in details rather than relying only on the usual weekday.</item>
+        <item>Period numbers need actual start and end times for reminders and completion status. Compare two example routines below.</item>
+        <item>Manage class routines in timetable management and select the right one for your timetable. Check morning, afternoon and evening times.</item>
+        <item>Refreshing a timetable keeps its existing routine. If the school changes class times, update the routine separately.</item>
+    </string-array>
+    <string-array name="guide_weekdays">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+    </string-array>
+    <string name="guide_today">Today</string>
+    <string name="guide_tomorrow">Tomorrow</string>
+</resources>

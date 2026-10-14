@@ -58,6 +58,7 @@ class SleepyNavigator(
     fun openHoliday() = push(SleepyRoute.Holiday)
     fun openExport() = push(SleepyRoute.Export)
     fun openReminder() = push(SleepyRoute.Reminder)
+    fun openGuide() = push(SleepyRoute.Guide)
     fun openAbout() = push(SleepyRoute.About)
     fun openLicense() = push(SleepyRoute.License)
     fun openWidgetManagement() = push(SleepyRoute.WidgetManagement)
@@ -80,7 +81,7 @@ class SleepyNavigator(
 @Composable
 fun rememberSleepyNavigator(initial: SleepyRoute = SleepyRoute.Main): SleepyNavigator {
     val session: NavSession = viewModel()
-    val backStack = rememberNavBackStack(initial)
+    val backStack = rememberNavBackStack(*if (initial == SleepyRoute.Main) arrayOf<NavKey>(initial) else arrayOf<NavKey>(SleepyRoute.Main, initial))
     return remember(backStack, session) { SleepyNavigator(backStack, session) }
 }
 

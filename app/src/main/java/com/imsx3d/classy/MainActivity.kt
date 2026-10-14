@@ -367,7 +367,14 @@ private fun AppRoot(
     // Activity's first frame may still be a loading surface. Report usable content only
     // after the initial table/course/routine snapshot is ready (including a real empty DB).
     androidx.activity.compose.ReportDrawnWhen { !mainState.loading }
-    val navigator = rememberSleepyNavigator()
+    val initialRoute = remember {
+        val external = (context as? android.app.Activity)?.intent?.let {
+            it.action != android.content.Intent.ACTION_MAIN || it.data != null || pendingImportText != null
+        } ?: false
+        if (com.imsx3d.classy.util.GuidePrefs.offerWelcome(context, external))
+            com.imsx3d.classy.ui.nav.SleepyRoute.Welcome else com.imsx3d.classy.ui.nav.SleepyRoute.Main
+    }
+    val navigator = rememberSleepyNavigator(initialRoute)
     val nav = navigator.backStack
     // 底栏 thumb 状态提升到 NavDisplay 之外: entry<Main> 在 push 子页时会被销毁,
     // pop 返回时高亮若随 entry 重建,首帧会闪现在课表 tab 再挪回目标 tab
@@ -513,6 +520,7 @@ internal fun MainTabs(
                 onOpenWidgets = { navigator.openWidgetManagement() },
                 onOpenReminder = { navigator.openReminder() },
                 onOpenAbout = { navigator.openAbout() },
+                onOpenGuide = { navigator.openGuide() },
                 updateNoticeVisible = updateNoticeVisible)
         }
     }

@@ -79,12 +79,13 @@ class MineNavRedoCourseListContractTest {
         )
     }
 
-    // A passive overview must not increase the five task-level choices.
+    // The replayable guide is an explicit sixth task entry; do not reintroduce management duplication.
     @Test
-    fun `mine retains five task entries alongside the passive overview`() {
-        assertEquals(5, Regex("SettingsRow\\(Icons").findAll(mineScreen).count())
+    fun `mine includes a permanent guide alongside the five existing task entries`() {
+        assertEquals(6, Regex("SettingsRow\\(Icons").findAll(mineScreen).count())
         assertFalse(mineScreen.contains("onOpenManagement"))
         assertTrue(mineScreen.contains("onOpenSettings"))
+        assertTrue(mineScreen.contains("onOpenGuide"))
     }
 
     @Test
