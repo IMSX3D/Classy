@@ -843,7 +843,7 @@ internal fun CourseOverlayCard(
 
     BoxWithConstraints(
         modifier = modifier
-            .alpha(if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else if (LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA else 1f)
+            .alpha(com.imsx3d.classy.util.CourseDimming.opacity(LocalCourseCompleted.current(course), isGrey))
             .padding(sd(1.5f))
             .clip(shape)
             .then(if (accentBarStyle) Modifier else Modifier.background(effectiveBg))
@@ -1637,7 +1637,7 @@ private fun LessonRow(
 
     Row(
         modifier = Modifier
-            .alpha(if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else if (LocalCourseCompleted.current(course)) com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA else 1f)
+            .alpha(com.imsx3d.classy.util.CourseDimming.opacity(LocalCourseCompleted.current(course), isGrey))
             .fillMaxWidth()
             // IntrinsicSize.Min：左侧色条要 fillMaxHeight 撑到内容高（今日页同款写法）
             .height(IntrinsicSize.Min)

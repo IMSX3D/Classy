@@ -3,7 +3,6 @@ package com.imsx3d.classy.widget
 import com.imsx3d.classy.util.AppPrefs
 import android.view.View
 import com.imsx3d.classy.util.CourseCompletion
-import androidx.compose.ui.graphics.lerp
 import java.time.LocalDateTime
 import android.content.Context
 import android.content.Intent
@@ -123,6 +122,8 @@ class WeekGridRowFactory(
         val nameColor = s.scheme.onSurface.toArgb()
         val metaColor = s.scheme.onSurfaceVariant.toArgb()
 
+        val holidayDates = s.days.associate { day -> day.date to
+            com.imsx3d.classy.util.ScheduleHolidaySnapshot.load(context, day.date.toString(), 1) }
         val groupRows = s.days.flatMap { it.courses }.groupBy { it.groupId }
 
         // ① 左侧时间列：1..nodeCount 每节一格（空节次也占位 → 各列天然对齐）
@@ -166,8 +167,10 @@ class WeekGridRowFactory(
                     else CourseColorUtil.textColorOn(bg, s.scheme.isDark, s.scheme.onSurface)
                 val infoFg = if (s.barStyle) s.scheme.onSurfaceVariant else fg
                 val completed = day != null && CourseCompletion.isCompleted(course, day.date, day.timeJson, s.now)
+                val holidayGrey = day != null && holidayDates[day.date]?.grey(day.date,
+                    AppPrefs.getHolidayTransfers(context, course.tableId)) == true
                 fun tone(color: androidx.compose.ui.graphics.Color): Int =
-                    (if (completed) lerp(s.scheme.bg, color, CourseCompletion.COMPLETED_ALPHA) else color).toArgb()
+                    com.imsx3d.classy.util.CourseDimming.color(color, s.scheme.bg, completed, holidayGrey).toArgb()
                 val bgInt = tone(bg)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     // 圆角 shape + 动态 tint（不能用 setBackgroundColor，那会变成方形色块）

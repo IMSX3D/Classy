@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -75,6 +76,38 @@ class CourseReadingTest {
         } finally {
             prefs.setCourseTitleCentered(context, old)
             prefs.setGridSubInfo(context, info)
+        }
+    }
+
+    @Test fun completedHolidayAndCombinedProduceIdenticalCoursePixels() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = com.imsx3d.classy.util.AppPrefs
+        val oldStyle = prefs.getCourseColorStyle(context)
+        val oldHolidayStyle = prefs.getHolidayStyle(context)
+        var dark by mutableStateOf(false)
+        val course = CourseEntity(id = 997, groupId = "dim", tableId = -10,
+            courseName = "Math", room = "Room", day = 1, startNode = 1,
+            step = 2, startWeek = 1, endWeek = 4, color = "#FF66BB88")
+        try {
+            prefs.setHolidayStyle(context, "grey")
+            compose.setContent { SleepyThemeProvider(darkTheme = dark) {
+                Row(Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                    for (i in 0..2) {
+                        CompositionLocalProvider(com.imsx3d.classy.ui.component.LocalCourseCompleted provides { i != 1 }) {
+                            CourseOverlayCard(course, {}, Modifier.width(90.dp).height(160.dp).testTag("dim$i"), isGrey = i != 0)
+                        }
+                    }
+                }
+            } }
+            for (style in listOf("bar", "fill")) for (theme in listOf(false, true)) {
+                compose.runOnIdle { prefs.setCourseColorStyle(context, style); dark = theme }
+                val images = (0..2).map { compose.onNodeWithTag("dim$it").captureToImage().asAndroidBitmap() }
+                assertTrue("completed vs holiday $style/$theme", images[0].sameAs(images[1]))
+                assertTrue("combined must not compound $style/$theme", images[0].sameAs(images[2]))
+            }
+        } finally {
+            prefs.setCourseColorStyle(context, oldStyle)
+            prefs.setHolidayStyle(context, oldHolidayStyle)
         }
     }
 

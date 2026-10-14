@@ -554,7 +554,7 @@ fun ConflictClusterCard(
             colorless = AppPrefs.isCourseColorless(context)
         ), CourseColorUtil.isPaletteDark(palette))
         return if (isGrey || completed(course))
-            bg.copy(alpha = if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA).compositeOver(colors.surfaceContainerHigh)
+            com.imsx3d.classy.util.CourseDimming.color(bg, colors.surfaceContainerHigh, completed(course), isGrey)
         else bg
     }
     val courseById = drawList.associateBy { it.course.id }
@@ -1013,11 +1013,9 @@ private fun ConflictCourseCard(
     val fg = CourseColorUtil.textColorOn(bg, CourseColorUtil.isPaletteDark(palette), colors.onSurface)
     // A dimmed overlapping card must remain opaque: alpha on the whole layer exposes
     // hidden course names underneath. Resolve dimming into the surface/text colors.
-    val dimmed = isGrey || LocalCourseCompleted.current(course)
-    val dimAlpha = if (isGrey) com.imsx3d.classy.util.CourseCompletion.DIM_ALPHA else com.imsx3d.classy.util.CourseCompletion.COMPLETED_ALPHA
-    val effectiveBg = bg.copy(alpha = if (dimmed) dimAlpha else 1f)
-        .compositeOver(colors.surfaceContainerHigh)
-    val effectiveFg = if (dimmed) fg.copy(alpha = dimAlpha).compositeOver(effectiveBg) else fg
+    val completed = LocalCourseCompleted.current(course)
+    val effectiveBg = com.imsx3d.classy.util.CourseDimming.color(bg, colors.surfaceContainerHigh, completed, isGrey)
+    val effectiveFg = com.imsx3d.classy.util.CourseDimming.color(fg, colors.surfaceContainerHigh, completed, isGrey)
     val titleAlignment = if (AppPrefs.isCourseTitleCentered(context)) Alignment.Center else Alignment.TopCenter
     val holidayStyle = AppPrefs.getHolidayStyle(context)
     val textDecoration = if (isGrey && holidayStyle == "strikethrough") TextDecoration.LineThrough else null

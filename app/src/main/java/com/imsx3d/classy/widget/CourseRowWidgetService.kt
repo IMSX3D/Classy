@@ -1,7 +1,6 @@
 package com.imsx3d.classy.widget
 
 import com.imsx3d.classy.util.CourseCompletion
-import androidx.compose.ui.graphics.lerp
 import java.time.LocalDate
 import java.time.LocalDateTime
 import android.content.Context
@@ -145,8 +144,9 @@ class CourseRowWidgetService : RemoteViewsService() {
             }
             val now = LocalDateTime.now()
             return slices.flatMap { slice ->
+                val holiday = com.imsx3d.classy.util.ScheduleHolidaySnapshot.load(context, slice.date.toString(), 1)
                 slice.courses.sortedBy { it.startNode }
-                    .map { rowFor(slice.label, it, slice.timeJson, scheme, CourseCompletion.isCompleted(it, slice.date, slice.timeJson, now)) }
+                    .map { rowFor(slice.label, it, slice.timeJson, scheme, CourseCompletion.isCompleted(it, slice.date, slice.timeJson, now), holiday.grey(slice.date, com.imsx3d.classy.util.AppPrefs.getHolidayTransfers(context, it.tableId))) }
             }
         }
 
@@ -155,7 +155,8 @@ class CourseRowWidgetService : RemoteViewsService() {
             course: CourseEntity,
             timeJson: String,
             scheme: WidgetScheme,
-            completed: Boolean
+            completed: Boolean,
+            holidayGrey: Boolean
         ): Row {
             val bg = CourseColorUtil.pickCourseColorCompose(
                 course, scheme.isDark, scheme.surfaceVariant
@@ -177,7 +178,7 @@ class CourseRowWidgetService : RemoteViewsService() {
             )
             // Blend colors rather than remote View.setAlpha (not supported by every host).
             fun tone(color: androidx.compose.ui.graphics.Color): Int =
-                (if (completed) lerp(scheme.bg, color, CourseCompletion.COMPLETED_ALPHA) else color).toArgb()
+                com.imsx3d.classy.util.CourseDimming.color(color, scheme.bg, completed, holidayGrey).toArgb()
             return Row(
                 name = name,
                 // 极端情况（导入数据缺地点/教师）也给一行可见文案，不留空行

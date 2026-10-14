@@ -564,6 +564,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
             val unifiedCharSize = minIdeal
             Log.d(TAG, "v21 unifiedCharSize=${unifiedCharSize.toInt()}px (全表最小理想字号, token化) nameMin=${nameMinDp.toInt()}px nameMax=${nameCeil.toInt()}px slotH=${slotH}px dayW=${dayW}px")
 
+            val renderNow = java.time.LocalDateTime.now()
             // day columns
             for ((idx, dow) in sortedDays.withIndex()) {
                 val colX = x + timeW + gapW + idx * (dayW + gapW)
@@ -574,6 +575,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                 // UI-4d: 不再给"今天"整列铺淡色底（用户点名的那条竖条）——
                 // 今天由表头主色文字表达（与 App 网格一致），整列铺色既冗余又压课块。
 
+                val holidaySnapshot = com.imsx3d.classy.util.ScheduleHolidaySnapshot.load(context, dayData.date.toString(), 1)
                 // 课程卡片
                 // v7.10.8: 冲突课分栏 — 与 App 周视图同一引擎(ConflictLayoutEngine.gridDayLanes),
                 // 冲突区域内的课并排各占 1/N 列宽, 无冲突课整列宽。旧实现所有课画满整列宽,
@@ -593,6 +595,11 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
 
                     // 卡片背景色 (v19e: 对齐 CourseTableView palette) — 统一入口 CourseColorUtil (决策 D3)
                     // colorless 灰底传 gridLine(即 surfaceVariant 的 Int), 与原实现一致
+                    val opacity = com.imsx3d.classy.util.CourseDimming.opacity(
+                        com.imsx3d.classy.util.CourseCompletion.isCompleted(course, dayData.date, dayData.timeJson, renderNow),
+                        holidaySnapshot.grey(dayData.date, AppPrefs.getHolidayTransfers(context, course.tableId)))
+                    // One layer for the whole course, including its original metadata hierarchy.
+                    val dimLayer = c.saveLayerAlpha(cardRect, (255 * opacity).toInt())
                     val baseColor = CourseColorUtil.displayFill(CourseColorUtil.pickCourseColorIntWithGroupRows(
                         course, allCourses.filter { it.groupId == course.groupId },
                         isDark, gridLine, colorless
@@ -680,6 +687,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
                         roomLayout.draw(c)
                         c.restore()
                     }
+                    c.restoreToCount(dimLayer)
                     // 循环内 Log.d 渲染调试日志已删（每张课程卡都求值字符串模板, Release 也无法被 R8 消除）
                 }
             }

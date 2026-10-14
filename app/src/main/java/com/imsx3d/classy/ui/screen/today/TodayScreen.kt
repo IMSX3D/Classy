@@ -97,7 +97,7 @@ fun TodayScreen(
     val selectedCourse = todayCourses.firstOrNull { it.id == selectedCourseId }
 
     TodayContent(today, actualWeek, semesterStatus, todayCourses,
-        state.effectiveCurrentTable?.timeJson, now, onSelectCourse = { selectedCourseId = it.id })
+        state.effectiveCurrentTable?.timeJson, now, holidayGrey = state.holidaySnapshot.grey(today, state.transfers), onSelectCourse = { selectedCourseId = it.id })
 
     // 详情 Bottom Sheet — 与课表页同一组件同一交互（视觉换装留待 UI-3）
     CourseDetailSheet(
@@ -123,6 +123,7 @@ internal fun TodayContent(
     todayCourses: List<CourseEntity>,
     timeJson: String?,
     now: java.time.LocalDateTime,
+    holidayGrey: Boolean = false,
     onSelectCourse: (CourseEntity) -> Unit
 ) {
     // v7.10.10 今日页冲突分栏 — 与周视图同一引擎同一分组(weekLaneRows):
@@ -166,6 +167,7 @@ internal fun TodayContent(
                                 course = row.courses[0],
                                 timeJson = timeJson,
                                 now = now,
+                                holidayGrey = holidayGrey,
                                 onClick = { onSelectCourse(row.courses[0]) },
                                 groupRows = todayCourses.filter { it.groupId == row.courses[0].groupId }
                             )
@@ -198,6 +200,7 @@ internal fun TodayContent(
                                                         course = laneCourse,
                                                         timeJson = timeJson,
                                                         now = now,
+                                holidayGrey = holidayGrey,
                                                         onClick = { onSelectCourse(laneCourse) },
                                                         groupRows = todayCourses.filter { it.groupId == laneCourse.groupId }
                                                     )
@@ -325,6 +328,7 @@ private fun EmptyToday(semesterStatus: DateUtils.SemesterStatus = DateUtils.Seme
 private fun TodayCourseCard(
     course: CourseEntity,
     now: java.time.LocalDateTime,
+    holidayGrey: Boolean = false,
     timeJson: String? = null,
     onClick: (() -> Unit)? = null,
     groupRows: List<CourseEntity> = listOf(course)
@@ -351,7 +355,7 @@ private fun TodayCourseCard(
 
     Row(
         modifier = Modifier
-            .alpha(if (CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now)) CourseCompletion.COMPLETED_ALPHA else 1f)
+            .alpha(com.imsx3d.classy.util.CourseDimming.opacity(CourseCompletion.isCompleted(course, now.toLocalDate(), timeJson, now), holidayGrey))
             .fillMaxWidth()
             .heightIn(min = ClassyLayout.minimumTouchTarget)
             .height(IntrinsicSize.Min)

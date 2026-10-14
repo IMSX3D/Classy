@@ -7,10 +7,6 @@ import java.time.LocalTime
 
 /** Completion belongs to a dated occurrence, not to a recurring course or weekday. */
 object CourseCompletion {
-    const val DIM_ALPHA = 0.45f
-    // Ended is not cancelled: retain substantially more contrast than a holiday cue.
-    const val COMPLETED_ALPHA = 0.72f
-
     fun endTime(course: CourseEntity, timeJson: String?): LocalTime? = runCatching {
         // The display parser has default slots for corrupt JSON; do not infer completion from them.
         if (!course.ownTime) {
