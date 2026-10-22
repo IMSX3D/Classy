@@ -16,17 +16,13 @@
 
 ## 先用一段影片，感受 Classy。
 
-同一个「时间，由你接管」，两种观看节奏。点击播放器，开启声音。
+只是个课表，有必要拍成这样吗？开启声音，看看 Classy 的这一面。
 
-### 完整品牌片 · 52 秒
+### 完整宣传片 · 81.7 秒
 
-https://github.com/user-attachments/assets/9a90d1ed-8ecb-4a7f-b33d-9435bee4dce9
+https://github.com/user-attachments/assets/ba42d6dc-2777-4322-be96-59e46d4fb9d7
 
-### 精华短片 · 30.2 秒
-
-https://github.com/user-attachments/assets/ac7be139-0f8a-4b4d-9d15-6163afba1d20
-
-<sub>3:4 画幅 · 中英双语字幕。影片含概念化动效，以展示品牌与产品理念；实际界面见下方截图。</sub>
+<sub>16:9 横屏 · 中英双语文案。影片使用真实产品界面，并包含课程展开、聚光与归位等概念化动效；这些宣传动画不代表 App 的原生操作效果。</sub>
 
 ## 整周有序，今天清楚。
 

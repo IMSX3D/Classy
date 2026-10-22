@@ -9,17 +9,13 @@ Your timetable should give you clarity at a glance. See the shape of your week, 
 
 ## See Classy in motion.
 
-Two cuts. One idea: make time yours. Press play. Sound on.
+All this for a timetable? Sound on — see another side of Classy.
 
-### Brand film · 52 seconds
+### Full promotional film · 81.7 seconds
 
-https://github.com/user-attachments/assets/9a90d1ed-8ecb-4a7f-b33d-9435bee4dce9
+https://github.com/user-attachments/assets/ba42d6dc-2777-4322-be96-59e46d4fb9d7
 
-### Short film · 30.2 seconds
-
-https://github.com/user-attachments/assets/ac7be139-0f8a-4b4d-9d15-6163afba1d20
-
-3:4 format, Chinese and English captions. Films include conceptual motion graphics; actual app screens appear below.
+16:9 landscape, with Chinese and English text. The film combines real product screens with conceptual motion graphics, including spotlighting and course-card assembly. These promotional animations do not represent native app interactions.
 
 ## See the week. Focus on today.
 

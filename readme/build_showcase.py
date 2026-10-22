@@ -3,7 +3,7 @@
 Usage: python readme/build_showcase.py CAPTURE_DIRECTORY
 Never glob the input directory: it may contain private diagnostic screenshots.
 Only outer system bars are cropped; the application UI is never repainted.
-Requires Pillow. Original captures remain outside the repository.
+Requires Pillow, numpy and opencv-python. Original captures remain outside the repository.
 """
 from pathlib import Path
 import sys
@@ -106,3 +106,7 @@ if tablet.exists():
         d.text((x,y-50),label,font=font(29),fill='#172c2b')
         canvas.paste(im.resize((w,round(im.height*w/im.width)),Image.Resampling.LANCZOS),(x,y))
     canvas.save(output/'tablet-widgets.jpg',quality=92,optimize=True)
+
+# Apply the same contour cleanup after any fresh capture rebuild.
+from build_widget_showcase import main as build_widget_showcase
+build_widget_showcase()
