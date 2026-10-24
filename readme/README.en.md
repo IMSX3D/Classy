@@ -136,7 +136,7 @@ Classy ships with academic-system support for **349 schools**, covering **34 sys
 | Zhengfang (classic) | `classic_eams` | 19 |
 
 When importing a timetable, pick the academic system and search for your school. The full list is in
-[`schools.json`](app/src/main/assets/schools.json) (as of v0.1.1).
+[`schools.json`](../app/src/main/assets/schools.json) (as of v0.1.1).
 
 Not your school? Import via ICS / CSV / text for now, or [open an issue](https://github.com/IMSX3D/Classy/issues/new) with your school and system type.
 
