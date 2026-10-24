@@ -1,60 +1,115 @@
 # Classy 开发接手指南
 
-v0.1.1 的 README 重拍、安装验证及发布状态见 [发布准备记录](../releases/v0.1.1-preparation.md)。手机/平板宣传截图使用虚构课表，原始私人设备截图不入库；旧品牌影片按用户要求保留。
+Classy 是一个本地优先的安卓课程表应用（Kotlin + Jetpack Compose，GPL-3.0），仓库 `IMSX3D/Classy`，主分支 `main`。这份文档给第一次接手的人：怎么跑起来、代码在哪、哪些约定不能破坏、发版走哪条路。
 
-长期发布文案要求：应用内更新说明与 GitHub Release 摘要只用通俗语言描述用户可感知的变化；专业实现与测试细节放在仓库开发文档。接手发布工作前必读 [发布维护规范](../releases/MAINTAINING.md)，并完成其中的人工文案检查。此规则适用于所有后续版本。
+面向用户的介绍在根目录 [README.md](../../README.md)，使用说明在 [readme/GUIDE.zh-CN.md](../../readme/GUIDE.zh-CN.md)。
 
-手机共用优化已在 vivo V2507A 上验收首批，范围与大字号七列限制见 [手机验收](PHONE_ACCEPTANCE_20261014.md)。平板已获用户明确认可，不因手机验收重启平板视觉微调。
+## 一、30 秒跑起来
 
-最后一轮执行见 [有界收口](FINAL_BOUNDED_PASS_20261014.md)。用户体验包使用 `:app:assemblePreview`：Release 优化、`.debug` 测试身份和原 debug 签名，保留测试版课程与组件绑定；不是正式发布包。`Debug` 留给 instrumentation/诊断，`Benchmark` 仍是独立合成数据身份。性能对比不可把三者或不同数据混为同一条件；同身份覆盖安装也不应卸载/清数据。
+需要 Android SDK（compileSdk 37）与 JDK 21。
 
-最新批次入口：[五工作包收口](FIVE_PACK_CLOSEOUT_20261014.md)。性能 profile 来源、再生成方法与适用范围见 [性能记录](PERFORMANCE_20261014.md)。自动更新检查的生命周期门控为 `StartupCheck`；成功无更新也缓存，失败可重试，关闭时旧请求不能回写。
-
-通知冷进程/重启检查使用 `tools/validation/cold-reminder.py`，仅限隔离空模拟器。Android 会在 instrumentation 开始/结束强制停止应用，不能在第二段 instrumentation 中读取通知来证明前一阶段送达；工具先恢复正常启动排程，从系统记录读取结果后才清理。禁止把此脚本指向用户设备。
-
-## 起点与责任边界
-
-唯一活动仓库为 `E:/C015/classy`，远端 `IMSX3D/Classy`，主分支 main。先读根目录 AGENTS.md 与 docs/design/INTERACTION_DELIVERY_PLAN.md，再查看对应工作包状态。旧并行目录不再开发。遇到合并冲突先讨论，不自行舍弃任一功能。已发布tag/附件不可覆盖。
-
-| 模块 | 入口与职责 | 修改时必须保留 |
-| --- | --- | --- |
-| 生命周期/导航 | SleepyApp、MainActivity、ui/nav | Activity/条目拥有状态；进入目标就绪再显示，离场保持内容；21条路由契约见交互台账 |
-| 数据与事务 | data/entity、dao、AppDatabase、Migrations、repository/ScheduleRepository | atomicEdit串行化写入和撤销快照，事务成功后刷新；不能绕过仓库拼写多个DAO操作 |
-| 课程日期与作息 | CourseDateResolver、TimeTableUtils、PeriodTableEntity、TimeTableEntity.hydratedWith | 当前表原始timeJson可能是旧兼容快照；优先有效绑定作息；ownTime是实际时刻，不可误删除 |
-| 学校导入/刷新 | data/jw、data/parser、ui/screen/imports、assets适配脚本 | JwRefresh比较完整安排和本地指纹，保护本地编辑；刷新课程不覆盖作息；真实账号不落库/日志/fixture |
-| 课表呈现 | CourseTableView、ConflictCard、CourseColorUtil、ScheduleViewModel | 原始色与显示色分离；课程身份与颜色身份不同；灰显不是停课 |
-| 学期安排 | SemesterSchedule、SemesterScreen | 后台投影，不改源数据；调休目标可跨学期边界；相同名字不代表同一课程 |
-| 外观与交互 | ui/theme、ui/component、glasense-ui | 复用圆角/按压/动效；尊重减少动画；性能证据与视觉验收分开 |
-| 桌面组件 | WidgetVariantInfo、WidgetUpdater、CourseRowPusher、WeekGridRowService | 实际宿主尺寸决定布局；设置变化刷新所有实例；请求固定成功不等于厂商桌面实际添加成功 |
-| 提醒与厂商卡片 | widget/notification | 普通通知、持续卡片、厂商岛分别验收；权限、省电与重启边界不能混为一项 |
-| 更新发布 | UpdateNotifier、UpdateManager、AppIdentity、docs/releases | Debug不获取生产更新；签名保持一致，ABI资产名和版本信息匹配；用户新授权才发布 |
-
-## 构建与测试
-
-JDK21、Android SDK使用本机工具目录。签名配置仅在忽略的local.properties中；不要复制到文档或提交。独立测试包与正式包数据隔离，不清除用户数据库/组件绑定。
-
-```powershell
-$env:JAVA_HOME='E:/T1/tools/jdk21'
-$env:ANDROID_HOME='E:/T1/tools/android-sdk'
-$env:GRADLE_USER_HOME='E:/T1/tools/gradle-home'
-./gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest lintDebug
+```bash
+git clone https://github.com/IMSX3D/Classy.git
+cd Classy
+./gradlew.bat :app:testDebugUnitTest :app:assembleDebug
 ```
 
-- 首先跑对应纯规则测试，再跑受影响的Compose/设备测试；不要用源码字符串断言代替业务结果测试。
-- 仪器测试优先隔离模拟器；只用虚构fixture。真实学校数据与截图不得提交。安装使用 `adb -s <serial> install -r <apk>`，不卸载或清数据。
-- 课程读取样板：明暗、1.0/1.5字号、缺少副信息和长文本。彩蛋覆盖连续点击/拖动取消/关闭动画/离页。学期安排核对每个实际日期而不只核对周次数量。
-- root lintDebug会检查app与glasense-ui；只跑app lint不能代表全部模块通过。警告必须按来源判断，不全局禁用。
+| 目的 | 命令 |
+| --- | --- |
+| 装到手机看效果 | `./gradlew.bat :app:assembleDebug`，产物在 `app/build/outputs/apk/debug/` |
+| 跑 JVM 单测 | `./gradlew.bat :app:testDebugUnitTest` |
+| 跑设备测试 | `./gradlew.bat :app:assembleDebugAndroidTest`，再 `connectedDebugAndroidTest` |
+| 静态检查 | `./gradlew.bat lintDebug`（根任务，同时覆盖 `:app` 与 `:glasense-ui`） |
+| 出正式包 | `./gradlew.bat :app:assembleRelease`（需要签名配置） |
 
-## 上游更新保留与吸收
+Debug 包与正式包可共存：`applicationId` 加 `.debug` 后缀，版本名加 `-debug`；`preview`、`benchmark` 是两个额外变体，不装进正式环境。
 
-来源项目为lingion/sleepy；UI包含glasense相关代码，其许可和署名仍保留。当前没有验证可直接整体合入的上游提交基线；查Git历史与差异后再决定，不能把版本名称当作共同祖先。
+## 二、先读这四份
 
-保留 data/jw 的学校适配器、导入格式兼容、数据库迁移、既有Manifest组件身份和小组件尺寸兼容实现。即使当前入口不曝光，也可能服务历史安装、外部Intent或导入数据，不能仅靠调用次数删除。
+| 文档 | 什么时候读 |
+| --- | --- |
+| [AGENTS.md](../../AGENTS.md) | 动 UI、动文案、准备发版前必读，是仓库级硬规则 |
+| [docs/design/INTERACTION_DELIVERY_PLAN.md](../design/INTERACTION_DELIVERY_PLAN.md) | 主线状态与交互契约，改导航、改交互前 |
+| [docs/releases/MAINTAINING.md](../releases/MAINTAINING.md) | 发版流程与面向用户的发布文案规则 |
+| [docs/design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md) 与 [TABLET_ADAPTATION.md](../design/TABLET_ADAPTATION.md) | 动视觉、动响应式布局前 |
 
-吸收流程：定位上游具体修复→核对许可/本地差异→提取学校或规则层最小变化→跑学校fixture/JS契约/数据迁移测试→独立测试包验证。不要把上游发布地址、包名、签名或版本覆盖本地身份。冲突先与用户讨论。
+## 三、仓库地图
 
-已删除的SemesterOverviewCard只剩专属测试引用、无Manifest/反射/序列化入口，产品已恢复静态统计，因此连同该废弃行为测试删除；历史实现可从Git取回。
+| 位置 | 内容 | 什么时候动 |
+| --- | --- | --- |
+| `app/src/main/java/com/imsx3d/classy/data/` | Room 实体与 DAO、仓库层、撤销栈 | 改数据结构、改变更语义 |
+| `data/jw/`（52 个文件） | 34 种教务系统适配器与登录跳转 | 加学校、修某校解析 |
+| `app/src/main/assets/schools.json` | 349 所学校清单，`type` 字段指向适配器 | 新增学校时必须同步 |
+| `data/parser/`、`data/diff/`、`data/undo/` | 文本与 ICS 解析、变更比对、撤销 | 改导入或撤销 |
+| `ui/` | Compose 界面：`screen/`（today、schedule、imports、edit、mine、widget）、`component/`、`nav/`、`theme/` | 改页面与交互 |
+| `widget/` | 四种桌面组件（RemoteViews）与 `notification/` 提醒通知 | 改组件外观、刷新与提醒 |
+| `glasense-ui/` | 独立设计系统模块，来自 [Nevodev/Cresto](https://github.com/Nevodev/Cresto)（Apache-2.0）；玻璃效果在 SDK 33+ 才启用 | 改材质与主题基座 |
+| `readme/` | 首页素材、中英使用指南、素材校验清单 | 换图、改说明 |
+| `docs/` | 设计、工程、发布文档 | 记录决策与验收 |
+| `tools/validation/`、`scripts/` | 设备性能采集与截图脚本、组件预览生成 | 复测性能 |
+| `.github/ISSUE_TEMPLATE/` | issue 模板 | — |
 
-## 已知问题与审计状态
+## 四、动手前必须知道的约束
 
-本指南与目录清单是接手入口，不是全项目逐行审计完成证明。详见 CODE_AUDIT_20261014.md。未关闭性能/厂商集成/TalkBack问题见当前总计划，不能用全绿构建替代真机验收。
+1. **导航只有两个出口**：`ui/nav/SleepyNavHost.kt` 与 `SleepyRoutes.kt`。新页面进路由表，不要在页面里直接跳内部页面。
+2. **数据改动走仓库层 + Room 事务**，界面不直接碰 DAO；撤销栈在 `data/undo/`。
+3. **桌面组件是 RemoteViews，不是 Glance**。不要引回 Glance，历史上已经移除。
+4. **颜色不硬编码**：主题与材质走 `glasense-ui` + `ui/theme/`；课程色条统一用 `CourseColorUtil.softenedIndicator`。
+5. **中英文同步**：`values/`、`values-zh-rCN/`、`values-en/` 三套字符串，改一处就要三处对齐，旧语言偏好由 `SupportedLanguages` 归一化。
+6. **首次布局即目的地状态**：区分"加载中"与"空/缺失"，别靠进入后滚动来补。
+
+## 五、常见改动怎么下手
+
+| 想做的事 | 从哪开始 | 注意 |
+| --- | --- | --- |
+| 支持一所新学校 | `data/jw/` 找同类型适配器，再往 `schools.json` 加条目 | `type` 必须是已有适配器名；教务抓取默认关闭，只对少数学校开启 |
+| 修某校导入失败 | 对应适配器，加 `app/src/test/` 下该校 fixture | 学校端会改版，保留登录跳转与兜底逻辑 |
+| 改课表网格 | `ui/screen/today/`、`ui/component/` | 手机、平板、分屏三档都要看 |
+| 改桌面组件 | `widget/` 与 `res/xml/` 的组件尺寸定义 | 组件尺寸与刷新时机受系统限制，不能承诺实时 |
+| 改文案与翻译 | 三套 `strings.xml` | 发布文案规则见 MAINTAINING |
+| 加设置项 | `ui/screen/mine/` + DataStore | 默认值要能对齐 `docs/engineering/DEFAULT_SETTINGS_20261014.md` 的口径 |
+| 发版 | 见第六节 | 已发布的 tag 与资产不覆盖 |
+
+## 六、发版
+
+流程在 [docs/releases/MAINTAINING.md](../releases/MAINTAINING.md)，要点：
+
+1. 改 `versionCode` 与 `versionName`；
+2. 更新 `app/src/main/assets/release-notes.json`（构建会校验版本号与语言，不一致直接失败）；
+3. 跑单测、设备包、Lint、正式签名构建；
+4. 打 tag 并发 Release：三 ABI APK + `SHA256SUMS.txt` + 验证记录。
+
+面向用户的说明（应用内更新弹窗、Release 正文）只写 3–6 条具体可感知的变化，技术细节留在仓库文档里链接过去。
+
+## 七、上游血缘与兼容红线
+
+项目从 [lingion/sleepy](https://github.com/lingion/sleepy)（GPL-3.0）二次开发。以下标识要保留，否则老用户数据会丢：
+
+- 数据库文件名 `sleepy.db`、偏好文件名 `sleepy_prefs`；
+- 导出格式 `classy-v1`，以及仍要能读的旧 `#sleepy-v1` 文本；
+- `AndroidManifest.xml` 里组件类名与组件尺寸；
+- `data/jw` 的适配器行为与登录跳转。
+
+吸收上游更新时，只取单个适配器或解析规则，先补测试再合并，不整块覆盖本项目界面层。
+
+## 八、现状与已知边界
+
+- 工程审计与未关闭项：[docs/engineering/CODE_AUDIT_20261014.md](CODE_AUDIT_20261014.md)
+- 手机验收（帧时间、组件进出链）：[docs/engineering/PHONE_ACCEPTANCE_20261014.md](PHONE_ACCEPTANCE_20261014.md)
+- 性能采集口径：[docs/engineering/PERFORMANCE_20261014.md](PERFORMANCE_20261014.md)
+- 已知未完成：TalkBack 与部分厂商卡片适配；组件长文本会省略，不宣称任意文本完整展示。
+
+## 九、路径约定
+
+历史文档不再写开发机的绝对路径，统一改用下面这些说法。读到它们时，按右列理解：
+
+| 文档里的写法 | 实际含义 |
+| --- | --- |
+| `本机证据目录/xxx.log` | 当年的开发者本机日志与截图，**不在仓库里**，也无法获取 |
+| `交付目录/Classy-xxx-20261013/` | 当年构建的测试包与交付说明，**不在仓库里** |
+| `仓库克隆目录` | 就是你现在 clone 下来的这个仓库 |
+| `Android SDK 目录` / `JDK 21 目录` / `Gradle 用户目录` | 本机安装路径，由 `ANDROID_HOME`、`JAVA_HOME`、`GRADLE_USER_HOME` 决定 |
+
+`docs/design/` 与 `docs/engineering/` 里带日期后缀的历史记录，凡引用过本机证据的，顶部都有一行"历史记录"说明：它们记录当时的验收过程，**结论与判据仍有效，路径与设备信息只对当时那台机器成立**。
+
+写新文档时：仓库内文件用相对路径；仓库外的东西用上表的说法描述，不要写盘符。现状以 [INTERACTION_DELIVERY_PLAN.md](../design/INTERACTION_DELIVERY_PLAN.md) 与 [CODE_AUDIT_20261014.md](CODE_AUDIT_20261014.md) 为准，`docs/design/*_2026101x.md` 是当时的记录，不是现状。
