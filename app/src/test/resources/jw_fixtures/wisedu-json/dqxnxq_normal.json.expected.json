@@ -13,8 +13,8 @@
     },
     "evidence": [
       "app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt L397-444",
-      "/tmp/jlu.js L180: res?.datas?.dqxnxq?.rows?.[0], r.DM / r.MC 字段命名交叉确认",
-      "/tmp/jw_fixtures/wisedu-json/dqxnxq_multi_semester.json.expected.json (SFDQ 字符串与数字两种形态)"
+      "本地参考（未入库）: jlu.js L180: res?.datas?.dqxnxq?.rows?.[0], r.DM / r.MC 字段命名交叉确认",
+      "本地参考（未入库）: jw_fixtures/wisedu-json/dqxnxq_multi_semester.json.expected.json (SFDQ 字符串与数字两种形态)"
     ]
   },
   "expected_xnxqdm": "2025-2026-2",

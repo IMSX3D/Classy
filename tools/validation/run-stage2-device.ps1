@@ -1,9 +1,15 @@
 param(
     [string]$Serial = "emulator-5554",
-    [string]$OutputDirectory = "E:/C015/99-整理记录/stage2-device"
+    [string]$OutputDirectory = (Join-Path $PSScriptRoot "out")
 )
 $ErrorActionPreference = "Stop"
-$adb = "E:/T1/tools/android-sdk/platform-tools/adb.exe"
+if ($env:ANDROID_HOME) {
+    $adb = Join-Path $env:ANDROID_HOME "platform-tools/adb.exe"
+} else {
+    $cmd = Get-Command adb -ErrorAction SilentlyContinue
+    if (-not $cmd) { throw "找不到 adb：请设置 ANDROID_HOME，或把 platform-tools 加入 PATH。" }
+    $adb = $cmd.Source
+}
 if ($Serial -notmatch '^emulator-[0-9]+$') {
     throw "This harness is restricted to isolated emulators. Do not run fixture tests on a personal device."
 }

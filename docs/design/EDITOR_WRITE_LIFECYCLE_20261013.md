@@ -1,5 +1,7 @@
 # 保存/删除生命周期复核（2026-10-13）
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 承接8a0f8b6。主目标是保存/删除中的配置重建与进程终止，不恢复性能专项。
 
 ## 决策与实现
@@ -12,7 +14,7 @@
 
 ## 自动化证据
 
-日志在E:/C015/99-整理记录。
+日志在本机证据目录。
 
 - 初版测试探针awaitCancellation使Kotlin推导Nothing，已显式声明Unit后编译通过（不是生产缺陷）。
 - editor-lifecycle-final-build.log：Debug/AndroidTest/JVM构建通过；初轮editor-lifecycle-instrumentation.log 12项通过。
@@ -42,7 +44,7 @@ PA2553 / Android16 / 中文深色 / font1.0，独立Debug。正式包、benchmar
 
 - editor-lifecycle-final-delivery-build.log：Debug/AndroidTest/Release构建成功，2339项JVM零失败/零跳过。最终限定改动为完成状态的按钮守卫和简体中文删除确认；后续针对实际受影响流程做复测。
 - 平板覆盖安装最终Debug，确认删除文字为“删除课程「Stopped-Draft」及其上课安排？”，删除成功；Lifecycle-Fixture虚构表及全部课程已清理（lifecycle-final-delete-copy、lifecycle-fixture-cleaned）。旋转恢复auto=1/user_rotation=1，字体/主题不变，原benchmark桌面组件未动。
-- Release ARM64 APK：E:/C015/交付/Classy-保存删除状态保护-20261013/Classy-editor-lifecycle-arm64.apk。
+- Release ARM64 APK：交付目录/Classy-保存删除状态保护-20261013/Classy-editor-lifecycle-arm64.apk。
 - SHA256：E228D94EAFD6B7082D9BE157E987CAE1664F4CBEA766DA2485CEFA5FF778F687。
 - 仅本地提交，未推送、不改现有tag/Release。正式包未安装。Debug测试宿主不导出，Release不包含。
 

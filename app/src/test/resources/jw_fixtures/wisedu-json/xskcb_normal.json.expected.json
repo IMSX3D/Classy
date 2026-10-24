@@ -17,10 +17,10 @@
     "parser_run_logic": "1) 单 run → (start,end,0); 2) 多 week 整体 step=2 → 压缩 (first,last,1/2); 3) 其他 → 按连续段拆,每段 type=0",
     "evidence": [
       "app/src/main/java/com/imsx3d/classy/data/jw/JwWiseduParser.kt (L82-112 weekRuns 实现)",
-      "/tmp/fixtures/myleafy/README.md (跨平台契约-课程数组字段语义参考)",
-      "/tmp/yibinu_01.js (宜宾学院 wisedu 适配器,字段命名一致,但其用 ZCMC 而非 SKZC)",
-      "/tmp/whut_01.js (武汉理工 wisedu 适配器,parseWeeksFromSkzc 与 sleepy weekRuns 等价)",
-      "/tmp/jlu.js (吉林大学 wisedu 适配器,确认 dqxnxq.rows[*].{DM,MC,SFDQ} 字段)"
+      "本地参考（未入库）: fixtures/myleafy/README.md (跨平台契约-课程数组字段语义参考)",
+      "本地参考（未入库）: yibinu_01.js (宜宾学院 wisedu 适配器,字段命名一致,但其用 ZCMC 而非 SKZC)",
+      "本地参考（未入库）: whut_01.js (武汉理工 wisedu 适配器,parseWeeksFromSkzc 与 sleepy weekRuns 等价)",
+      "本地参考（未入库）: jlu.js (吉林大学 wisedu 适配器,确认 dqxnxq.rows[*].{DM,MC,SFDQ} 字段)"
     ]
   },
   "courses": [

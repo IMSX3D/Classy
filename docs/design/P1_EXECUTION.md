@@ -1,6 +1,8 @@
 # P0 + P1 实施记录
 
-日期：2026-10-11。单目录 `E:/C015/classy`，未创建额外开发线程。
+> 历史记录：本文写于 2026-10-11，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
+日期：2026-10-11。单目录 `仓库克隆目录`，未创建额外开发线程。
 
 ## 可回退基线
 
@@ -52,9 +54,9 @@ adb shell am start -n com.imsx3d.classy.debug/com.imsx3d.classy.debug.DesignSamp
 
 ## 验证状态
 
-工程验证完成：`:app:testDebugUnitTest :app:lintDebug :app:assembleDebug` 全部通过；2280 项 JVM 测试，0 失败/错误/跳过；Lint 0 错误、657 警告、20 提示（未在本批清理全部警告）。ARM64 APK 通过 apksigner 签名验证，包名 `com.imsx3d.classy.debug`，版本 `0.0.9-debug`，可与正式版并存。最终日志：`E:/C015/99-整理记录/P1-final-validation-20261011.log`。
+工程验证完成：`:app:testDebugUnitTest :app:lintDebug :app:assembleDebug` 全部通过；2280 项 JVM 测试，0 失败/错误/跳过；Lint 0 错误、657 警告、20 提示（未在本批清理全部警告）。ARM64 APK 通过 apksigner 签名验证，包名 `com.imsx3d.classy.debug`，版本 `0.0.9-debug`，可与正式版并存。最终日志：`本机证据目录/P1-final-validation-20261011.log`。
 
-体验包目录：`E:/C015/交付/Classy-P1-20261011`，含 ARM64、ARM32、x86_64 APK、SHA256 及安装说明。优先使用 ARM64 包。
+体验包目录：`交付目录/Classy-P1-20261011`，含 ARM64、ARM32、x86_64 APK、SHA256 及安装说明。优先使用 ARM64 包。
 
 当前 `adb devices` 无设备，SDK 未安装 emulator/system-images，尚未执行原生截图、模拟器布局、触摸、TalkBack 或性能验收。没有用浏览器方向稿代替原生样板。
 

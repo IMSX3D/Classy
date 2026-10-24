@@ -1,12 +1,14 @@
 # 网格窗口变化与非常规时间验收
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-13；应用代码仍为0687185（上轮验收提交31a12d9）。本批只新增测试/证据，没有产品代码修改或新APK。
 
 ## 本批结论
 
 - 现有CardsGridView会在可用宽高/字体密度改变时清除未提交交互；Activity重建重新持有交互状态。实际长按拖动后的宽度变化、高度变化、ActivityScenario.recreate三项测试通过；尺寸变化后补发UP没有移动回调，重建后也没有旧移动提交，随后普通点击能打开详情。
 - 非常规时间09:15–09:50与09:00–09:45课程冲突：按实际分钟组成一簇，不把10:00下一课错误归入；顶卡起点低于标准课起点，结束停在课间空隙，不延伸进下一课；详情回调保留原始实体及精确时间。
-- 窄屏540×960和宽屏1600×1200各4项通过，240dpi、English、1.5字号。日志`grid-window-irregular-final.log`、`grid-window-irregular-wide.log`，AndroidTest构建日志`grid-irregular-final-build.log`，均在E:/C015/99-整理记录。
+- 窄屏540×960和宽屏1600×1200各4项通过，240dpi、English、1.5字号。日志`grid-window-irregular-final.log`、`grid-window-irregular-wide.log`，AndroidTest构建日志`grid-irregular-final-build.log`，均在本机证据目录。
 
 ## 测试过程中校正
 
@@ -22,7 +24,7 @@
 2. 2800×1968横屏长按Next-Class，拖动预览明确显示“3–3节”；强制旋转至1968×2800后松手，预览消失，详情仍为第2节，没有进入移动编辑流程。
 3. 再次显示“3–3节”预览，使用真实系统分屏进入左侧约1392px宽窗口，松手后详情仍为第2节。已退出系统分屏。
 
-证据位于`E:/C015/99-整理记录/editor-state-tablet-device`：
+证据位于`本机证据目录/editor-state-tablet-device`：
 - `window-irregular-front` / `window-irregular-time-detail`
 - `window-tablet-drag-before-rotate` / `window-tablet-rotated-release` / `window-tablet-next-after-rotate`
 - `window-drag-before-split` / `window-split-release-crop` / `window-split-detail-crop`

@@ -5,9 +5,28 @@ from pathlib import Path
 import argparse
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw, ImageFont
+
+import sys, os
+
+_FONT_CANDIDATES = {
+    "win32": [r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\msyhbd.ttc", r"C:\Windows\Fonts\simhei.ttf"],
+    "darwin": ["/System/Library/Fonts/PingFang.ttc", "/System/Library/Fonts/STHeiti Medium.ttc"],
+    "linux": ["/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+              "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"],
+}
+
+
+def default_cjk_font():
+    """按平台挑一个可用的中文字体；找不到时给出明确提示。"""
+    for path in _FONT_CANDIDATES.get(sys.platform, []):
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(
+        "找不到中文字体：请用 --font 指定 .ttc/.ttf，或先安装 Noto Sans CJK / 微软雅黑。"
+    )
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--font', default='C:/Windows/Fonts/msyh.ttc')
+parser.add_argument('--font', default=default_cjk_font())
 args = parser.parse_args()
 # Preview canvas uses 2.25 pixels per dp (small 160dp; regular 320dp wide).
 DIMENS = ET.parse(ROOT/'app/src/main/res/values/widget_spacing.xml').getroot()

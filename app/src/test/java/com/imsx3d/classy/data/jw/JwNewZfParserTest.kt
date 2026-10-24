@@ -16,7 +16,7 @@ import org.junit.Test
  *   - HTML 三种变体: table1+festival / kbgrid_table_0 / kblist_table
  *   - 边界: 空学期 / 缺字段 / 登录页
  *
- * 测试数据来自 /tmp/jw_fixtures/zf-new-kblist 与 /tmp/jw_fixtures/zf-new-html
+ * 测试数据来自 jw_fixtures/zf-new-kblist 与 jw_fixtures/zf-new-html
  * (每对 fixture 有 .expected.json 可对比)
  *
  * 纯 JVM, 不依赖 Android。

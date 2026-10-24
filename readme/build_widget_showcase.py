@@ -10,6 +10,25 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import cv2
 import numpy as np
 
+import sys, os
+
+_FONT_CANDIDATES = {
+    "win32": [r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\msyhbd.ttc", r"C:\Windows\Fonts\simhei.ttf"],
+    "darwin": ["/System/Library/Fonts/PingFang.ttc", "/System/Library/Fonts/STHeiti Medium.ttc"],
+    "linux": ["/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+              "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"],
+}
+
+
+def default_cjk_font():
+    """按平台挑一个可用的中文字体；找不到时给出明确提示。"""
+    for path in _FONT_CANDIDATES.get(sys.platform, []):
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(
+        "找不到中文字体：请用 --font 指定 .ttc/.ttf，或先安装 Noto Sans CJK / 微软雅黑。"
+    )
+
 ROOT = Path(__file__).parent / 'media' / 'v0.1.1'
 NAMES = ['widget-small', 'widget-today', 'widget-two-day', 'widget-week',
          'tablet-widget-small', 'tablet-widget-today',
@@ -40,7 +59,7 @@ def isolate(path):
 def sheet(name, title, subtitle, items, height):
     canvas = Image.new('RGB', (1600, height), '#edf1ee')
     draw = ImageDraw.Draw(canvas)
-    font = lambda size: ImageFont.truetype('C:/Windows/Fonts/msyh.ttc', size)
+    font = lambda size: ImageFont.truetype(default_cjk_font(), size)
     draw.text((64, 46), title, font=font(50), fill='#172c2b')
     draw.text((64, 125), subtitle, font=font(27), fill='#425b56')
     for filename, label, x, y, width in items:

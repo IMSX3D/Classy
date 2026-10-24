@@ -1,5 +1,7 @@
 # 学期安排：课程总览 → 上课日历
 
+> 历史记录：本文写于 2026-10-14，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-14，用户确认并授权实施。替换第一版逐次上课清单，不更改课程数据、作息或调课规则。
 
 ## 本轮实现
@@ -19,7 +21,7 @@
 - app lintDebug通过：0 errors、590 warnings、22 hints（既有警告未整体清理）。
 - Android15模拟器手机窗口、英文、1.5倍字号：SemesterFlowTest通过。覆盖课程进入、非常规时间/教室、无课日期、切回有课日期、页面重建保留选中日期及切换月份。截图检查了概览与月历。
 - vivo Android16平板已覆盖安装最新版，实际打开课表更多→学期安排→课程月历；中文深色主题横竖屏截图检查安全区、限宽、周次和详情；旋转后仍保留所选日期，已恢复设备原旋转设置。
-- 本地证据在 E:/C015/99-整理记录/semester-calendar-build.log、semester-calendar-device-final.txt、semester-overview-new.png、semester-calendar-new.png、semester-overview-pad.png、semester-calendar-pad.png。真实课表截图不提交。
+- 本地证据在 本机证据目录/semester-calendar-build.log、semester-calendar-device-final.txt、semester-overview-new.png、semester-calendar-new.png、semester-overview-pad.png、semester-calendar-pad.png。真实课表截图不提交。
 - 本次未测量转场帧时间，不将编译或功能测试视作流畅度验收；TalkBack语音、实体手机、本批全部字体/分屏组合仍有覆盖缺口。
 
 ## 状态与边界
@@ -27,6 +29,6 @@
 本轮替换学期安排首版，保留之前课程色彩、品牌礼花、组件名称、更新入口等工作树改动。未修改正式版本号、tag和Release，未推送。原主线性能及系统集成缺口继续保留。
 
 
-测试安装包：`E:/C015/交付/Classy-学期总览与月历-20261014/Classy-test-arm64.apk`。
+测试安装包：`交付目录/Classy-学期总览与月历-20261014/Classy-test-arm64.apk`。
 SHA256：`E273E766865FA39BF7CB4F197B8355230917E26246CEEC9F1F01BD6E7B86ECE0`。
 当前工作树尚未提交；安装包为独立Debug测试版，正式v0.1.0不变。

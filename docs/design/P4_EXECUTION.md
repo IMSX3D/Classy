@@ -1,5 +1,7 @@
 # P4：独立 Dock 材质原型
 
+> 历史记录：本文写于 当时，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-11。完成范围为工程原型，不是正式接入或性能验收通过。
 
 ## 实现与兼容
@@ -30,4 +32,4 @@ adb shell am start -n com.imsx3d.classy.debug/com.imsx3d.classy.debug.GlassSampl
 
 ## 本轮工程结果
 
-2297 项 JVM 测试通过，0 失败/错误/跳过。Debug 构建、Lint 和 Release Kotlin 编译成功；ARM64 APK 签名校验通过。Lint 分布：{'Warning': 663, 'Hint': 20}。日志：`E:/C015/99-整理记录/P4-validation.log`。安装包：`E:/C015/交付/Classy-P4-Prototype-20261011`。未推送，未改动版本号或 tag/Release。
+2297 项 JVM 测试通过，0 失败/错误/跳过。Debug 构建、Lint 和 Release Kotlin 编译成功；ARM64 APK 签名校验通过。Lint 分布：{'Warning': 663, 'Hint': 20}。日志：`本机证据目录/P4-validation.log`。安装包：`交付目录/Classy-P4-Prototype-20261011`。未推送，未改动版本号或 tag/Release。

@@ -1,5 +1,7 @@
 # 冲突叠卡按压与灰显复核
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-13；基线 d50860d；只修改 ConflictCard，不重启已搁置的性能专项。
 
 ## 发现与修复
@@ -10,12 +12,12 @@
 
 ## 验证
 
-- 最终 Debug / AndroidTest / Release 构建通过：`E:/C015/99-整理记录/conflict-feedback-delivery-build.log`。2339 项 JVM 测试，0 失败。
+- 最终 Debug / AndroidTest / Release 构建通过：`本机证据目录/conflict-feedback-delivery-build.log`。2339 项 JVM 测试，0 失败。
 - 新增 ConflictPressFeedbackTest：三种样式 × 普通/灰显，共6项；每项检查三层逐次按住、取消、释放仅轮换一次、无误写默认值、课身打开详情回调；中心区域逐像素检查隐藏课名变化不影响顶卡。
 - 检查边界无矩形泄露、取消恢复原图，以及有效变化面积。早期仅检查图片不同过于宽松，能把最底层抗锯齿边缘变化误判为有效反馈；平板复核发现后修正源码并加强面积断言，最终版本重新构建/运行。
 - 最终模拟器 1600×1200、240dpi、English / 1.5 字号：上述6项＋既有默认置顶选择1项，7项通过。窄屏最终结果见交付补记。之前 candidate 的两组7项通过不能替代最终候选日志。
 - 真平板 401G5705710000H，2800×1968横屏、中文、深色、字号1.0：独立 debug 包导入三条虚构完全重叠课程。发现/修复灰显重影；切换、详情打开/关闭、默认置顶第三课、徽标选回第一课通过。最终按住卡边截图有效变化3028像素，前景课身不被矩形覆盖，释放轮换一次。
-- 图片：`E:/C015/99-整理记录/editor-state-tablet-device/conflict-tablet-initial.png`（重影修复前）；`conflict-final-idle/held/release.png`（最终）；`conflict-tablet-detail/default-third/return/picker.png`（详情选择链，最终共享轮换反馈修改前，业务逻辑未变）。模拟器各层按住截图在应用external files/conflict-feedback，复制到 `E:/C015/99-整理记录/conflict-feedback-evidence`。
+- 图片：`本机证据目录/editor-state-tablet-device/conflict-tablet-initial.png`（重影修复前）；`conflict-final-idle/held/release.png`（最终）；`conflict-tablet-detail/default-third/return/picker.png`（详情选择链，最终共享轮换反馈修改前，业务逻辑未变）。模拟器各层按住截图在应用external files/conflict-feedback，复制到 `本机证据目录/conflict-feedback-evidence`。
 
 ## 范围与后续
 
@@ -27,6 +29,6 @@
 
 最终窄屏540×960 / 240dpi / English / 1.5字号同样7项通过，日志 conflict-feedback-delivery-narrow-tests.log；宽屏日志 conflict-feedback-delivery-wide-tests.log。模拟器恢复540×960并停止debug。平板虚构课表已从界面删除，所有课表只剩新建入口；设备旋转/字体/主题未修改。
 
-APK：`E:/C015/交付/Classy-叠卡反馈与灰显-20261013/Classy-conflict-feedback-arm64.apk`
+APK：`交付目录/Classy-叠卡反馈与灰显-20261013/Classy-conflict-feedback-arm64.apk`
 
 SHA256：`BC6FA0BF3DA8D55AF42C2DBB1DCC3159AFBABB17794DE9C82A482355B133C513`。本批仅本地提交，不推送、不改tag/Release。

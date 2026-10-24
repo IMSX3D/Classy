@@ -1,14 +1,16 @@
 # 第二阶段设备验收：第一批
 
+> 历史记录：本文写于 2026-10-11，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 日期：2026-10-11。状态：进行中，不能标记全部页面验收完成。
 
 ## 环境与证据
 
-原本无真机、无模拟器。本轮从 Google 官方仓库下载安装 Android Emulator 和 API35 Google APIs x86_64 镜像，校验官方 SHA1 后解压；WHPX 硬件加速可用，使用 swiftshader 图形后端。独立 AVD ClassyStage2 位于 E:/T1/tools/android-sdk/classy-stage2.avd，测试包 com.imsx3d.classy.debug。未触及个人真机或正式版数据。
+原本无真机、无模拟器。本轮从 Google 官方仓库下载安装 Android Emulator 和 API35 Google APIs x86_64 镜像，校验官方 SHA1 后解压；WHPX 硬件加速可用，使用 swiftshader 图形后端。独立 AVD ClassyStage2 位于 Android SDK 目录/classy-stage2.avd，测试包 com.imsx3d.classy.debug。未触及个人真机或正式版数据。
 
 尺寸是模拟器 wm 覆盖：手机 1080×1920/420dpi（约 411×731dp）；平板 1600×2560/240dpi（约 1067×1707dp）；窄窗口 540×960/240dpi（360×640dp），系统字号 1.5。上述是显示尺寸测试，不等同于 Android 系统分屏或真实平板。
 
-证据目录 E:/C015/99-整理记录/：
+证据目录（本机私有，不入库）：
 - stage2-device/interaction-tests.txt：首次设备测试，3 通过、1 失败，保留原失败。
 - stage2-all-device-tests.log：最终手机尺寸，14 项通过。
 - stage2-all-tablet-tests.log：最终平板尺寸，14 项通过。
@@ -86,7 +88,7 @@
 
 ### 证据与下一步
 
-仓库外证据：E:/C015/99-整理记录/stage2-real-device/。pickers.txt、gestures-foreground.txt、repository.txt 为最终分组结果；instrumentation.txt/gestures.txt 为中断结果；settings.mp4、edit.mp4、对应 gfx 文件及页面截图/XML；device-config.json；copy-build.txt。私有数据备份仅用于本地恢复，不随 APK 交付。
+仓库外证据：本机证据目录/stage2-real-device/。pickers.txt、gestures-foreground.txt、repository.txt 为最终分组结果；instrumentation.txt/gestures.txt 为中断结果；settings.mp4、edit.mp4、对应 gfx 文件及页面截图/XML；device-config.json；copy-build.txt。私有数据备份仅用于本地恢复，不随 APK 交付。
 
 后续优先：真机转场性能定位；主题/日期/时间页面级取消与恢复；作息编辑、提醒草稿；真实旋转/分屏、English/明亮/大字体；4×4 桌面与小组件添加；使用独立虚构课表完成保存、复制、删除和导出多数据源场景。真实学校登录、完整导入、预测返回中途取消、所有 19 路由全链仍未覆盖。第二阶段继续保持“进行中”。
 
@@ -116,14 +118,14 @@
 
 FrameTimeline归类：App Deadline Missed=15，App Deadline Missed+Buffer Stuffing=1，Buffer Stuffing=182，None=136。不要将Buffer Stuffing直接算成应用卡顿率。主线程汇总见trace-summary.txt：measure最大22.16ms、AndroidOwner:onMeasure最大22.06ms、Recomposer:recompose最大10.28ms。它们是包含子过程的耗时，不能相加；尚未逐慢帧关联到具体业务组件，不能宣布根因已经锁定。下一轮优先将页面进入测量与重组按单帧、具体组件细分，并去除UIAutomator观测干扰。没有改转场曲线掩盖慢帧。
 
-复现资料入仓库：tools/validation/PERFORMANCE_CAPTURE.md、classy-navigation.pbtxt、classy-navigation.sql。本地完整证据：E:/C015/99-整理记录/stage2-tablet-device/；构建日志tablet-benchmark-build.log、tablet-fixes-build.log位于上一级。设备截屏/trace含系统内容，不随源码或安装包公开。
+复现资料入仓库：tools/validation/PERFORMANCE_CAPTURE.md、classy-navigation.pbtxt、classy-navigation.sql。本地完整证据：本机证据目录/stage2-tablet-device/；构建日志tablet-benchmark-build.log、tablet-fixes-build.log位于上一级。设备截屏/trace含系统内容，不随源码或安装包公开。
 
 本批仍不标记第二阶段完成：首标签内容过渡、带数据的平板双栏/草稿、完整页面/组件状态与真实帧归因继续推进。无推送、无版本/tag/Release更改。
 
 
 ## 2026-10-12 自主回归与修复（接19d3706）
 
-代码以包含本节的提交为准。设备为已授权 PA2553 平板，独立 Benchmark 数据；旧手机未操作。仅使用虚构课表，不涉及学校账号。证据目录 `E:/C015/99-整理记录/stage2-tablet-device/`，截图/XML按下列前缀检索。
+代码以包含本节的提交为准。设备为已授权 PA2553 平板，独立 Benchmark 数据；旧手机未操作。仅使用虚构课表，不涉及学校账号。证据目录 `本机证据目录/stage2-tablet-device/`，截图/XML按下列前缀检索。
 
 | 操作链 | 本轮结果与证据 |
 | --- | --- |
@@ -159,7 +161,7 @@ ART诊断补充：固定坐标无录屏，编译前超时4/224、5/224、4/224�
 - WIDGET-SQUARE-01：Android12+小号今日根据宿主上报的尺寸，在透明容器内居中放置min(width,height)方形卡面。多尺寸RemoteViews让宿主选择实际方向；无sizes列表按现有尺寸解析回退。其余三种维持自由填满，桌面占位格与40dp自由缩放下限不改。系统仍可能分配长方形格子，剩余区域留空。Android8–11保留原有填满行为；红米具体拖动、旋转、宿主尺寸真实性仍需该设备验证。
 - 真平板四种实物已刷新：`widget-corners-after`（周网格正常可阅读高度，内层到底部前裁切），`widget-corners-after-page5`（小号正方形、今日横条、最近两天）。小号点击进入课表通过 `small-widget-open-app`。这说明此前矮条不是周网格必然呈现；极小高度兼容与新添加默认高度仍不算全部解决。
 - 验证：2337 JVM全过；17仪器测试全过，新增RemoteViews实际inflate/measure/layout测试，160×250、300×140、200×200宿主中卡面等宽高且不越界。最终Debug/Benchmark、lintDebug构建成功，Lint0错误/556警告/21提示。业务代码设备测试后只更新预览PNG资源，最终Benchmark已重新安装并启动核对。
-- 日志：widget-insets-final-build.log、widget-insets-device-tests.txt、widget-insets-delivery-build.log；证据仍在E:/C015/99-整理记录/stage2-tablet-device/。平板旋转恢复1/1，未修改课表数据。
+- 日志：widget-insets-final-build.log、widget-insets-device-tests.txt、widget-insets-delivery-build.log；证据仍在本机证据目录/stage2-tablet-device/。平板旋转恢复1/1，未修改课表数据。
 
 ## 2026-10-12 组件退场圆角、网格填满与平板下置导航
 
@@ -167,7 +169,7 @@ ART诊断补充：固定坐标无录屏，编译前超时4/224、5/224、4/224�
 
 vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版Benchmark安装成功。四种已有组件全部保留，未移动/删除/新增。小号与今日大号上下边缘对齐、透明余量消除；四种长按时保持圆角。两页退出录屏供逐帧复核。宽屏导航移到左下圆角区，四标签和竖屏截图，旋转设置恢复。系统主题/字号未改。
 
-证据目录 E:/C015/99-整理记录/stage2-tablet-device/：widget-home-after-fill.png、widget-{small,today,twoday,week}-longpress-after.png、widget-week-after-fill.png；widget-exit-after.mp4、widget-week-exit-after.mp4；rail-tablet-{after,today,manage,mine,schedule,portrait}.png。
+证据目录（本机私有，不入库）stage2-tablet-device/：widget-home-after-fill.png、widget-{small,today,twoday,week}-longpress-after.png、widget-week-after-fill.png；widget-exit-after.mp4、widget-week-exit-after.mp4；rail-tablet-{after,today,manage,mine,schedule,portrait}.png。
 
 模拟器API35：1600×1100/density160、900×480/density160、字体1.5，明亮/深色导航截图rail-wide-emulator.png、rail-short-emulator.png、rail-short-dark-emulator.png。三套RemoteViews在160×250、300×140、200×200dp，白/黑底，关闭outline裁切后实际绘制四角透明且填满宿主，仪器测试通过。完整仪器套件17/17，JVM2337/2337；lint0错误、555警告、21提示。旧源码契约强制NavigationRail容器与本轮新设计冲突，移除这一过时断言，保留Material项及Compact分支要求。
 
@@ -181,7 +183,7 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 
 无录屏、3轮固定坐标主标签点击（每次约0.5秒间隔）gfxinfo聚合528帧、11次deadline missed（2.08%）、P95 19ms/P99 30ms；只是单批空数据样本，非性能验收通过，也不能和不同设备/数据的旧样本直接比较。仍需有数据逐链多组trace归因。
 
-证据：E:/C015/99-整理记录/stage2-vivo-phone-device/phone-*.png及phone-main-tabs-gfxinfo.txt。未修改系统设置，未新建/移动/删除桌面组件，手机留在测试版我的页面。后续：测试数据操作链、OEM添加入口及四组件实际显示、键盘/返回/动画逐链验证。
+证据：本机证据目录/stage2-vivo-phone-device/phone-*.png及phone-main-tabs-gfxinfo.txt。未修改系统设置，未新建/移动/删除桌面组件，手机留在测试版我的页面。后续：测试数据操作链、OEM添加入口及四组件实际显示、键盘/返回/动画逐链验证。
 
 ## 2026-10-12 用户确认与手机通知调查（进行中）
 
@@ -206,7 +208,7 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 首次正式版21:50摘要未达：退到桌面后系统 `dumpsys alarm` 记录 `Reason=frozen`，对应每日/课前等闹钟被移除。随后将该应用“电量→后台耗电管理”由智能控制改为允许后台耗电；截图 production-background-before/allowed.png。仅修改Classy后台耗电设置，没有改全局省电或勿扰。
 - 第二次22:00正式包摘要后台送达：退出约2分钟后NotificationRecord确认com.imsx3d.classy、id1001、channel sleepy_daily、importance3；此前闹钟保留并显示window=0。说明此vivo后台限制确实影响提醒，不能只归因应用权限或代码。
 - 测试后今日摘要恢复07:00；明日预告保持关闭及22:00，课表未改。production-reminder-restored.png/xml可核对。
-- 路径 E:/C015/99-整理记录/stage2-vivo-phone-device/：production-delivered-after-background.txt、production-background-alarm-retained.txt、production-reminder-final.png。通知记录仅保留Classy条目。
+- 路径 本机证据目录/stage2-vivo-phone-device/：production-delivered-after-background.txt、production-background-alarm-retained.txt、production-reminder-final.png。通知记录仅保留Classy条目。
 
 ### 设置与回归覆盖
 
@@ -222,7 +224,7 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 | 冷进程 | 空模拟器合成课表，真实排程后am kill（不是force-stop），到点自动唤醒并送达1001/1002/2001，generation未被冷启动改写；夹具随后删除 |
 | 系统通知/渠道/准时权限/勿扰 | 状态查询与恢复路径已实现；vivo通知许可/渠道允许且勿扰开启实测；拒绝所有权限组合、长期Doze/重启待补 |
 
-冷进程日志 reminder-cold-course-{prepare,result}.txt；完整仪器套件及后续补充日志位于 E:/C015/99-整理记录/。快速开关曾出现ForegroundServiceDidNotStartInTimeException，不将此失败隐去：需等服务履行前台契约后再停止，统一主线程启动/停止管理，禁止取消尚未创建完毕的服务。
+冷进程日志 reminder-cold-course-{prepare,result}.txt；完整仪器套件及后续补充日志位于本机证据目录。快速开关曾出现ForegroundServiceDidNotStartInTimeException，不将此失败隐去：需等服务履行前台契约后再停止，统一主线程启动/停止管理，禁止取消尚未创建完毕的服务。
 
 尚未覆盖：真实vivo课前各组合逐项到点、重启/长期锁屏/极端省电、自启动权限被拒、所有厂商胶囊与红米宿主；不承诺所有厂商限制下100%到达。后台许可是系统策略，不会通过常驻进程或全局关闭省电绕开。
 
@@ -235,13 +237,13 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 - 最终正式APK覆盖安装返回Success后，重进同一个测试课程：irregular-copy-after.png与edit-bottom-check.png确认说明换行、开关不遮字。之前用户复报时仍是旧安装包，不能只凭源码修复报告设备通过。
 - 临时Classy-Notification-Test课程已通过明确命名的删除确认移除，今日恢复3节原课程；今日摘要07:00、明日时间22:00保留，未修改用户勿扰。证据temp-course-removed及reminder-settings-restored。
 - Debug/Release、JVM、lint构建成功：supporting-copy-final-build.log；InteractionStageTwoTest全5项通过（supporting-copy-final-tests.txt），包含260dp/1.5倍字号/中英文提示与开关边界及文字溢出断言。本轮未追加真平板验收。
-- 上述证据位于E:/C015/99-整理记录/及其stage2-vivo-phone-device目录。
+- 上述证据位于本机证据目录/及其stage2-vivo-phone-device目录。
 
 ## 2026-10-12 导入入口与预览载体重审
 
 基线1871768后的本批代码。vivo正式签名APK安装Success后已检查：入口从近全屏缩为按内容展开的方式面板；长帮助独立打开；文本页有顶部返回及浅色系统栏深色图标；键盘打开时预览/取消可达；错误提示可见，取消文件选择回入口。用只读测试文本进入冲突预览，再返回文本，输入保留。未执行导入/追加/覆盖，用户原24个上课安排未更改。
 
-证据E:/C015/99-整理记录/stage2-vivo-phone-device：import-entry-before、import-entry-final、import-task-final、import-keyboard-final、import-preview-final、import-preview-return-final；错误/帮助/文件取消证据import-invalid-after、import-formats-after、import-file-cancel早于最后预览载体调整，不能混同最终全链重复测试。
+证据本机证据目录/stage2-vivo-phone-device：import-entry-before、import-entry-final、import-task-final、import-keyboard-final、import-preview-final、import-preview-return-final；错误/帮助/文件取消证据import-invalid-after、import-formats-after、import-file-cancel早于最后预览载体调整，不能混同最终全链重复测试。
 
 最终Debug/Release/仪器APK/lint构建通过，日志import-flow-accepted-build.log。ImportEntryFlowTest三项+既有InteractionStageTwoTest五项通过，日志import-flow-tests-passed.txt；覆盖入口密度、帮助返回、合法预览返回保留输入、错误文本恢复。模拟器原配置360×640dp、字体1.5、English；中文正式手机截图补充。
 
@@ -249,12 +251,12 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 
 边界：真平板、实际系统分屏/旋转、深色实机、减弱动画/快速反向录屏与帧跟踪、成功写入各模式及进程死亡恢复尚未本批补验。格式详情长文弹窗、草稿列表、周选择及其他入口继续重审，不因本批成功关闭CHOICE-01或PERF-01。
 
-交付E:/C015/交付/Classy-导入交互重审-20261012/Classy-0.0.9-import-flow-arm64.apk，SHA256 BC5035551C3C94C2055067A580FE20044C21CA3CB6A222A06A5B8401B8425A4F。版本0.0.9不变，不推送、不改tag/Release。
+交付交付目录/Classy-导入交互重审-20261012/Classy-0.0.9-import-flow-arm64.apk，SHA256 BC5035551C3C94C2055067A580FE20044C21CA3CB6A222A06A5B8401B8425A4F。版本0.0.9不变，不推送、不改tag/Release。
 
 最终补验：800×1200dp与600×480dp模拟器窗口（均1.5倍字号）各3项导入链测试通过，日志import-flow-wide-final.txt、import-flow-short-final.txt。恢复模拟器原540×960px/240dpi配置；这不是实际系统分屏或真平板验收。
 # 2026-10-13 课表刷新、外观与通知批次
 
-源码基线af671c6；本批新增实现的最终提交见Git历史。证据根目录E:/C015/99-整理记录，截图在stage2-vivo-phone-device；含用户桌面/通知/图库的原始证据不公开。
+源码基线af671c6；本批新增实现的最终提交见Git历史。证据根目录本机证据目录，截图在stage2-vivo-phone-device；含用户桌面/通知/图库的原始证据不公开。
 
 - 教务：独立Debug包使用授权学校账号，首次关联及再次拉取成功。24条安排、作息和原课表字段的哈希前后不变；来源基线建立后第二次显示0新增/0移除。账号密码不写入仓库或报告。正式包仅覆盖升级和页面检查，不在用户表上执行删除/差异测试。
 - 数据：SchoolRefreshMigrationTest验证真实v9数据升级v10后旧列逐项保留；JwRefreshRepositoryTest四项覆盖首关联/幂等、本地编辑、过期快照/越界、共享作息并发保护。初次关联不能可靠推断远端删除的本地课程，默认保留，由用户确认。
@@ -268,13 +270,13 @@ vivo PA2553 API36、401G5705710000H：连接途中短暂断开后恢复；新版
 
 未关闭：PERF-01、全入口/状态/配置矩阵、原子岛视觉、真实平板与长期省电投递。桌面小组件本批没有修改；自动添加此前未通过，不能记为本批成果。
 
-最终安装包：E:/C015/交付/Classy-主线优化-20261013/Classy-0.0.9-ui-refresh-arm64.apk。SHA256：236F42335735FAD2A9DF2C10C7B66F95268337AAEA7B9979929159EEDD3EE8A0。最后文字调整将厂商名开关改为“实时课程卡片”，其构建/资源校验通过；末尾导入专项5项通过，linked-refresh-entry-final确认已关联学校直达登录，退出删除本次临时草稿。正式包原课表可读，提醒07:00/22:00/提前10分钟保持，未改用户勿扰。
+最终安装包：交付目录/Classy-主线优化-20261013/Classy-0.0.9-ui-refresh-arm64.apk。SHA256：236F42335735FAD2A9DF2C10C7B66F95268337AAEA7B9979929159EEDD3EE8A0。最后文字调整将厂商名开关改为“实时课程卡片”，其构建/资源校验通过；末尾导入专项5项通过，linked-refresh-entry-final确认已关联学校直达登录，退出删除本次临时草稿。正式包原课表可读，提醒07:00/22:00/提前10分钟保持，未改用户勿扰。
 
 ## 2026-10-13 顶栏与三列统计本批设备证据
 
 - vivo 10AF9A2KMF004Y3：正式Release覆盖安装成功；课程数→课程列表→返回我的，课表数→管理，周次→第7周课表，更多→使用提示重开均完成。原课表与填充样式保留。
 - 模拟器：540×960px/240dpi与1200×1600px/160dpi，English、1.5字号，ScheduleHeaderFlowTest各3项通过。含旧独立概览组件测试，不作为生产卡验收；不是实际平板验收。
-- 构建日志：E:/C015/99-整理记录/header-compact-release.log；测试header-compact-tests.txt、header-compact-wide-tests.txt。截图stage2-vivo-phone-device/header-compact-final.png、mine-shortcuts-final.png、mine-shortcut-courses.png、mine-shortcut-tables.png、mine-shortcut-week.png、header-help-reopened.png。
+- 构建日志：本机证据目录/header-compact-release.log；测试header-compact-tests.txt、header-compact-wide-tests.txt。截图stage2-vivo-phone-device/header-compact-final.png、mine-shortcuts-final.png、mine-shortcut-courses.png、mine-shortcut-tables.png、mine-shortcut-week.png、header-help-reopened.png。
 - 本批未重跑此前全量JVM/lint，未宣称全路由性能完成；关于页品牌卡仍待实现。原始截图含用户课程信息，仅留本地。
 
 ## BG-ADJUST-01 验证（2026-10-13）

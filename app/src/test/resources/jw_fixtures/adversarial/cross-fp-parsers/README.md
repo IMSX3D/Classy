@@ -4,7 +4,7 @@
 所有 current_behaviour_measured 均为实测: 用 sleepy 当前 8 个 parser
 (JwWisedu/JwNewUrp/JwNewZf/JwOldZf0/JwOldZf1/JwQz/JwQzCrazy/JwUrp) 在
 JDK17 + jsoup 1.18.1 + org.json 20231013 环境下逐个执行, 非
-推测。执行 harness 见 /tmp/jw_verify/。
+推测。执行 harness 见同目录下的脚本（不随仓库分发）。
 
 ## 样本清单与实测结论
 

@@ -9,6 +9,25 @@ from pathlib import Path
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
+import sys, os
+
+_FONT_CANDIDATES = {
+    "win32": [r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\msyhbd.ttc", r"C:\Windows\Fonts\simhei.ttf"],
+    "darwin": ["/System/Library/Fonts/PingFang.ttc", "/System/Library/Fonts/STHeiti Medium.ttc"],
+    "linux": ["/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+              "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"],
+}
+
+
+def default_cjk_font():
+    """按平台挑一个可用的中文字体；找不到时给出明确提示。"""
+    for path in _FONT_CANDIDATES.get(sys.platform, []):
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(
+        "找不到中文字体：请用 --font 指定 .ttc/.ttf，或先安装 Noto Sans CJK / 微软雅黑。"
+    )
+
 source = Path(sys.argv[1])
 output = Path(__file__).parent / 'media' / 'v0.1.1'
 output.mkdir(parents=True, exist_ok=True)
@@ -29,7 +48,7 @@ for name in ['widget-small','widget-today','widget-two-day','widget-week']:
     Image.open(source/(name+'.png')).save(output/(name+'.png'),optimize=True)
 
 # Simple editorial sheets keep captions outside the actual screenshots.
-font_path='C:/Windows/Fonts/msyh.ttc'
+font_path=default_cjk_font()
 def font(size): return ImageFont.truetype(font_path,size)
 def sheet(name, title, subtitle, items, dark=False):
     bg='#101b23' if dark else '#f1f4f1'

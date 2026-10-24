@@ -1,5 +1,7 @@
 # Course display and holiday rules — 2026-10-14
 
+> 历史记录：本文写于 2026-10-14，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 Status: implemented; scoped acceptance below. Existing release/tag unchanged.
 
 ## Decisions
@@ -43,9 +45,9 @@ Status: implemented; scoped acceptance below. Existing release/tag unchanged.
 - Phone: holiday toggle moved to parent; disabling hides style selector; restored on. Holiday date page no longer contains the three former switches. Widget management shows all four short names.
 - Phone home: hidden-name two-day header now reads Today + date / Tomorrow + date without a standalone blank row. Weekly grid and daily widgets remain visible.
 - Active weekly RemoteViews gravity/background fix built successfully (`bar-widget-active-build.log`), final Preview reinstalled. Phone home confirms centered titles above anchored rooms; switched back to Top and confirmed refresh. App title stayed Top independently. Both live and bitmap paths now implement the preference.
-- Evidence remains outside Git: `E:/C015/99-整理记录/phone-final/bar-*`, build/test logs in its parent.
+- Evidence remains outside Git: `本机证据目录/phone-final/bar-*`, build/test logs in its parent.
 - Not physically revalidated this batch: tablet, all school holiday/transfer scenarios, every display-setting combination. Date logic and legacy-flag combinations have JVM coverage; source audit does not claim complete device acceptance.
 
-Final phone state: light theme, app/grid-widget titles Top, holiday decoration restored on, table names remain hidden as before testing. No course/reminder edits. Delivery: `E:/C015/交付/Classy-色条与灰显整改-20261014/Classy-preview-arm64.apk`.
+Final phone state: light theme, app/grid-widget titles Top, holiday decoration restored on, table names remain hidden as before testing. No course/reminder edits. Delivery: `交付目录/Classy-色条与灰显整改-20261014/Classy-preview-arm64.apk`.
 
 APK SHA-256: `15194b28931faf6f52a37250f83e8c9d2853702e94c76fbbdccc9a19bcd896c1`.

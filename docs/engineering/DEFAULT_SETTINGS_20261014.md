@@ -1,5 +1,7 @@
 # 默认设置：手机当前配置基线（2026-10-14）
 
+> 历史记录：本文写于 2026-10-14，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 用户要求将手机测试版当前设置作为应用默认设置，并追加将课前提前时间改为 **5 分钟**。读取实际存储后逐项核对，不能沿用上一轮截图或推测用户偏好。
 
 ## 配置
@@ -31,5 +33,5 @@
 - 最终 Debug / Preview / AndroidTest 构建成功，2358 项 JVM 测试零失败。模拟器 `DefaultSettingsTest` 通过，使用独立偏好文件检查首次读取、保存个人选择、恢复、重复恢复、调休数据保留及深色系统下固定浅色，不对真机个人数据做破坏性重置。
 - 用户在首次构建过程中追加 5 分钟要求，首个 Debug 包仍编译了 15 分钟，测试正确报错；按最终源码重新构建后通过。另一次尝试将 Debug instrumentation 运行在优化 Preview 上返回 Process crashed，无可用 AndroidRuntime 栈，不将其记作通过；最终配置自动化验收使用配套 Debug 包。
 - Vivo 以相同签名覆盖安装最终优化 Preview，课程及绑定未删除。只将手机现有 `before_class_minutes` 改为 5；逐键比较确认其余实际存储偏好未变。手机数据读取临时使用同源 Debug 覆盖包，完成后已恢复优化 Preview。
-- 日志：仓库外 `E:/C015/99-整理记录/phone-defaults-final-build.log`、`phone-defaults-final-tests.txt`。本轮不重做无关的通知投递和全部页面视觉测试，未对真实手机点击全局重置。
-- 安装包：`E:/C015/交付/Classy-手机默认配置-20261014/Classy-preview-arm64.apk`；SHA256 `70C063B91C771DF104BD32EFCB5837C5C00D388AEE9080A1BC607A3CA40735DD`。本地提交，不推送、不修改 tag / Release。
+- 日志：仓库外 `本机证据目录/phone-defaults-final-build.log`、`phone-defaults-final-tests.txt`。本轮不重做无关的通知投递和全部页面视觉测试，未对真实手机点击全局重置。
+- 安装包：`交付目录/Classy-手机默认配置-20261014/Classy-preview-arm64.apk`；SHA256 `70C063B91C771DF104BD32EFCB5837C5C00D388AEE9080A1BC607A3CA40735DD`。本地提交，不推送、不修改 tag / Release。

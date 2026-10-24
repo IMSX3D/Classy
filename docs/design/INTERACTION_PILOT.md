@@ -1,5 +1,7 @@
 # 完整交互链路：第一轮样板
 
+> 历史记录：本文写于 当时，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-11。实现范围为课程详情/编辑/调课，以及设置子页/选择/返回。不是全应用完成声明。
 
 ## 入口—结果—返回清单
@@ -53,4 +55,4 @@
 
 ## 工程验证结果
 
-2300 项 JVM 测试通过，0 失败/错误/跳过；Debug 构建与 Lint 成功。Lint：{'Warning': 662, 'Hint': 20}，零错误。ARM64 APK 签名校验通过。日志：`E:/C015/99-整理记录/interaction-validation.log`；交付目录：`E:/C015/交付/Classy-Interaction-20261011`。`adb devices` 无设备，实际视觉与手势验收待完成。本轮仅本地提交，不推送或改动 tag/Release。
+2300 项 JVM 测试通过，0 失败/错误/跳过；Debug 构建与 Lint 成功。Lint：{'Warning': 662, 'Hint': 20}，零错误。ARM64 APK 签名校验通过。日志：`本机证据目录/interaction-validation.log`；交付目录：`交付目录/Classy-Interaction-20261011`。`adb devices` 无设备，实际视觉与手势验收待完成。本轮仅本地提交，不推送或改动 tag/Release。

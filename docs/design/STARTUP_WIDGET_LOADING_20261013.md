@@ -1,5 +1,7 @@
 # 冷启动与小组件入口：定点修正
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 范围：用户提供两段视频，明确重新授权调查冷启动课表和「我的→小组件」。不重启此前搁置的全应用性能项目。
 
 ## 结论
@@ -24,11 +26,11 @@
 - Debug、AndroidTest、Release构建成功；JVM 2339项通过。最终模拟器定点5项通过：首个完整课程快照、真实空表、列表VM跨页面保留与刷新不清空、切表、编辑链。模拟器Android15、窄屏、大字体；不在用户平板运行数据写入测试。
 - 安装最终 Debug 到平板使用 `install -r`。Release仅构建交付，未将正式身份安装到平板，也未推送/tag/发布Release。
 
-证据（本机，含用户课表画面，不上传仓库）：`E:/C015/99-整理记录/startup-widget-videos/`，其中 `before-*` 为原始基线，`after1-*` 为状态修正，`final-*` 为已撤回布局实验，**`delivery-*` 为最终保留代码**。`widget-lazy-attribution.perfetto-trace`、`widget-column-attribution.perfetto-trace`、`widget-entry.perfetto-trace` 分别为三种布局调查；最后一份不是交付代码。测试日志 `startup-widget-delivery-tests.txt`、构建日志 `startup-widget-delivery-build.txt`。
+证据（本机，含用户课表画面，不上传仓库）：`本机证据目录/startup-widget-videos/`，其中 `before-*` 为原始基线，`after1-*` 为状态修正，`final-*` 为已撤回布局实验，**`delivery-*` 为最终保留代码**。`widget-lazy-attribution.perfetto-trace`、`widget-column-attribution.perfetto-trace`、`widget-entry.perfetto-trace` 分别为三种布局调查；最后一份不是交付代码。测试日志 `startup-widget-delivery-tests.txt`、构建日志 `startup-widget-delivery-build.txt`。
 
 ## 交付与下一步
 
-`E:/C015/交付/Classy-启动与组件加载修正-20261013/`：
+`交付目录/Classy-启动与组件加载修正-20261013/`：
 
 - Classy-test-arm64.apk，SHA256 `6700DF1B1DFBF690263021B3D6CED828827380084C23D710844715B776B1C2A3`。
 - Classy-release-arm64.apk，SHA256 `1776C4237513CFE1B217EAF41F51D6A5B141C8C1A743209C9E211E82F2AF5E1B`。

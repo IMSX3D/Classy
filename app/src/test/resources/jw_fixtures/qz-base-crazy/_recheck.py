@@ -4,8 +4,8 @@ import glob, json, os, subprocess, sys
 
 JSOUP_JAR = os.environ.get("JSOUP_JAR") or next(iter(glob.glob(os.path.expanduser(
     "~/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.18.1/*/jsoup-1.18.1.jar"))), "")
-WORK = "/tmp/jw_fixtures/qz-base-crazy/_sim"
-DIR = "/tmp/jw_fixtures/qz-base-crazy"
+DIR = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(DIR, "_sim")
 
 fail = 0
 for name in sorted(os.listdir(DIR)):

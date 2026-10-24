@@ -69,7 +69,7 @@ class MarkdownBlocksTest {
 
     // ==== 探针: 覆盖 release notes 会出现的冷门/畸形 Markdown ====
 
-    /** 模拟即将发出的 v1.0.41 探针 release body, 与 /tmp/probe-notes.md 保持一致 */
+    /** 模拟即将发出的 v1.0.41 探针 release body, 与该版本发布说明保持一致 */
     private val probeBody = """
 # 渲染探针一级标题
 

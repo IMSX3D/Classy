@@ -1,5 +1,7 @@
 # 最后一轮有界收口
 
+> 历史记录：本文写于 2026-10-14，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 用户授权四包自主完成；本轮仍无收益或缺少设备条件的项目暂缓，不无限微调，不发布。
 
 用户体验验收：本轮安装后，用户明确反馈平板的简洁美观、组件和流畅度已很优秀，从使用角度挑不出太多问题。将当前成果作为平板稳定基线，停止无明确问题的微调；这份用户验收不等于未测手机/系统场景已经通过。
@@ -40,7 +42,7 @@ vivo PA2553 / Android 16，竖屏 1968×2800、density 400、字体 1.0、动画
 
 独立录屏逐帧观察：修改前存在中间加载文字；Preview 从启动表面过渡到完整当前周课程，未观察到分批课程出现或中间加载文字。录屏与计时分开，录像 PTS/可变帧率不用于毫秒结论；只按解码帧序列检查画面。自定义照片背景冷解码、未缓存的远端节假日信息和极大课程量不在这份样本里。
 
-证据（不进 Git）：`E:/C015/99-整理记录/final-cold-{baseline,candidate-debug,preview}/`，`final-fully-drawn.txt`、`final-preview-dexopt.txt`、`final-cold-*-sequence.jpg/mp4`。实际存在的候选序列为 `final-cold-preview-sequence.jpg`，旧包帧图为 `final-cold-baseline-frames.jpg` / `final-cold-baseline-late.jpg`。可复测脚本 `tools/validation/startup-entry.py`，本设备校准点 `--mine 130 2705 --widgets 1100 860`；换窗口后必须重新校准，不能盲用坐标。
+证据（不进 Git）：`本机证据目录/final-cold-{baseline,candidate-debug,preview}/`，`final-fully-drawn.txt`、`final-preview-dexopt.txt`、`final-cold-*-sequence.jpg/mp4`。实际存在的候选序列为 `final-cold-preview-sequence.jpg`，旧包帧图为 `final-cold-baseline-frames.jpg` / `final-cold-baseline-late.jpg`。可复测脚本 `tools/validation/startup-entry.py`，本设备校准点 `--mine 130 2705 --widgets 1100 860`；换窗口后必须重新校准，不能盲用坐标。
 
 ## 回归与清理
 
@@ -60,7 +62,7 @@ vivo PA2553 / Android 16，竖屏 1968×2800、density 400、字体 1.0、动画
 
 ## 交付
 
-`E:/C015/交付/Classy-冷启动收口-20261014/Classy-preview-arm64.apk`
+`交付目录/Classy-冷启动收口-20261014/Classy-preview-arm64.apk`
 
 SHA256：`21647EC7BF3D6167931396B165D3FCF5ADE522C0355E880A8A8710A130962C3A`。
 

@@ -1,5 +1,7 @@
 # 2026-10-06 质量修复
 
+> 历史记录：本文写于 当时，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 本批次对应 `5cd1bbf` 上的项目评估与缺陷审查。
 
 ## 行为约定
@@ -22,7 +24,7 @@ gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleD
 gradlew :app:connectedDebugAndroidTest
 ```
 
-Windows 应从纯英文路径构建；本次使用 `E:/C015/classy-build` 指向原工程的目录联接，源码只有一份。JDK/SDK 路径通过命令环境提供，不修改全局配置。
+Windows 应从纯英文路径构建；本次用纯英文路径的目录联接指向原工程，源码只有一份。JDK/SDK 路径通过命令环境提供，不修改全局配置。
 
 `QualityRegressionTest` 验证调休、单双周、学期边界、ICS、限量读取、缺包更新和调休快照。`RepositoryQualityTest` 使用真实内存 Room 数据库验证首次保存、外键异常回滚、取消回滚、复合撤回/重做和调休恢复，需要 Android 设备。
 

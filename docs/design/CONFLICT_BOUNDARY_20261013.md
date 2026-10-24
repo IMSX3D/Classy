@@ -1,5 +1,7 @@
 # 不等长、链式叠卡与拖动取消验收
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 2026-10-13，应用基线0687185。本轮仅新增/扩展仪器测试与记录，应用源码未改变，无新版APK。
 
 ## 结论
@@ -14,8 +16,8 @@
 - `conflict-boundary-final-test-build.log`：AndroidTest构建通过。
 - `conflict-boundary-narrow-final.log`：540×960、240dpi、English、1.5字号，8项通过。
 - `conflict-boundary-wide-final.log`：1600×1200，其余相同，8项通过。
-- 上述日志位于 `E:/C015/99-整理记录`；这是每种窗口8项，不是16种不同流程。未改应用源码，因此未重复发布构建或全量JVM测试。
-- 图像在 `E:/C015/99-整理记录/conflict-boundary-evidence`；最初差异图和final-wide前后截图分开保存。
+- 上述日志位于 `本机证据目录`；这是每种窗口8项，不是16种不同流程。未改应用源码，因此未重复发布构建或全量JVM测试。
+- 图像在 `本机证据目录/conflict-boundary-evidence`；最初差异图和final-wide前后截图分开保存。
 - 真平板401G5705710000H：2800×1968横屏、中文深色、1.0字号，独立debug包导入5条虚构课程。链式底层Tail点击→Head/Tail整层在前→再次点击Tail→详情明确显示4–6节→关闭布局保持；长短课切换→Short详情第2节→关闭→点击Long恢复，截图/XML已记录。
 - 平板证据 `editor-state-tablet-device/boundary-tablet-chain-front/tail-detail/chain-return/short-front/short-detail/long-return`。虚构表已通过UI删除（boundary-cleanup-done：仅新建课表），未动正式包、桌面组件或通知。
 

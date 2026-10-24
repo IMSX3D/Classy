@@ -1,5 +1,7 @@
 # 五项计划首批实现与验收（2026-10-14）
 
+> 历史记录：本文写于 2026-10-14，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 ## 当前交付
 
 - 课程阅读：大面积填充走displayFill，保留色相并限制HSL饱和度/明度，不重写任何课程保存色；文字按最终底色的WCAG对比选择前景。主要覆盖APP网格、周列表、冲突卡、桌面周网格及旧Canvas填充路径；今日/课程列表装饰条仍用原色条规则。
@@ -16,7 +18,7 @@
 - 课程读取截图覆盖浅/深色与1.0/1.5字号；标题有无副信息起点一致。250组高饱和/中性色及中灰反例核验正常前景4.5:1；不把正常态数值等同于灰显叠加或照片背景全覆盖。
 - 学期核心6项测试包含单双周、同名不同身份/教师、非常规时间/缺作息、跨学期调休、逐日与共享解析一致；页面测试核对真实选择结果时间和教室。
 - 已覆盖安装vivo平板401G5705710000H，保留用户数据和组件绑定。实查更多入口→学期列表→日期明细→横屏→恢复方向→返回。横屏限宽、顶部安全区、明细可读；设备旋转设置已还原。未改用户课程。
-- 日志：E:/C015/99-整理记录/next-delivery-final-build.log、next-delivery-device-tests-final.txt、next-delivery-color-confetti-final.txt。虚构样板截图reading-light-final.png、brand-confetti-final.png。真实平板截图仅留本地semester-pad-*，不提交含个人课表的图像。
+- 日志：本机证据目录/next-delivery-final-build.log、next-delivery-device-tests-final.txt、next-delivery-color-confetti-final.txt。虚构样板截图reading-light-final.png、brand-confetti-final.png。真实平板截图仅留本地semester-pad-*，不提交含个人课表的图像。
 - 初次失败包括新增路由后旧测试硬编码19条、测试fixture遗漏color/错误方法名，以及过早安装旧AndroidTest包导致测试类不匹配；均已纠正并用成功构建重装后复测。不能把那些失败日志作为最终结果。
 
 ## 未完成与下一步
@@ -27,7 +29,7 @@
 4. 品牌系统关闭动画与真机性能差值未补验；实现有减少动画分支与有限生命周期，不等同于实测性能通过。
 5. 原冷启动/小组件首次过渡/全页面流畅度、长期通知与OEM岛、跨品牌组件、TalkBack、生产玻璃遗留不关闭。
 
-候选APK：E:/C015/交付/Classy-课程阅读与学期安排-20261014/Classy-test-arm64.apk。没有发布新tag/Release，0.1.0正式版不变。
+候选APK：交付目录/Classy-课程阅读与学期安排-20261014/Classy-test-arm64.apk。没有发布新tag/Release，0.1.0正式版不变。
 
 
 ### 2026-10-14 学期安排结构修订

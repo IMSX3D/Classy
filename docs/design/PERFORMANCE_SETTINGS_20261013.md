@@ -1,5 +1,7 @@
 # PERF-01：设置导航复测与候选撤回
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 最新结论见[有边界的最终验证](PERFORMANCE_BOUNDED_20261013.md)：2026-10-13专项未得到可交付修复，候选已撤回，本轮结束，不自动延长。以下为历史证据，不作为下一轮自动调度指令。
 
 本轮结论：定位取得进展，尚未证明流畅度改善。只保留 benchmark 定位标记与复测工具；生产布局和动画不变。W2及批次1未完成。
@@ -34,7 +36,7 @@ Janky为gfxinfo当前指标，未混入legacy；P95/P99单位ms。聚合数不�
 
 ## 证据索引与接续
 
-原始证据位于工作区外于Git管理的`E:/C015/99-整理记录/mainline-navigation/`：
+原始证据位于工作区外于Git管理的`本机证据目录/mainline-navigation/`：
 
 - resume-environment.json；resume-baseline-{0..3}.txt。
 - resume-traced-baseline-{0..3}.txt；resume-segment-candidate-{0..3}.txt。
@@ -42,7 +44,7 @@ Janky为gfxinfo当前指标，未混入legacy；P95/P99单位ms。聚合数不�
 - resume-candidate/updated.perfetto-trace及attribution.csv；两份trace互不覆盖。
 - resume-restored/group-{0..3}.txt为恢复后的同路径复核。
 
-原始干净基线APK在`E:/C015/99-整理记录/mainline-resume-baseline.apk`，SHA256为67a6b2641ea03bc739dab1016e4864c4511b953533631677bf8dcb7ecc9272bd。最终构建日志mainline-measure-restored-build.log。原始设备证据不进Git。
+原始干净基线APK在`本机证据目录/mainline-resume-baseline.apk`，SHA256为67a6b2641ea03bc739dab1016e4864c4511b953533631677bf8dcb7ecc9272bd。最终构建日志mainline-measure-restored-build.log。原始设备证据不进Git。
 
 ## 主标签与课程链追加采样
 
@@ -81,4 +83,4 @@ Janky为gfxinfo当前指标，未混入legacy；P95/P99单位ms。聚合数不�
 
 此样本没有明显背景增量开销，整体约2.25–2.40%超时仍存在，不算流畅度通过。Legacy指标原样保留在原始txt，未与当前Janky指标混算。默认遮罩下棋盘背景/标题/课程可读，窄列长课程仍按省略显示，可进入详情阅读。结束已移除benchmark背景，正式用户背景未更改。
 
-证据均在E:/C015/99-整理记录：mainline-window-analysis/states、mainline-window-binder-analysis、mainline-binder-target/server的SQL与txt；mainline-navigation/background-tabs-20261013和no-background-tabs-20261013；mainline-background-grid截图。分析SQL针对具体slice ID不可跨trace直接复用，已保留对应trace。仓库采集配置补binder_driver。
+证据均在本机证据目录：mainline-window-analysis/states、mainline-window-binder-analysis、mainline-binder-target/server的SQL与txt；mainline-navigation/background-tabs-20261013和no-background-tabs-20261013；mainline-background-grid截图。分析SQL针对具体slice ID不可跨trace直接复用，已保留对应trace。仓库采集配置补binder_driver。

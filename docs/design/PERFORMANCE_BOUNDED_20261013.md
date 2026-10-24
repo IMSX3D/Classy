@@ -1,5 +1,7 @@
 # PERF-01 有边界的最后一轮验证（2026-10-13）
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 结论：本轮未得到可交付的性能修复。实验代码已全部撤回，应用源码保持a8aa3e2。不能宣布“所有页面丝滑”。本轮结束后不自动延长性能调查；建议先搁置这一专项，保留具体问题与证据，其他主线缺口独立安排。
 
 ## 授权与边界
@@ -38,7 +40,7 @@
 
 ## 证据
 
-根目录：E:/C015/99-整理记录/。
+根目录：本机证据目录。
 
 - perf-bounded-run.py：两条链统一采样；依赖同目录stage2-vivo-phone-helper.py，组输出目录禁止覆盖。
 - perf-bounded/{baseline-settings,baseline-sheet,compiled-settings,compiled-sheet,cache-settings,restored-settings}：每组gfxinfo与环境JSON。

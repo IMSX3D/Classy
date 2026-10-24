@@ -1,5 +1,7 @@
 # 课程编辑状态与适配复核（2026-10-13）
 
+> 历史记录：本文写于 2026-10-13，记录当时的验收过程。"本机证据目录""交付目录"是开发者本机路径，不随仓库分发；结论与判据仍有效。
+
 本批承接8655e69，范围为组色确认、草稿恢复、旋转、键盘和可变窗口。性能专项保持搁置；没有重新探索玻璃、品牌或导航动效。
 
 ## 入口决策和修复
@@ -16,7 +18,7 @@
 
 ## 证据与边界
 
-原始日志均在E:/C015/99-整理记录/，平板截图在editor-state-tablet-device/。测试只使用独立Debug包及虚构数据，正式包未安装/改动。
+原始日志均在本机证据目录，平板截图在editor-state-tablet-device/。测试只使用独立Debug包及虚构数据，正式包未安装/改动。
 
 - JVM首轮2339项有1项源码字符串契约陈旧（新增忙时返回守卫），更新后通过。
 - 首次模拟器安装用了不存在的通用APK名，安装失败导致测试运行在旧应用；该轮4项失败不计候选结果。之后按x86_64分包安装并验证成功再测试。
@@ -49,7 +51,7 @@ PA2553（DPD2437）、Android16、1968×2800、400dpi、中文/深色/font1.0。
 - `editor-state-short-verified.log`：最终短横屏3项通过。中间固定按钮后的截图仍暴露错误文字被长说明推下；最终失败状态替换冗长说明，错误与按钮均可见，截图`editor-state-short-failure-verified.png`。旧`editor-state-short-failure.png`是中间候选，不能标通过。
 - 平板已退出本轮测试分屏，恢复原`accelerometer_rotation=1`、`user_rotation=1`，字号未改。设备仍未恢复应用画面，没有继续安装/操作；Debug中保留本轮创建的唯一虚构表Tablet-Editor-Fixture及课程Tablet-Draft，编辑中的Tablet-Rotated尚未保存。用户原有benchmark包未更改。后续恢复显示后先补验再清理该虚构表。
 - 平板直接操作验证的是较早的本轮Debug候选，包含组色写入/恢复修复；最后短窗口按钮、错误优先及文案修正只在模拟器验收，尚未覆盖安装平板。不要混写成最终包全链平板通过。
-- Release ARM64交付：`E:/C015/交付/Classy-编辑状态与组色-20261013/Classy-editor-state-arm64.apk`；SHA256 `96323A6874503ECA65C5977DCA50CBF447B49C3A3D1A5DFA394CEBF203177CF6`。未安装正式包，不推送、不改tag/Release。
+- Release ARM64交付：`交付目录/Classy-编辑状态与组色-20261013/Classy-editor-state-arm64.apk`；SHA256 `96323A6874503ECA65C5977DCA50CBF447B49C3A3D1A5DFA394CEBF203177CF6`。未安装正式包，不推送、不改tag/Release。
 
 - 最终宽屏1600×1200/240dpi/English1.5：11项中10过，组色测试点选后未找到取色框OK。测试补显式收键盘与等待Dialog，单独组色复测通过（editor-state-wide-retry.log）。没有因此另改生产点击逻辑，也不将该轮写成一次全过。宽屏错误截图editor-state-wide-failure-verified.png；模拟器已恢复540×960/240dpi/English1.5，测试包停止。
 
