@@ -35,7 +35,6 @@ class ThemeFollowSystemContractTest {
         sequenceOf(
             java.io.File("app/src/main/java/com/imsx3d/classy/"),
             java.io.File("src/main/java/com/imsx3d/classy/"),
-            java.io.File("/Users/lingion_k/sleepy/app/src/main/java/com/imsx3d/classy/")
         ).firstOrNull { it.isDirectory }?.let { root ->
             relPaths.map { java.io.File(root, it) }.firstOrNull { it.isFile }?.readText()
         } ?: error("Unable to load sources: ${relPaths.joinToString()}")
@@ -45,7 +44,6 @@ class ThemeFollowSystemContractTest {
         sequenceOf(
             java.io.File("app/src/main/AndroidManifest.xml"),
             java.io.File("src/main/AndroidManifest.xml"),
-            java.io.File("/Users/lingion_k/sleepy/app/src/main/AndroidManifest.xml")
         ).firstOrNull { it.isFile }?.readText() ?: error("Unable to load AndroidManifest.xml")
     }
 

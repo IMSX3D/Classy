@@ -44,19 +44,14 @@ class SepXrwStripInterceptorContractTest {
         val userDir = System.getProperty("user.dir")
         // cwd 推断: 子项目根 (Gradle 默认 test working dir = app/)
         val fromAppDir = if (userDir.endsWith("/app")) "$userDir/src/main/java/com/imsx3d/classy/ui/screen/imports/$filename" else "$userDir/$rel"
-        // 当前 worktree (d-pipeline) + 主仓兜底
-        val currentWorktree = "/Users/lingion_k/sleepy-worktrees/d-pipeline/$rel"
-        val mainRepo = "/Users/lingion_k/sleepy/$rel"
         return sequenceOf(
                 // 跨平台首选：build.gradle.kts 注入 sleepy.test.root（rootDir 绝对路径）
                 System.getProperty("sleepy.test.root")?.let { java.io.File(it, "$rel") },
                 java.io.File(rel),                       // cwd = 项目根
                 java.io.File(fromAppDir),                // cwd = app/ 子项目根
-                java.io.File(currentWorktree),           // worktree 绝对 (d-pipeline)
-                java.io.File(mainRepo),                  // 主仓绝对兜底
             ).filterNotNull().firstOrNull { it.isFile }
             ?.readText()
-            ?: error("Unable to load $filename source. Tried: $rel, $fromAppDir, $currentWorktree, $mainRepo")
+            ?: error("Unable to load $filename source. Tried: $rel, $fromAppDir")
     }
 
     // ---------- 接线: JwWebViewLoginScreen → JwWebViewClientBuilder ----------

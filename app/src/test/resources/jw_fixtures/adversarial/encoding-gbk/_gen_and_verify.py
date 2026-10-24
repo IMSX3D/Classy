@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # encoding-gbk 对抗样本组: 生成器 + JwOldZfParser(type=0)/JwNewZfParser(JSON 路径) 忠实移植验证
-# 移植自 /Users/lingion_k/Desktop/sleepy/app/src/main/java/com/lingion/sleepy/data/jw/JwOldZfParser.kt
+# 移植自上游 JwOldZfParser.kt（上游包名 com.lingion.sleepy，本仓库为 com.imsx3d.classy）
 # 只写 /tmp, 不碰 sleepy 仓库。
 import json, re, os, sys
 from html.parser import HTMLParser

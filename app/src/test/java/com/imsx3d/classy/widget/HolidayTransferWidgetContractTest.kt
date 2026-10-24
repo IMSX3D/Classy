@@ -12,8 +12,6 @@ class HolidayTransferWidgetContractTest {
     private fun src(rel: String): String = sequenceOf(
         System.getProperty("sleepy.test.root")?.let { java.io.File(it, "app/$rel") },
         java.io.File("app/$rel"),
-        java.io.File("/tmp/sleepy-makeup-wt/app/$rel"),
-        java.io.File("/Users/lingion_k/sleepy/app/$rel")
     ).filterNotNull().firstOrNull { it.isFile }?.readText() ?: error("Unable to load $rel")
 
     private val consumers = listOf(

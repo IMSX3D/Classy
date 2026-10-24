@@ -28,32 +28,27 @@ import org.junit.Test
  * ## 扫描策略 (Plan D 重构后)
  * 重构后回调搬进 [JwWebViewClientBuilder] 的 [JwWebViewClientImpl] (不再是 screen 内 inline),
  * 但 lint 不变量不变 — 整个 `ui.screen.imports` 包内任何 .kt 文件若定义这两个 override,
- * body 必须不能触碰 view.settings/view.url。扫描覆盖包内所有 .kt 源文件 (worktree / 主仓
- * 多候选路径),未来加新 interceptor 也会自动被扫描。
+ * body 必须不能触碰 view.settings/view.url。扫描覆盖包内所有 .kt 源文件（多候选根路径），未来加新 interceptor 也会自动被扫描。
  */
 class JwWebViewCallbackThreadAffinenessTest {
 
     /**
-     * 加载 ui.screen.imports 包内全部 .kt 源文件。从多个候选根路径 (cwd / 当前 worktree /
-     * 主仓兜底) 扫;Gradle test working dir 在子项目根,故子项目路径也兼容。
+     * 加载 ui.screen.imports 包内全部 .kt 源文件。候选根路径依次为 sleepy.test.root 注入的
+     * 仓库根、cwd 下的仓库根，以及 cwd 为 app/ 子项目时的上级路径。
      */
     private fun loadPackageSources(): List<Pair<String, String>> {
         val pkgDirRel = "app/src/main/java/com/imsx3d/classy/ui/screen/imports"
         val userDir = System.getProperty("user.dir") ?: ""
         val fromAppDir = if (userDir.endsWith("/app")) "$userDir/src/main/java/com/imsx3d/classy/ui/screen/imports"
                          else "$userDir/$pkgDirRel"
-        val currentWorktree = "/Users/lingion_k/sleepy-worktrees/d-pipeline/$pkgDirRel"
-        val mainRepo = "/Users/lingion_k/sleepy/$pkgDirRel"
         val roots = sequenceOf(
             // 跨平台首选：build.gradle.kts 注入 sleepy.test.root（rootDir 绝对路径）
             System.getProperty("sleepy.test.root")?.let { java.io.File(it, "$pkgDirRel") },
             java.io.File(pkgDirRel),
             java.io.File(fromAppDir),
-            java.io.File(currentWorktree),
-            java.io.File(mainRepo),
         )
         val firstExisting = roots.filterNotNull().firstOrNull { it.isDirectory } ?: error(
-            "No source root found for $pkgDirRel. Tried: $pkgDirRel, $fromAppDir, $currentWorktree, $mainRepo"
+            "No source root found for $pkgDirRel. Tried: $pkgDirRel, $fromAppDir"
         )
         return firstExisting.listFiles { f -> f.isFile && f.name.endsWith(".kt") }
             ?.map { it.name to it.readText() }

@@ -75,7 +75,7 @@ class MarkdownBlocksTest {
 
 ## 二级标题: 粗体和代码
 
-这一段里有 **粗体片段**、`inline_code` 和 [一个链接](https://github.com/lingion/sleepy) 混排, 用来验证行内三种 span 共存时的切分顺序。
+这一段里有 **粗体片段**、`inline_code` 和 [一个链接](https://github.com/IMSX3D/Classy) 混排, 用来验证行内三种 span 共存时的切分顺序。
 
 ### 三级标题: 列表形态
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 merged-rows 对抗样本组: 逐 token 重放验证脚本。
-只读 /Users/lingion_k/Desktop/sleepy 源码 + /tmp 样本, 不写 sleepy 仓库。
+只读本仓库源码 + /tmp 样本, 不写仓库。
 """
 import json, re, os, sys
 from html.parser import HTMLParser

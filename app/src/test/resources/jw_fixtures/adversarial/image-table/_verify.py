@@ -5,10 +5,11 @@ in the sibling .case.json (fields: courseCount / courses).
 
 Usage:  python3 _verify.py     (assumes _sim/Sim*.class are compiled)
 """
-import json, os, subprocess, sys
+import glob, json, os, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-JSOUP_JAR = "/Users/lingion_k/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.18.1/cb7cd991d47b44101cbe4655dec611cdc01f8a02/jsoup-1.18.1.jar"
+JSOUP_JAR = os.environ.get("JSOUP_JAR") or next(iter(glob.glob(os.path.expanduser(
+    "~/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.18.1/*/jsoup-1.18.1.jar"))), "")
 SIM = os.path.join(HERE, "_sim")
 
 # Which sim modes to probe per fixture. case.json courseCount must match at

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Cross-check all qz-base-crazy fixtures vs expected.json using the compiled Sim."""
-import json, os, subprocess, sys
+import glob, json, os, subprocess, sys
 
-JSOUP_JAR = "/Users/lingion_k/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.18.1/cb7cd991d47b44101cbe4655dec611cdc01f8a02/jsoup-1.18.1.jar"
+JSOUP_JAR = os.environ.get("JSOUP_JAR") or next(iter(glob.glob(os.path.expanduser(
+    "~/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.18.1/*/jsoup-1.18.1.jar"))), "")
 WORK = "/tmp/jw_fixtures/qz-base-crazy/_sim"
 DIR = "/tmp/jw_fixtures/qz-base-crazy"
 

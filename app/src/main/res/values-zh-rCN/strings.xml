@@ -718,10 +718,6 @@
     <string name="semester_ended">学期已结束</string>
     <string name="schedule_week_prefix">第 %1$d 周</string>
     <string name="today_semester_out_hint">学期范围外，课程仅供参考</string>
-    <string name="about_author">作者</string>
-    <string name="about_author_name">Lingion</string>
-    <string name="about_source">开源地址</string>
-    <string name="about_source_url">github.com/lingion/sleepy</string>
     <string name="about_license_title">开源声明</string>
     <string name="about_license_body">本应用部分教务导入适配参考了以下开源项目的公开实现。按跨校普适项目 / 单校项目两类组织，单校卡展开后可查看该校所参考的所有学生维护项目。
 

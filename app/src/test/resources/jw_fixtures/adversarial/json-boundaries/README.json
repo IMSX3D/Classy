@@ -2,7 +2,7 @@
   "_group": "json-boundaries",
   "_purpose": "对抗样本组: kbList JSON 边界 — null 字段/数字变字符串/jc 0102 vs 102/zcd 超长位图/JSON 内含 script 闭合标签转义 — 各 parser 不崩且语义正确。",
   "_codeRefs": {
-    "parser": "app/src/main/java/com/lingion/sleepy/data/jw/JwNewZfParser.kt",
+    "parser": "app/src/main/java/com/imsx3d/classy/data/jw/JwNewZfParser.kt",
     "keyLines": {
       "L42 markers": "parseEmbeddedJson markers = ['\"kbxx\"','\"tmp_list\"','\"xskbcx\"','xskbcx_json'] — 不含新正方标准 '\"kbList\"'",
       "L44-56 marker loop": "循环内 extractBalanced 命中第一个非空 result 后返回, 顺序依赖 marker 顺序",

@@ -25,8 +25,6 @@ class JwNeuWebViewContractTest {
     private val source: String = sequenceOf(
         System.getProperty("sleepy.test.root")?.let { java.io.File(it, "app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt") },
         java.io.File("app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt"),
-        java.io.File("/Users/lingion_k/sleepy/app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt"),
-        java.io.File(System.getProperty("user.dir"), "sleepy/app/src/main/java/com/imsx3d/classy/ui/screen/imports/JwWebViewLoginScreen.kt")
     ).filterNotNull().firstOrNull { it.isFile }
         ?.readText()
         ?: error("Unable to load JwWebViewLoginScreen.kt source")

@@ -39,7 +39,6 @@ class ScheduleReturnRestoreRaceContractTest {
         sequenceOf(
             File("app/src/main/java/com/imsx3d/classy/"),
             File("src/main/java/com/imsx3d/classy/"),
-            File("/Users/lingion_k/sleepy/app/src/main/java/com/imsx3d/classy/")
         ).firstOrNull { it.isDirectory }?.let { root ->
             relPaths.map { File(root, it) }.firstOrNull { it.isFile }?.readText()
         } ?: error("Unable to load sources: ${relPaths.joinToString()}")
