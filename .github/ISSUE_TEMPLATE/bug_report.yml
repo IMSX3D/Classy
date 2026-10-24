@@ -1,0 +1,76 @@
+name: Bug 报告
+description: 报告一个问题，帮助 Classy 变得更好
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。信息越具体，定位越快。
+
+        提交前请勿附带账号、密码或任何登录凭据；截图请先遮住个人信息。
+  - type: input
+    id: device
+    attributes:
+      label: 机型
+      placeholder: 例如 vivo X100、Pixel 8、小米平板 6
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android 版本
+      placeholder: 例如 Android 15
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Classy 版本
+      placeholder: 我的 → 关于 中的版本号，例如 v0.1.1
+    validations:
+      required: true
+  - type: dropdown
+    id: academic
+    attributes:
+      label: 是否与教务导入相关
+      options:
+        - 否
+        - 是
+    validations:
+      required: true
+  - type: input
+    id: school
+    attributes:
+      label: 学校与教务类型（仅教务导入问题时填写）
+      placeholder: 例如 某某大学 / 强智 zf_new
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 出现 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: 截图、录屏或日志
+      description: 可直接拖拽上传。请先遮住个人信息。
+    validations:
+      required: false

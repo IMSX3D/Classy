@@ -4,6 +4,11 @@
 <p align="center"><strong>时间，由你接管。<br>MAKE TIME YOURS.</strong></p>
 <p align="center">免费 · 开源 · 无广告<br>从今天到整个学期，在手机、平板和桌面看清课程安排。</p>
 <p align="center">
+  <a href="https://github.com/IMSX3D/Classy/releases/latest"><img src="https://img.shields.io/github/v/release/IMSX3D/Classy?style=flat-square&color=3DDC84" alt="最新版本"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/IMSX3D/Classy?style=flat-square&color=3DDC84" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+">
+</p>
+<p align="center">
   <a href="https://github.com/IMSX3D/Classy/releases/latest"><strong>下载 Android 版 ↗</strong></a> ·
   <a href="readme/README.en.md">English</a> ·
   <a href="readme/GUIDE.zh-CN.md">使用指南</a> ·
@@ -14,15 +19,50 @@
 
 课表该让你一眼看清，而不该占用更多时间。看整周的节奏，确认今天的教室，再把注意力留给生活。
 
+<details>
+<summary>目录</summary>
+
+- [一眼看完](#一眼看完)
+- [先用一段影片，感受 Classy](#先用一段影片感受-classy)
+- [整周有序，今天清楚](#整周有序今天清楚)
+- [把整个学期，看得更清楚](#把整个学期看得更清楚)
+- [不用打开 App，也能心中有数](#不用打开-app也能心中有数)
+- [你的课表，你的颜色](#你的课表你的颜色)
+- [换一张背景，也换一种心情](#换一张背景也换一种心情)
+- [在平板上，同样自然](#在平板上同样自然)
+- [日常操作，也值得认真设计](#日常操作也值得认真设计)
+- [支持哪些教务系统](#支持哪些教务系统)
+- [第一次用，也能轻松上手](#第一次用也能轻松上手)
+- [留一点惊喜，给愿意探索的你](#留一点惊喜给愿意探索的你)
+- [时间属于你，数据也是](#时间属于你数据也是)
+- [把课表装进口袋，把时间留给生活](#把课表装进口袋把时间留给生活)
+- [技术栈与构建](#技术栈与构建)
+- [一起，把日常做得更好](#一起把日常做得更好)
+
+</details>
+
+## 一眼看完
+
+| 你需要 | Classy 怎么做 |
+| --- | --- |
+| 导入已有课表 | 从 **349 所学校**的教务直接导入，也支持 ICS / CSV / 文本 / WakeUp 导入 |
+| 看清整周安排 | 网格、周视图、今日页三种密度，学期周次分布一目了然 |
+| 不打开 App 也能看 | 四种桌面小组件：今日·小 / 今日 / 两日 / 本周 |
+| 换设备、做备份 | 课表与作息导出为 Classy / ICS / CSV / HTML |
+| 离线可用 | 课表存在本地，日常查看不联网 |
+
 ## 先用一段影片，感受 Classy。
 
 只是个课表，有必要拍成这样吗？开启声音，看看 Classy 的这一面。
 
-### 完整宣传片 · 81.7 秒
+<details>
+<summary><strong>▶ 播放 81.7 秒完整宣传片</strong></summary>
 
 https://github.com/user-attachments/assets/ba42d6dc-2777-4322-be96-59e46d4fb9d7
 
 <sub>16:9 横屏 · 中英双语文案。影片使用真实产品界面，并包含课程展开、聚光与归位等概念化动效；这些宣传动画不代表 App 的原生操作效果。</sub>
+
+</details>
 
 ## 整周有序，今天清楚。
 
@@ -96,6 +136,23 @@ https://github.com/user-attachments/assets/ba42d6dc-2777-4322-be96-59e46d4fb9d7
 | 提前做好准备 | 设置课前提醒与每日摘要；送达与展示仍受系统权限和省电影响 |
 | 留存与迁移 | 导出课表和作息，便于备份、分享或换设备 |
 
+## 支持哪些教务系统？
+
+内置 **349 所**高校的教务适配，覆盖 **34 种**教务系统。其中数量最多的几类：
+
+| 教务系统 | 适配学校数 |
+| --- | --- |
+| 强智 `zf_new` | 124 |
+| 青果 `qz` | 67 |
+| 超星 `chaoxing` | 43 |
+| 金智 `wisedu` | 27 |
+| 正方 `classic_eams` | 19 |
+
+导入课表时选择教务系统，直接搜索学校名即可。完整清单见
+[`schools.json`](app/src/main/assets/schools.json)（截至 v0.1.1）。
+
+没有你的学校？可以先用 ICS / CSV / 文本导入，也欢迎[开 issue](https://github.com/IMSX3D/Classy/issues/new)告诉我们学校与教务类型。
+
 ## 第一次用，也能轻松上手。
 
 首次安装有可跳过的快速上手；以后随时到 **我的 → 使用指南** 重看。八个主题配有互动小示例，可以练习切周、看详情和调整显示，不改动真实课表。
@@ -126,6 +183,19 @@ Android 8.0 及以上。大多数手机和平板选择 **app-arm64-v8a-release.a
 [本次更新](docs/releases/v0.1.1.md) · [安装与使用](readme/GUIDE.zh-CN.md) · [问题反馈](https://github.com/IMSX3D/Classy/issues) · QQ **547991704**
 
 <sub>截图展示 v0.1.1 的实际界面，拍摄使用同源的真机测试包，课程均为虚构示例。图片只裁切系统栏、缩放并添加外部排版；点击可查看大图。两段品牌影片保留原版，包含历史界面与概念动效，以新版截图和实际应用为准。截图来源见 <a href="readme/media/v0.1.1/README.md">素材记录</a>。</sub>
+
+## 技术栈与构建
+
+Kotlin 2.1 · Jetpack Compose（Material 3）· Room · DataStore · WorkManager · Gradle 9.3.1
+最低 Android 8.0（API 26），compileSdk 37。
+
+```bash
+git clone https://github.com/IMSX3D/Classy.git
+cd Classy
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+签名配置、Preview 包、SDK 路径等完整步骤见[使用指南 · 从源码构建](readme/GUIDE.zh-CN.md#从源码构建)。
 
 ---
 

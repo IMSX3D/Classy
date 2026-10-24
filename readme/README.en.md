@@ -1,21 +1,61 @@
 <p align="center"><img src="logo.png" width="76" alt="Classy icon"></p>
 <h1 align="center">Classy</h1>
 <p align="center"><strong>MAKE TIME YOURS.</strong><br>Free, open-source and ad-free.<br>Your classes, from today to the whole semester — on your phone, tablet and home screen.</p>
+<p align="center">
+  <a href="https://github.com/IMSX3D/Classy/releases/latest"><img src="https://img.shields.io/github/v/release/IMSX3D/Classy?style=flat-square&color=3DDC84" alt="Latest release"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/github/license/IMSX3D/Classy?style=flat-square&color=3DDC84" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+">
+</p>
 <p align="center"><a href="https://github.com/IMSX3D/Classy/releases/latest"><strong>Download for Android ↗</strong></a> · <a href="../README.md">简体中文</a> · <a href="GUIDE.zh-CN.md">User guide (Chinese)</a></p>
 
 ![Real phone and tablet timetable screenshots using the same fictional sample schedule.](media/v0.1.1/hero.jpg)
 
 Your timetable should give you clarity at a glance. See the shape of your week, find today's classroom, then get on with your day.
 
+<details>
+<summary>Contents</summary>
+
+- [At a glance](#at-a-glance)
+- [See Classy in motion](#see-classy-in-motion)
+- [See the week. Focus on today](#see-the-week-focus-on-today)
+- [See the whole semester](#see-the-whole-semester)
+- [One glance, without opening the app](#one-glance-without-opening-the-app)
+- [Your timetable. Your colors](#your-timetable-your-colors)
+- [A background that feels like you](#a-background-that-feels-like-you)
+- [At home on a tablet](#at-home-on-a-tablet)
+- [Thoughtful everyday tools](#thoughtful-everyday-tools)
+- [Which academic systems are supported](#which-academic-systems-are-supported)
+- [Learn by trying](#learn-by-trying)
+- [A little surprise in About](#a-little-surprise-in-about)
+- [Your time. Your data](#your-time-your-data)
+- [Take your timetable with you](#take-your-timetable-with-you)
+- [Tech stack and build](#tech-stack-and-build)
+- [Built in the open](#built-in-the-open)
+
+</details>
+
+## At a glance
+
+| What you need | How Classy helps |
+| --- | --- |
+| Bring in an existing timetable | Import directly from academic systems at **349 schools**, or from ICS / CSV / text / WakeUp |
+| See the whole week | Weekly grid, day-by-day view and today's page — three densities, plus semester week blocks |
+| Check without opening the app | Four home-screen widgets: compact today / today / two days / week |
+| Back up or change devices | Export timetables and time schedules as Classy / ICS / CSV / HTML |
+| Work offline | The timetable lives on your device; everyday viewing needs no network |
+
 ## See Classy in motion.
 
 All this for a timetable? Sound on — see another side of Classy.
 
-### Full promotional film · 81.7 seconds
+<details>
+<summary><strong>▶ Play the 81.7-second film</strong></summary>
 
 https://github.com/user-attachments/assets/ba42d6dc-2777-4322-be96-59e46d4fb9d7
 
 16:9 landscape, with Chinese and English text. The film combines real product screens with conceptual motion graphics, including spotlighting and course-card assembly. These promotional animations do not represent native app interactions.
+
+</details>
 
 ## See the week. Focus on today.
 
@@ -83,6 +123,23 @@ Wide layouts use side navigation and give the timetable room to breathe. Setting
 | Prepare for the day | Before-class reminders and daily summaries, subject to system permissions and battery restrictions |
 | Keep a copy | Export courses and time schedules for backup, sharing or another device |
 
+## Which academic systems are supported?
+
+Classy ships with academic-system support for **349 schools**, covering **34 system types**. The largest groups:
+
+| System | Parser | Schools |
+| --- | --- | --- |
+| ZFsoft | `zf_new` | 124 |
+| Qingguo | `qz` | 67 |
+| Chaoxing | `chaoxing` | 43 |
+| Wisedu | `wisedu` | 27 |
+| Zhengfang (classic) | `classic_eams` | 19 |
+
+When importing a timetable, pick the academic system and search for your school. The full list is in
+[`schools.json`](app/src/main/assets/schools.json) (as of v0.1.1).
+
+Not your school? Import via ICS / CSV / text for now, or [open an issue](https://github.com/IMSX3D/Classy/issues/new) with your school and system type.
+
 ## Learn by trying.
 
 A skippable welcome helps new users get started. **My → User guide** stays available whenever you need it. Eight topics include interactive examples that do not change your real timetable.
@@ -113,6 +170,19 @@ An official version with the same signing identity can be upgraded in place. Exp
 [v0.1.1 release notes](../docs/releases/v0.1.1.md) · [Report an issue](https://github.com/IMSX3D/Classy/issues) · QQ **547991704**
 
 Screenshots show the v0.1.1 interface using fictional courses in a Preview build from the same application source. The pictured UI and artwork captions are in Chinese; the app also supports English. Screenshots are cropped around system bars, resized and arranged with external captions. The two original films include historical UI and conceptual motion graphics. See the [asset record](media/v0.1.1/README.md).
+
+## Tech stack and build
+
+Kotlin 2.1 · Jetpack Compose (Material 3) · Room · DataStore · WorkManager · Gradle 9.3.1
+Android 8.0 (API 26) or later, compileSdk 37.
+
+```bash
+git clone https://github.com/IMSX3D/Classy.git
+cd Classy
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+Signing, Preview builds and SDK paths are covered in the [user guide · build from source](GUIDE.zh-CN.md#从源码构建).
 
 ## Built in the open.
 
