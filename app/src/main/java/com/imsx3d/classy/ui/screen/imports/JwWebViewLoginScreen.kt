@@ -295,6 +295,12 @@ fun JwWebViewLoginScreen(
         bottomBar = {
             CaptureBar(
                 enabled = webViewRef != null,
+                hintTitle = if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                    stringResource(R.string.jw_chaoxing_kb_ready)
+                } else null,
+                hintBody = if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                    stringResource(R.string.jw_chaoxing_kb_hint)
+                } else null,
                 onCapture = {
                     val wv = webViewRef
                     if (wv == null) {
@@ -366,6 +372,13 @@ fun JwWebViewLoginScreen(
                     // queryKbForGrdb 个人课表 (无参, session 态) → getZclistByXnxq 节次时间
                     if (school.type == JwProtocol.TYPE_CHAOXING) {
                         evaluateFetchWithTimeout(wv, CHAOXING_FETCH_JS)
+                        return@CaptureBar
+                    }
+                    // 超星课表分享页 (…/curriculum/schedule.html?curriculumUuid=…):
+                    // 公开 visitor 课表层, 同一接口按 week 逐周取 lessonArray —
+                    // 不带 week 只回当前教学周, 必须并行抓 1..maxWeek 周合并。
+                    if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                        evaluateFetchWithTimeout(wv, CHAOXING_KB_FETCH_JS)
                         return@CaptureBar
                     }
                     // 博雅研究生平台 (/pp/ 前端, 首校燕山大学研究生): term 列表取学期+开学日 →
@@ -660,7 +673,12 @@ private fun JwWebView(
 }
 
 @Composable
-private fun CaptureBar(enabled: Boolean, onCapture: () -> Unit) {
+private fun CaptureBar(
+    enabled: Boolean,
+    hintTitle: String? = null,
+    hintBody: String? = null,
+    onCapture: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
@@ -672,12 +690,12 @@ private fun CaptureBar(enabled: Boolean, onCapture: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.jw_after_login),
+                text = hintTitle ?: stringResource(R.string.jw_after_login),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.jw_nav_hint),
+                text = hintBody ?: stringResource(R.string.jw_nav_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurface
             )

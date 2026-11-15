@@ -24,7 +24,7 @@ class JwParserRegistryTest {
             JwProtocol.TYPE_QZ, JwProtocol.TYPE_QZ_CRAZY, JwProtocol.TYPE_QZ_BR,
             JwProtocol.TYPE_QZ_WITH_NODE, JwProtocol.TYPE_QZ_OLD,
             JwProtocol.TYPE_SEU, JwProtocol.TYPE_ZJU, JwProtocol.TYPE_USTC, JwProtocol.TYPE_SCU, JwProtocol.TYPE_NEU,
-            JwProtocol.TYPE_BJTU,
+            JwProtocol.TYPE_BJTU, JwProtocol.TYPE_CHAOXING_KB,
         )
         for (t in types) {
             assertTrue("type $t must be routable", JwImportViewModel.isRoutable(t))
@@ -32,8 +32,8 @@ class JwParserRegistryTest {
     }
 
     @Test
-    fun `ALL_TYPES contains 36 routable types in priority order`() {
-        assertEquals(36, JwProtocol.ALL_TYPES.size)
+    fun `ALL_TYPES contains 37 routable types in priority order`() {
+        assertEquals(37, JwProtocol.ALL_TYPES.size)
         assertEquals(JwProtocol.TYPE_WISEDU, JwProtocol.ALL_TYPES.first())
         assertEquals(JwProtocol.TYPE_CQU, JwProtocol.ALL_TYPES[1])
         assertEquals(JwProtocol.TYPE_CHAOXING, JwProtocol.ALL_TYPES[2])
