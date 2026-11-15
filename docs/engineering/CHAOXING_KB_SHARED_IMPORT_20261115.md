@@ -93,6 +93,19 @@ data.lessonArray = [{
 
 同时该入口按钮文案在 `chaoxing_kb` 下改成「用此链接直接导入」——分享页公开可读，不是登录。
 
+## 节次时间补零（2026-11-15 第二次实机反馈）
+
+修好入口后真机已能抓到 47 门课、开始日期 2026-09-07、12 节/天，但确认页报
+「第 1 节时间无效（开始须早于结束）」。
+
+根因：分享页 `lessonTimeConfigArray` 是不补零的 `8:00-8:50`，而确认页校验要求
+`^\d{2}:\d{2}$` 且用字符串比较（`JwImportActivity` 的 confirm 校验）。桥回传的
+periods 原样透传 `8:00` → 校验失败。
+
+修复：`JwWebViewLoginScreen.normalizePeriodClock` 在 JS 桥解析 periods 时统一补零成
+`HH:mm`（所有 fetch 协议共用该归一；只补零/去空格，不猜缺失分钟，非法值原样留给
+确认页报错）。
+
 ## 测试
 
 - `JwChaoxingKbParserTest`：fixture 为实采结构脱敏数据（课名/教师/教室替换，
@@ -104,6 +117,8 @@ data.lessonArray = [{
   issue #25 行为不回退（门户 / 同协议 URL 仍映射目录条目）。
 - `JwChaoxingKbWebViewContractTest`：锁抓取分支与跨语言 invariant —
   JS 只做 fetch + 传输层归一，课程字段解码唯一落点在 Kotlin parser。
+- `JwPeriodClockNormalizationTest`：`8:00` → `08:00` 补零、已补零不变、
+  非法/越界值原样返回（第二次实机反馈）。
 - 既有 `JwParserRegistryTest` / `JwYethanParserTest` 的 `ALL_TYPES` 计数闸门 36 → 37。
 
 ## 已知边界
