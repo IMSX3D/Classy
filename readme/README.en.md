@@ -38,7 +38,7 @@ Your timetable should give you clarity at a glance. See the shape of your week, 
 
 | What you need | How Classy helps |
 | --- | --- |
-| Bring in an existing timetable | Import directly from academic systems at **349 schools**, or from ICS / CSV / text / WakeUp |
+| Bring in an existing timetable | Import directly from academic systems at **349 schools**, or from a Chaoxing timetable share link, ICS / CSV / text / WakeUp |
 | See the whole week | Weekly grid, day-by-day view and today's page — three densities, plus semester week blocks |
 | Check without opening the app | Four home-screen widgets: compact today / today / two days / week |
 | Back up or change devices | Export timetables and time schedules as Classy / ICS / CSV / HTML |
