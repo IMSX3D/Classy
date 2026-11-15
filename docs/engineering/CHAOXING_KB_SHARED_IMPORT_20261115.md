@@ -60,6 +60,8 @@ data.lessonArray = [{
 | --- | --- |
 | `data/jw/JwProtocol.kt` | `TYPE_CHAOXING_KB = "chaoxing_kb"`，displayName「超星课表分享」，category `chaoxing` |
 | `data/jw/JwImportViewModel.kt` | URL 判型：`curriculumUuid=` + `/curriculum/schedule` → `chaoxing_kb`（无 uuid 的页面不判） |
+| `ui/screen/imports/SchoolSelectScreen.kt` | 入口决策：URL 判型与目录条目协议冲突时不采用域名映射（见下节实机反馈） |
+| `data/jw/SchoolDomainMatch.kt` | `matchSchoolForUrlEntry`：判型优先的目录映射决策（纯函数，可测） |
 | `ui/screen/imports/JwChaoxingKbFetchJs.kt` | 逐周 fetch + 节次配置归一 + `{ok,data,periods,startDate}` 桥回传 |
 | `ui/screen/imports/JwWebViewLoginScreen.kt` | 抓取按钮分支 + 分享页专用底栏提示文案 |
 | `data/jw/JwParserRegistry.kt` | type → `JwChaoxingKbParser`，优先级 46 |
@@ -73,13 +75,33 @@ data.lessonArray = [{
 
 口径与既有 `JwChaoxingParser` / `JwWiseduParser` 的周次压缩一致。
 
+## URL 入口的目录映射冲突（2026-11-15 实机反馈）
+
+第一版实机把手机版分享链接粘进「自定义教务链接」时，URL 行显示「匹配学校：北京工业大学耿丹学院」而不是
+「检测到：超星课表分享」，点进去打开的是该校 `chaoxing` 综合教务登录页 → 0 课。
+
+根因不在判型，而在入口的域名映射：`SchoolDomainMatch.matchSchool` 按注册域匹配，`kb.chaoxing.com`
+与目录里 `*.jw.chaoxing.com` 的学校条目同属 `chaoxing.com`，于是「同域学校映射」（issue #25 为统一
+身份门户加的）覆盖了 URL 判型。
+
+修复原则：**URL 判型优先于域名映射**。新增 `SchoolDomainMatch.matchSchoolForUrlEntry`：
+
+- 有判型且与目录条目 `type` 不一致（含 typeless 条目）→ 不采用目录条目，
+  用 URL 判型建自定义条目；
+- 有判型且一致 → 仍采用目录条目（保留 issue #25 拿权威 URL 的行为）；
+- 无判型（门户 / CAS 页）→ 维持原域名映射。
+
+同时该入口按钮文案在 `chaoxing_kb` 下改成「用此链接直接导入」——分享页公开可读，不是登录。
+
 ## 测试
 
 - `JwChaoxingKbParserTest`：fixture 为实采结构脱敏数据（课名/教师/教室替换，
   字段名与周次形态保持原样）——逐周行合并、单双周、跨段周次、行内缺 `weeks`
   回退周桶、超 `maxWeek` 过滤、早期节次偏移、重复行去重、空/坏 JSON。
 - `JwChaoxingKbUrlDetectionTest`：PC/移动/镜像子路径/大写 URL 正例；
-  无 uuid、非课表路径、`jw.chaoxing.com/admin/login` 反例。
+  无 uuid、非课表路径、`jw.chaoxing.com/admin/login` 反例；以及入口域名映射冲突
+  （裸映射确实命中 `*.jw.chaoxing.com` 学校条目、组合决策必须保留判型）与
+  issue #25 行为不回退（门户 / 同协议 URL 仍映射目录条目）。
 - `JwChaoxingKbWebViewContractTest`：锁抓取分支与跨语言 invariant —
   JS 只做 fetch + 传输层归一，课程字段解码唯一落点在 Kotlin parser。
 - 既有 `JwParserRegistryTest` / `JwYethanParserTest` 的 `ALL_TYPES` 计数闸门 36 → 37。

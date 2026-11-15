@@ -467,6 +467,7 @@
     <string name="loading">Loading…</string>
     <string name="no_school_found">No matching schools</string>
     <string name="url_direct_login">Login with this URL</string>
+    <string name="url_import_direct">Import with this link</string>
     <string name="url_detected">Detected:</string>
     <string name="url_auto_detect">Auto-detect protocol</string>
     <string name="url_match_school">Matched school: %s</string>

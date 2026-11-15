@@ -71,4 +71,27 @@ object SchoolDomainMatch {
                 registrableDomain(hostOf(s.url)) == targetReg
         }
     }
+
+    /**
+     * 「自定义教务链接」入口的目录映射决策：URL 判型优先于域名映射。
+     *
+     * 同注册域 ≠ 同一个教务系统：`kb.chaoxing.com`(课表分享页) 与
+     * `bgd.jw.chaoxing.com`(北京工业大学耿丹学院综合教务) 同属 `chaoxing.com`，
+     * 直接用 [matchSchool] 会把分享链接改写成该校 `chaoxing` 登录页 → 必 0 课。
+     *
+     * 规则：
+     *  - 有 URL 判型且目录条目 type 与判型不一致 → 不采用目录条目
+     *    （typeless 条目也算不一致），保留自定义条目 + URL 判型；
+     *  - 有判型且一致 → 采用目录条目（拿权威 URL / 学校名，issue #25 行为）；
+     *  - 无判型（门户 / CAS 等）→ 维持原域名映射行为。
+     */
+    fun matchSchoolForUrlEntry(
+        url: String,
+        detectedType: String?,
+        catalog: List<JwSchoolInfo>,
+    ): JwSchoolInfo? {
+        val matched = matchSchool(url, catalog) ?: return null
+        if (!detectedType.isNullOrBlank() && matched.type != detectedType) return null
+        return matched
+    }
 }
