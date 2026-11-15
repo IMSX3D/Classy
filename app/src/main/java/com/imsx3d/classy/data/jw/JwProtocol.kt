@@ -211,6 +211,20 @@ object JwProtocol {
     const val TYPE_CHAOXING = "chaoxing"
 
     /**
+     * 超星「课表分享页」(kb.chaoxing.com/res/pc/curriculum/schedule.html?curriculumUuid=…)。
+     *
+     * 与 [TYPE_CHAOXING] (综合教务 /pkgl/xskb) 是**不同数据源**: 分享页是学习通课表
+     * 自带的公开课表层 (visitor 模式免登录), 学生转发课表 / 换机时拿到的就是这条
+     * 带 curriculumUuid 的链接。自建 REST:
+     *   GET /curriculum/getOtherLessons?curriculumUuid=…&week=N&curTime=…
+     * 不带 week 只回当前教学周, 须并行抓 1..maxWeek 周合并。
+     * 课程字段: name/teacherName/location/dayOfWeek/beginNumber/length/weeks;
+     * 节次时间 lessonTimeConfigArray; 开学日 firstWeekDateReal。
+     * 通用适配 (不锁学校) — 2026-11-15 用真实分享链接接口实采实锤。
+     */
+    const val TYPE_CHAOXING_KB = "chaoxing_kb"
+
+    /**
      * 博雅研究生平台 (超星 chaoxingbook 旗下"博雅研究生", 前端挂 /pp/ 路径)。
      * 自建 REST: GET /api/microForm/term (学期含 termBeginTime/weekEnd) +
      * GET /api/schedule/class/setting/current (lessonConfig 节次时间) +
@@ -262,7 +276,7 @@ object JwProtocol {
      */
     val ALL_TYPES: List<String> = listOf(
         TYPE_WISEDU, TYPE_CQU, TYPE_CHAOXING, TYPE_BOYA_PP, TYPE_EAMS5, TYPE_CLASSIC_EAMS, TYPE_KUST, TYPE_NUIT, TYPE_PKU, TYPE_BNUZ,
-        TYPE_CF, TYPE_CF_NEW, TYPE_HNUST, TYPE_HNIU,
+        TYPE_CF, TYPE_CF_NEW, TYPE_CHAOXING_KB, TYPE_HNUST, TYPE_HNIU,
         TYPE_SEU, TYPE_ZJU, TYPE_USTC, TYPE_SCU, TYPE_NEU, TYPE_WHUT,
         TYPE_BJTU, TYPE_YETHAN, TYPE_GXZYXYSY,
         TYPE_ZF, TYPE_ZF_1, TYPE_URP, TYPE_URP_NEW, TYPE_ZF_NEW,
@@ -300,6 +314,7 @@ object JwProtocol {
         TYPE_WISEDU -> "金智教务（直连）"
         TYPE_CQU -> "重庆大学门户"
         TYPE_CHAOXING -> "超星综合教务"
+        TYPE_CHAOXING_KB -> "超星课表分享"
         TYPE_BOYA_PP -> "博雅研究生平台"
         TYPE_HNUST -> "湖南科大教务"
         TYPE_HNIU -> "湖南信息职业技术学院"
@@ -333,6 +348,7 @@ object JwProtocol {
         TYPE_WISEDU -> "wisedu"
         TYPE_CQU -> "cqu"
         TYPE_CHAOXING -> "chaoxing"
+        TYPE_CHAOXING_KB -> "chaoxing"
         TYPE_BOYA_PP -> "other"
         TYPE_EAMS5 -> "eams5"
         TYPE_CLASSIC_EAMS, TYPE_KUST, TYPE_NUIT -> "other"
@@ -344,4 +360,19 @@ object JwProtocol {
         TYPE_PKU, TYPE_BNUZ -> "other"
         else -> "other"
     }
+
+    /**
+     * 面向用户的「来源名」，用于从教务更新复核页等身份确认文案。
+     *
+     * 「自定义教务链接」入口建的条目 name 是通用占位「自定义教务」、sortKey 为空串；
+     * 此时优先显示协议名（如「超星课表分享」），否则用户无法确认自己在更新哪个来源。
+     * 学校目录条目仍显示学校名。
+     */
+    fun sourceDisplayName(school: JwSchoolInfo): String =
+        if (school.sortKey.isBlank()) {
+            // displayName 对未知 type 会原样返回 type 串（不是给人看的名字）→ 回退条目名
+            displayName(school.type).takeIf { it.isNotBlank() && it != school.type } ?: school.name
+        } else {
+            school.name
+        }
 }

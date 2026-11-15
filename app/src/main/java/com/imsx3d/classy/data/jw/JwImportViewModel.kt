@@ -308,6 +308,11 @@ class JwImportViewModel(application: Application) : AndroidViewModel(application
          */
         internal fun detectProtocolFromUrlImpl(u: String): String? = when {
             u.matches(Regex("https?://jw\\.gxzyxysy\\.com(?::443)?/student/.*")) -> JwProtocol.TYPE_GXZYXYSY
+            // ⓪a 超星课表分享页 (…/res/pc/curriculum/schedule.html?curriculumUuid=…)。
+            //     公开 visitor 课表层, 数据在 /curriculum/getOtherLessons JSON 接口,
+            //     页面 HTML 无课程数据; 与综合教务 (/admin 登录页) 是不同数据源。
+            //     必须带 curriculumUuid — 无 uuid 的 schedule.html 是"我的课表"登录态页面。
+            u.contains("curriculumuuid=") && u.contains("/curriculum/schedule") -> JwProtocol.TYPE_CHAOXING_KB
             // ⓪ CAS / authserver 统一身份认证网关页：只是一跳中转，不当任何协议指纹。
             //    service= 参数里常带 jwglxt 等业务路径，不与业务锚点同判（fp.cas-gateway）。
             u.matches(Regex(""".*/cas/login.*"""))

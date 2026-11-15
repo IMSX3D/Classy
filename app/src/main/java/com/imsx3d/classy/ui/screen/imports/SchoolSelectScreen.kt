@@ -257,8 +257,14 @@ fun SchoolSelectScreen(
             if (isUrl) {
                 // issue #25: 输入 URL 的注册域若与目录条目同域, 直接映射到目录条目
                 // (拿权威教务 URL + 协议 type), 而不是建 type=null 的自定义条目。
-                val matchedSchool = remember(query, schools) {
-                    SchoolDomainMatch.matchSchool(normalizeUrl(query.trim()), schools)
+                // URL 判型优先: 同注册域 ≠ 同一教务系统 (如 kb.chaoxing.com 分享页
+                // 与 *.jw.chaoxing.com 学校综合教务), 判型与条目协议冲突时不采用条目。
+                val matchedSchool = remember(query, schools, urlProtocol) {
+                    SchoolDomainMatch.matchSchoolForUrlEntry(
+                        normalizeUrl(query.trim()),
+                        urlProtocol,
+                        schools,
+                    )
                 }
                 UrlDirectRow(
                     url = query.trim(),
@@ -610,7 +616,12 @@ private fun UrlDirectRow(url: String, protocolType: String?, matchedSchool: JwSc
         Spacer(modifier = Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.url_direct_login),
+                // 超星课表分享页公开可读, 无需登录 — 按钮文案不能再说"登录"
+                text = if (protocolType == JwProtocol.TYPE_CHAOXING_KB) {
+                    stringResource(R.string.url_import_direct)
+                } else {
+                    stringResource(R.string.url_direct_login)
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.primary
             )

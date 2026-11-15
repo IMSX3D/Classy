@@ -67,6 +67,23 @@ import com.imsx3d.classy.ui.theme.primaryFilledButtonColors
 /** fetch JS 注入超时: 教务宕机时 20s 无桥回调即报超时, 禁无限 pending。 */
 private const val FETCH_TIMEOUT_MS = 20_000L
 
+/**
+ * 桥回传节次时间统一成确认页要求的 `HH:mm`。
+ *
+ * 部分教务/分享页的时间配置是不补零的 `8:00-8:50`（超星课表分享实采），
+ * 而确认页校验用 `^\d{2}:\d{2}$` + 字符串比较（JwImportActivity），
+ * 不归一会误报「第 1 节时间无效（开始须早于结束）」（2026-11-15 真机反馈）。
+ * 只补零/去空格，不猜测缺失分钟；无法解析的原样返回，交给确认页报错。
+ */
+internal fun normalizePeriodClock(raw: String): String {
+    val t = raw.trim()
+    val m = Regex("""^(\d{1,2}):(\d{1,2})$""").matchEntire(t) ?: return t
+    val hour = m.groupValues[1].toIntOrNull() ?: return t
+    val minute = m.groupValues[2].toIntOrNull() ?: return t
+    if (hour !in 0..23 || minute !in 0..59) return t
+    return "%02d:%02d".format(hour, minute)
+}
+
 /** Chrome 121 / Windows 10 桌面 UA — 无 Android; Safari 等 iPhone 词汇, 触发门户桌面版布局 */
 private const val DESKTOP_USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -161,8 +178,8 @@ fun JwWebViewLoginScreen(
                             val p = periodsArr.getJSONObject(i)
                             periods += Triple(
                                 p.optInt("node", i + 1),
-                                p.optString("start", ""),
-                                p.optString("end", "")
+                                normalizePeriodClock(p.optString("start", "")),
+                                normalizePeriodClock(p.optString("end", ""))
                             )
                         }
                     }
@@ -295,6 +312,12 @@ fun JwWebViewLoginScreen(
         bottomBar = {
             CaptureBar(
                 enabled = webViewRef != null,
+                hintTitle = if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                    stringResource(R.string.jw_chaoxing_kb_ready)
+                } else null,
+                hintBody = if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                    stringResource(R.string.jw_chaoxing_kb_hint)
+                } else null,
                 onCapture = {
                     val wv = webViewRef
                     if (wv == null) {
@@ -366,6 +389,13 @@ fun JwWebViewLoginScreen(
                     // queryKbForGrdb 个人课表 (无参, session 态) → getZclistByXnxq 节次时间
                     if (school.type == JwProtocol.TYPE_CHAOXING) {
                         evaluateFetchWithTimeout(wv, CHAOXING_FETCH_JS)
+                        return@CaptureBar
+                    }
+                    // 超星课表分享页 (…/curriculum/schedule.html?curriculumUuid=…):
+                    // 公开 visitor 课表层, 同一接口按 week 逐周取 lessonArray —
+                    // 不带 week 只回当前教学周, 必须并行抓 1..maxWeek 周合并。
+                    if (school.type == JwProtocol.TYPE_CHAOXING_KB) {
+                        evaluateFetchWithTimeout(wv, CHAOXING_KB_FETCH_JS)
                         return@CaptureBar
                     }
                     // 博雅研究生平台 (/pp/ 前端, 首校燕山大学研究生): term 列表取学期+开学日 →
@@ -660,7 +690,12 @@ private fun JwWebView(
 }
 
 @Composable
-private fun CaptureBar(enabled: Boolean, onCapture: () -> Unit) {
+private fun CaptureBar(
+    enabled: Boolean,
+    hintTitle: String? = null,
+    hintBody: String? = null,
+    onCapture: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
@@ -672,12 +707,12 @@ private fun CaptureBar(enabled: Boolean, onCapture: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.jw_after_login),
+                text = hintTitle ?: stringResource(R.string.jw_after_login),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.jw_nav_hint),
+                text = hintBody ?: stringResource(R.string.jw_nav_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurface
             )

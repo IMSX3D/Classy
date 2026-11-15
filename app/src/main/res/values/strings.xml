@@ -608,6 +608,8 @@
     <string name="jw_after_login">完成登录后</string>
     <string name="jw_nav_hint">打开“个人课表”页面后，再点击导入</string>
     <string name="jw_import_page">导入此页</string>
+    <string name="jw_chaoxing_kb_ready">已打开课表分享页</string>
+    <string name="jw_chaoxing_kb_hint">确认课表内容已显示后，再点击导入</string>
     <string name="jw_fetch_timeout">抓取超时：教务服务器长时间无响应，请检查网络后重试</string>
     <string name="jw_fetch_no_courses">抓取成功但未解析到课程：请确认页面已显示本学期课表且学期选择正确</string>
     <string name="jw_refresh">刷新当前页面</string>
@@ -619,10 +621,11 @@
     <string name="search_school">搜索学校…</string>
     <string name="search_school_url">搜索学校或输入教务系统 URL…</string>
     <string name="custom_url_entry">自定义教务链接</string>
-    <string name="custom_url_entry_hint">学校不在列表？粘贴教务系统网址直接导入</string>
+    <string name="custom_url_entry_hint">学校不在列表？粘贴教务系统网址或超星课表分享链接直接导入</string>
     <string name="loading">加载中…</string>
     <string name="no_school_found">未找到匹配的学校</string>
     <string name="url_direct_login">直接用此 URL 登录</string>
+    <string name="url_import_direct">用此链接直接导入</string>
     <string name="url_detected">检测到：</string>
     <string name="url_auto_detect">自动检测协议类型</string>
     <string name="url_match_school">匹配学校：%s</string>

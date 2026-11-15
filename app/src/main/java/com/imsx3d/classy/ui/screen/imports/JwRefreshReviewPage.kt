@@ -40,7 +40,12 @@ internal fun JwRefreshReviewPage(tableId: Long, school: JwSchoolInfo, incoming: 
         error = false
         try { plan = repository.prepareJwRefresh(tableId, incoming, school) }
         catch (e: kotlinx.coroutines.CancellationException) { throw e }
-        catch (_: Exception) { error = true }
+        catch (e: Exception) {
+            // 复核页只有一句通用文案；异常原因（missing/range/source/school/stale…）
+            // 留给 logcat，否则真机反馈无法定位（2026-11-15 首次刷新失败即卡在无日志）。
+            android.util.Log.e("JwRefresh", "prepareJwRefresh failed table=$tableId", e)
+            error = true
+        }
     }
     ImportReviewPage(useWindow = false, scrollContent = false, busy = busy, onDismissRequest = onBack,
         title = { Text(stringResource(R.string.schedule_refresh_school)) },
@@ -75,7 +80,7 @@ internal fun JwRefreshReviewPage(tableId: Long, school: JwSchoolInfo, incoming: 
                 }
                 item {
                 if (p.additions.isEmpty() && p.removals.isEmpty()) SupportingText(stringResource(R.string.jw_refresh_no_changes))
-                SettingsGroupRow(stringResource(R.string.jw_refresh_term, school.name, p.table.startDate),
+                SettingsGroupRow(stringResource(R.string.jw_refresh_term, JwProtocol.sourceDisplayName(school), p.table.startDate),
                     onClick = if (busy) null else ({ confirmedStart = if (termConfirmed) null else p.table.startDate }),
                     modifier = Modifier.semantics { role = Role.Checkbox; toggleableState = ToggleableState(termConfirmed) },
                     trailing = { Checkbox(termConfirmed, null, enabled = !busy) })
@@ -96,7 +101,10 @@ internal fun JwRefreshReviewPage(tableId: Long, school: JwSchoolInfo, incoming: 
                         onFinished()
                     }
                     catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                    catch (_: Exception) { error = true }
+                    catch (e: Exception) {
+                        android.util.Log.e("JwRefresh", "applyJwRefresh failed table=$tableId", e)
+                        error = true
+                    }
                     finally { busy = false }
                 }
             }, enabled = plan != null && termConfirmed && !busy && !error, modifier = Modifier.fillMaxWidth()) {
