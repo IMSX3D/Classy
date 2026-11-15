@@ -360,4 +360,19 @@ object JwProtocol {
         TYPE_PKU, TYPE_BNUZ -> "other"
         else -> "other"
     }
+
+    /**
+     * 面向用户的「来源名」，用于从教务更新复核页等身份确认文案。
+     *
+     * 「自定义教务链接」入口建的条目 name 是通用占位「自定义教务」、sortKey 为空串；
+     * 此时优先显示协议名（如「超星课表分享」），否则用户无法确认自己在更新哪个来源。
+     * 学校目录条目仍显示学校名。
+     */
+    fun sourceDisplayName(school: JwSchoolInfo): String =
+        if (school.sortKey.isBlank()) {
+            // displayName 对未知 type 会原样返回 type 串（不是给人看的名字）→ 回退条目名
+            displayName(school.type).takeIf { it.isNotBlank() && it != school.type } ?: school.name
+        } else {
+            school.name
+        }
 }

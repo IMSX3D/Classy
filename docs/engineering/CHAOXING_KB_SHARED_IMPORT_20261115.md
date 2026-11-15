@@ -62,6 +62,7 @@ data.lessonArray = [{
 | `data/jw/JwImportViewModel.kt` | URL 判型：`curriculumUuid=` + `/curriculum/schedule` → `chaoxing_kb`（无 uuid 的页面不判） |
 | `ui/screen/imports/SchoolSelectScreen.kt` | 入口决策：URL 判型与目录条目协议冲突时不采用域名映射（见下节实机反馈） |
 | `data/jw/SchoolDomainMatch.kt` | `matchSchoolForUrlEntry`：判型优先的目录映射决策（纯函数，可测） |
+| `data/jw/JwImportDraft.kt` | 草稿 / 刷新基线解码：自定义条目（sortKey 空串）不再被拒 |
 | `ui/screen/imports/JwChaoxingKbFetchJs.kt` | 逐周 fetch + 节次配置归一 + `{ok,data,periods,startDate}` 桥回传 |
 | `ui/screen/imports/JwWebViewLoginScreen.kt` | 抓取按钮分支 + 分享页专用底栏提示文案 |
 | `data/jw/JwParserRegistry.kt` | type → `JwChaoxingKbParser`，优先级 46 |
@@ -106,6 +107,23 @@ periods 原样透传 `8:00` → 校验失败。
 `HH:mm`（所有 fetch 协议共用该归一；只补零/去空格，不猜缺失分钟，非法值原样留给
 确认页报错）。
 
+## 「从教务更新」失败（2026-11-15 第三次实机反馈）
+
+导入并确认成功后（导出文本核对：47 条课程、开始日 2026-09-07、20 周、12 节），
+点「从教务更新」的差异复核页报「未更新…」，没有任何增减列表。
+
+根因：自定义链接入口建出的 `JwSchoolInfo` `sortKey` 恒为空串（不是目录学校），而
+`JwImportDraftCodec.schoolFromJson` 把 `sortKey` 当必填字段校验 → 导入时写入的
+`jwSourceJson` 刷新基线解码失败 → `JwRefresh.plan` 的 `require(source != null)`
+抛异常。副作用：这类导入的**导入草稿恢复**也会失败（同款解码）。
+
+修复：`schoolFromJson` 只要求 `name` 非空，`sortKey` 仅用于学校列表分组、不参与来源
+身份校验（空 sk 的自定义条目现在能正常写/读草稿与刷新基线）。
+
+复核页的来源确认文案也会显示 `JwProtocol.sourceDisplayName(school)`：自定义链接条目的
+`name` 是通用占位「自定义教务」，优先显示协议名（如「超星课表分享」）；学校目录条目
+仍显示学校名。
+
 ## 测试
 
 - `JwChaoxingKbParserTest`：fixture 为实采结构脱敏数据（课名/教师/教室替换，
@@ -119,6 +137,9 @@ periods 原样透传 `8:00` → 校验失败。
   JS 只做 fetch + 传输层归一，课程字段解码唯一落点在 Kotlin parser。
 - `JwPeriodClockNormalizationTest`：`8:00` → `08:00` 补零、已补零不变、
   非法/越界值原样返回（第二次实机反馈）。
+- `JwRefreshCustomUrlSchoolTest`：自定义链接（sortKey 空串）来源的草稿与
+  `jwSourceJson` 刷新基线都能 round-trip，`JwRefresh.plan` 不再抛 `source`；
+  空校名仍被拒绝（第三次实机反馈）。
 - 既有 `JwParserRegistryTest` / `JwYethanParserTest` 的 `ALL_TYPES` 计数闸门 36 → 37。
 
 ## 已知边界

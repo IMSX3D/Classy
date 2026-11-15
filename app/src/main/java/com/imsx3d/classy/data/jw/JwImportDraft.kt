@@ -110,7 +110,11 @@ object JwImportDraftCodec {
     private fun schoolFromJson(json: JSONObject): JwSchoolInfo? {
         val sortKey = json.optString("sortKey", "")
         val name = json.optString("name", "")
-        if (sortKey.isBlank() || name.isBlank()) return null
+        // sortKey 只用于学校列表分组，不是来源身份的一部分：
+        // 「自定义教务链接」入口建的自定义条目 sortKey 恒为空串（见 SchoolSelectScreen），
+        // 若这里要求非空，这类导入的草稿与 jwSourceJson 刷新基线都会解码失败，
+        // 「从教务更新」直接报未更新（2026-11-15 真机反馈）。
+        if (name.isBlank()) return null
         val aliasesJson = json.optJSONArray("aliases")
         val aliases = if (aliasesJson == null) {
             emptyList()
