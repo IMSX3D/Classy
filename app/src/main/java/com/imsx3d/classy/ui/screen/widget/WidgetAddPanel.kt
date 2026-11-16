@@ -38,6 +38,9 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
     var snapshot by remember { mutableStateOf<WidgetDiscoverySnapshot?>(null) }
     var status by remember { mutableStateOf("") }
     var lastRequest by remember { mutableStateOf("none") }
+    // REQUESTED 只代表系统受理了请求；OEM 桌面可能不弹确认框（ColorOS 16 WidgetControl 白名单）。
+    // 失败/静默时把「手动添加」路径直接展示在按钮下方，不让用户再自己找「添加遇到问题」。
+    var lastPinResult by remember { mutableStateOf<WidgetPinResult?>(null) }
     var busy by remember { mutableStateOf(false) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     val diagnosticsVisible by rememberUpdatedState(expanded)
@@ -75,6 +78,7 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
                         busy = true
                         val result = WidgetDiscovery.requestPin(context, variant)
                         lastRequest = "${variant.receiverClass.simpleName}: $result"
+                        lastPinResult = result
                         status = context.getString(when (result) {
                             WidgetPinResult.REQUESTED -> R.string.widget_pin_requested
                             WidgetPinResult.UNSUPPORTED -> R.string.widget_pin_unsupported
@@ -89,6 +93,13 @@ fun WidgetAddPanel(onRefresh: () -> Unit) {
             }
         }
         if (status.isNotEmpty()) SupportingText(status, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        if (lastPinResult == WidgetPinResult.REQUESTED) {
+            // 系统受理 ≠ 桌面真的添加：ColorOS/部分 OEM 会静默关闭确认页（WIDGET-01）。
+            SupportingText(
+                stringResource(R.string.widget_pin_manual_hint),
+                Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
+            )
+        }
         SettingsGroupFold(
             title = stringResource(R.string.widget_diagnostics),
             expanded = expanded,
