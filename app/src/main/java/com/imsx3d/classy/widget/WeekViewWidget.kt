@@ -117,6 +117,7 @@ open class WeekViewWidgetReceiver : AppWidgetProvider() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        WidgetUpdater.handleFirstAddBroadcast(context, intent)
         if (intent.action == WidgetVendorActions.XIAOMI_UPDATE_ACTION) {
             WidgetVendorActions.dispatchXiaomiUpdate(this, context, intent)
         } else {

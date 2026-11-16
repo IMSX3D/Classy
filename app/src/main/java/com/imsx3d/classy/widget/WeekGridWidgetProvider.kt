@@ -56,6 +56,7 @@ open class WeekGridWidgetProvider : AppWidgetProvider() {
      * 系统广播 ANR 阈值(前台~10s/后台~60s)由 goAsync 续命, 实际工作在 Dispatchers.Default。
      */
     override fun onReceive(context: Context, intent: Intent) {
+        WidgetUpdater.handleFirstAddBroadcast(context, intent)
         if (intent.action == WidgetVendorActions.XIAOMI_UPDATE_ACTION) {
             WidgetVendorActions.dispatchXiaomiUpdate(this, context, intent)
         } else {

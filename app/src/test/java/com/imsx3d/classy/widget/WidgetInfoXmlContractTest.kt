@@ -15,7 +15,9 @@ import javax.xml.parsers.DocumentBuilderFactory
  *
  * 锁三层接线闭环:
  * 1. Manifest 里注册的每个 appwidget receiver 都带 meta-data 指向一个 *_widget_info.xml;
- * 2. 每个 info XML 都不声明 android:configure，添加到桌面时不弹白页;
+ * 2. 每个 info XML 都声明 android:configure 指向 WidgetConfigureActivity（首添时拉起
+ *    App 进程、解除 ColorOS 冻结态，否则 APPWIDGET_UPDATE 被 "Skip broadcast to frozen
+ *    process" 丢弃，组件停在透明 initialLayout），且该 Activity 用透明主题避免白屏闪烁;
  * 3. 每个 info XML 的 android:widgetFeatures 都含 reconfigurable，保留桌面长按编辑能力。
  */
 class WidgetInfoXmlContractTest {
@@ -238,22 +240,45 @@ class WidgetInfoXmlContractTest {
     }
 
     /**
-     * 添加组件时不得弹出强制配置页(白屏闪烁)。
-     * 所有现有变体首屏已自动绑定默认课表,无内容可让用户在首次添加时填写;
-     * 长按 → 编辑入口仍走应用内 WidgetEditScreen。所以这里强制不允许
-     * 任何 info XML 声明 `android:configure`。
+     * 每个 info XML 都必须声明 android:configure。
+     *
+     * 2026-11-16 真机根因：ColorOS 冻结后台进程时直接丢弃 APPWIDGET_UPDATE
+     * （dumpsys activity broadcasts 证据 "Skip broadcast to frozen process"），
+     * 新加组件停在透明 initialLayout，直到用户打开 App 解冻才渲染。声明
+     * android:configure 后，桌面在添加时会先拉起 WidgetConfigureActivity，
+     * 进程被唤醒，随后系统 UPDATE 广播即可送达并渲染。
+     *
+     * 白屏闪烁问题由透明主题（Theme.Sleepy.Translucent）规避；re-edit 路径在
+     * 代码里 setTheme(Theme.Sleepy) 恢复不透明 UI。
      */
     @Test
-    fun `no info xml declares android configure - add-to-home must be transparent`() {
+    fun `every info xml declares configure so add wakes frozen app`() {
         infoXmls.forEach { (name, root) ->
             assertEquals(
-                "$name must NOT declare android:configure " +
-                    "(it pops a white configure activity on add; the in-app " +
-                    "WidgetEditScreen handles reconfigure instead)",
-                "",
+                "$name must declare android:configure=com.imsx3d.classy.widget.WidgetConfigureActivity",
+                WidgetConfigureActivity::class.java.name,
                 root.getAttribute("android:configure")
             )
         }
+    }
+
+    /** 首添 configure 页必须是透明主题，避免添加时闪白页。 */
+    @Test
+    fun `configure activity uses translucent theme for first add`() {
+        val activities = manifest.getElementsByTagName("activity")
+        val configure = (0 until activities.length)
+            .map { activities.item(it) as Element }
+            .firstOrNull {
+                it.getAttribute("android:name").let { n ->
+                    n == ".widget.WidgetConfigureActivity" || n == WidgetConfigureActivity::class.java.name
+                }
+            }
+        assertTrue("manifest must declare WidgetConfigureActivity", configure != null)
+        assertEquals(
+            "first-add configure activity must use the translucent theme (no white flash)",
+            "@style/Theme.Sleepy.Translucent",
+            configure!!.getAttribute("android:theme")
+        )
     }
 
     /** R4: reconfigurable flag 是启动器显示长按"编辑"菜单的前提 */

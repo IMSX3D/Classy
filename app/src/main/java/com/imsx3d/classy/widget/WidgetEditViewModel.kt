@@ -84,7 +84,7 @@ class WidgetEditViewModel(
     /**
      * 设计 §6: 解析本实例的 receiver simpleName。
      * 首选 AppWidgetInfo.provider (绑定即有, 就是 receiver 本体);
-     * configure 仅作兜底 (本 app 未声明 android:configure, 恒 null — 2026-09-15 修正,
+     * configure 仅作兜底 (2026-11-16 起已声明 android:configure 用于首添唤醒冻结进程,
      * 此前只读 configure 导致族判断永远走"未知"分支)。
      * 实例已删除/厂商异常 → null (编辑页仍可用, 仅按族显隐的节按未知=隐藏)。
      */

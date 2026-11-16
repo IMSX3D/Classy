@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import com.imsx3d.classy.R
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -16,6 +17,12 @@ import com.imsx3d.classy.util.AppPrefs
  * Launcher entry point for configuring an individual widget.
  *
  * Two paths:
+ * Widgets declare this as `android:configure`, so the launcher launches it on
+ * first add. That launch is also how the app process gets woken from ColorOS'
+ * frozen state — otherwise the system skips APPWIDGET_UPDATE to a frozen
+ * process ("Skip broadcast to frozen process") and the widget stays on its
+ * transparent initialLayout until the user opens Classy.
+ *
  * - First add (no binding for [appWidgetId]): writes a sentinel binding
  *   (0L = "follow default") and finishes OK. No UI, no DB query, no
  *   main-thread blocking — keeps third-party launchers (lawnchair, OEM
@@ -52,9 +59,17 @@ class WidgetConfigureActivity : ComponentActivity() {
         // "拖到桌面上直接就没了" (2026-09-10 真机报告) + 模拟器 id=6 僵尸
         // binding 复现 (binding 在但 launcher 树从未 apply RemoteViews)。
         // 600ms 给足 launcher 侧 result 处理的裕量, 用户不可感知 (无 UI)。
+        //
+        // 2026-11-16: 声明 android:configure 后本 Activity 会在**首次添加时**
+        // 被桌面拉起，这正是把 App 进程从 ColorOS 冻结态唤醒（ColorOS 会
+        // "Skip broadcast to frozen process"，导致 APPWIDGET_UPDATE 到不了
+        // provider，组件停在透明 initialLayout）。这里先排一次 2.5s 后的补
+        // 渲染（WorkManager，进程此刻是暖的，广播可送达），系统随后的
+        // UPDATE 广播也能正常渲染。
         val existingBinding = WidgetBindingStore.get(this, appWidgetId)
         if (WidgetConfigureCore.isFirstAdd(existingBinding)) {
             WidgetBindingStore.put(this, appWidgetId, WidgetConfigureCore.FIRST_ADD_BINDING)
+            runCatching { WidgetUpdater.armFirstAddRefresh(this) }
             Log.i(TAG, "first-add: wrote sentinel binding for $appWidgetId, finishing OK in 600ms")
             window.decorView.postDelayed({
                 if (!isFinishing) finishWithResult(Activity.RESULT_OK)
@@ -63,7 +78,10 @@ class WidgetConfigureActivity : ComponentActivity() {
         }
 
         // Re-edit path: show the table picker. First-add remains a non-visual launcher handshake.
+        // Manifest 声明的是透明首添主题（避免添加时闪白页）；re-edit 需要不透明 UI，
+        // 在 setContent 前切回 Theme.Sleepy。
         showsEditor = true
+        setTheme(R.style.Theme_Sleepy)
         com.imsx3d.classy.ui.nav.TaskActivityTransitions.install(this)
         Log.i(TAG, "re-edit: existing binding=$existingBinding, showing edit screen")
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {

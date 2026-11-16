@@ -16,6 +16,21 @@
 
     <style name="Theme.Sleepy" parent="NightAdjusted.Theme.Sleepy" />
 
+    <!-- 小组件首添 configure 页：透明窗口，避免“添加时闪一下白页”。
+         2026-11-16：ColorOS 冻结后台进程时会直接丢弃 APPWIDGET_UPDATE
+         （dumpsys activity broadcasts 证据：Skip broadcast to frozen process），
+         新加组件停在 transparent initialLayout，直到用户打开 App 解冻才渲染。
+         声明 android:configure 后，添加流程会先拉起本 Activity（进程解冻/启动），
+         随后系统 UPDATE 广播即可送达并渲染。首添路径无 UI，用透明主题不着痕迹；
+         re-edit 路径在代码里 setTheme(Theme.Sleepy) 恢复不透明 UI。 -->
+    <style name="NightAdjusted.Theme.Sleepy.Translucent" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.Sleepy.Translucent" parent="NightAdjusted.Theme.Sleepy.Translucent" />
+
     <!-- 启动主题 (androidx core-splashscreen): 纯色底 + 居中启动图标。
          只在冷启动首屏存在, installSplashScreen() 立即切到 Theme.Sleepy。
          windowSplashScreenBackground 取 values(-night)/colors.xml 的
